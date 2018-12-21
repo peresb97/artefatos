@@ -1,0 +1,191 @@
+/*
+Nome				Tipo do dado no JRXML							Parâmetros obrigatório
+Esquema.caracter	java.lang.String								Nenhum
+Esquema.inteiro		java.lang.Long									Nenhum
+Esquema.numero		java.math.BigDecimal							Nenhum
+Esquema.data		java.util.Date									Nenhum
+Esquema.objeto		Utilização do "_" para acessar a propriedade	Lista de propriedades do objeto
+Esquema.lista		java.util.List									Esquema da lista
+
+esquema = [
+  nome: Esquema.caracter,
+  salario: Esquema.numero,
+  pai: Esquema.objeto([
+    nome: Esquema.caracter,
+    nascimento: Esquema.data,
+    dependentes: Esquema.lista(Esquema.objeto([
+      nome: Esquema.caracter,
+      idade: Esquema.inteiro
+    ]))
+  ])
+]
+
+*/
+paramAno = parametros.anoLetivo.valor
+paramEstabelecimento = parametros.estabelecimento.valor
+paramFuncionario = parametros.funcionario.valor
+paramTurma = parametros.turma.valor
+paramPeriodo = parametros.periodo.valor
+paramAdmin = parametros.admin.valor
+paramCoord = parametros.coord.valor
+//paramDisciplina = parametros.disciplina.valor
+
+esquema = [
+	turma: Esquema.caracter,
+	disciplina: Esquema.caracter,
+	periodo: Esquema.caracter,
+	estabelecimentoNome: Esquema.caracter,
+	estabelecimentoTelefone: Esquema.caracter,
+	estabelecimentoSite: Esquema.caracter,
+	estabelecimentoCidadeUF: Esquema.caracter,
+	professor: Esquema.caracter,
+	tema: Esquema.caracter,
+	tipoConteudo: Esquema.caracter,
+	ano: Esquema.inteiro,
+	curso: Esquema.caracter,
+	dataInicio: Esquema.data,
+	dataFim: Esquema.data,
+	matriz: Esquema.caracter,
+	turno: Esquema.caracter,
+	objetivosGerais: Esquema.caracter,
+	objetivosEspecificos: Esquema.caracter,
+	metodologiaUtilizada: Esquema.caracter,
+	praticasPedagogicas: Esquema.caracter,
+	recursosDidaticos: Esquema.caracter,
+	referenciasBibliograficas: Esquema.caracter,
+	diretor: Esquema.caracter,
+	diretorMatricula: Esquema.caracter,
+	coordenador: Esquema.caracter,
+	coordenadorMatricula: Esquema.caracter,
+	administrativo: Esquema.caracter,
+	administrativoMatricula: Esquema.caracter,
+	professorAssinatura: Esquema.caracter,
+	professorMatricula: Esquema.caracter,
+	totalAulas: Esquema.inteiro
+	
+]
+
+
+fonte = Dados.dinamico.v2.novo(esquema)
+
+
+fonteItemConteudoAula = Dados.profesores.v1.itemConteudoAula
+fonteEstabelecimentoEnd = Dados.profesores.v1.estabelecimento.endereco(campos:"estabEndereco.endereco.municipio.nome", criterio:"estabEndereco.estabelecimento.id = ${paramEstabelecimento}")
+fonteEquipeDir = Dados.profesores.v1.equipeDiretiva
+fonteAlocaAula = Dados.profesores.v1.alocacaoAula
+
+municipioEstab = fonteEstabelecimentoEnd[0].estabEndereco.endereco.municipio.nome
+
+diretor = ""
+diretorMatricula = ""
+coordenador = ""
+coordenadorMatricula = ""
+administrativo = ""
+administrativoMatricula = ""
+professorAssinatura = ""
+professorMatricula = ""
+totalAulas = 0
+
+
+// equipe diretiva
+percorrer(fonteEquipeDir.lista(campos:"id,funcionario.servidor.pessoa.nome, funcionario.matricula, funcionario.cargo.descricao, funcionario.cargoComissionado.descricao", criterio:"estabelecimento.id = ${paramEstabelecimento}")){eqpDir->
+
+	se(eqpDir.funcionario.cargo.descricao == "DIRETOR ESCOLAR" || eqpDir.funcionario.cargoComissionado.descricao == "DIRETOR ESCOLAR"){
+		diretor = eqpDir.funcionario.servidor.pessoa.nome
+		diretorMatricula = eqpDir.funcionario.matricula
+	}
+	se(eqpDir.id == paramCoord){
+		coordenador = eqpDir.funcionario.servidor.pessoa.nome
+		coordenadorMatricula = eqpDir.funcionario.matricula
+	}
+	se(eqpDir.id == paramAdmin){
+		administrativo = eqpDir.funcionario.servidor.pessoa.nome
+		administrativoMatricula = eqpDir.funcionario.matricula
+	}
+}
+
+
+crit = "alocacaoAula.anoLetivo.ano = ${paramAno} and alocacaoAula.estabelecimento.id = ${paramEstabelecimento}"
+/*se(paramTurma != nulo){
+	crit+= " and turma.id = ${paramTurma}"
+}*/
+se(paramTurma != nulo){
+	crit+= " and alocacaoAula.itemEducacional.id in ("
+	fonteTurmaFuncionario = Dados.profesores.v1.turmasFuncionarios.lista(campos:"turmaDisciplina.itemEducacional.id, turma.itemEducacional.id, turmaDisciplinaEjaModular.itemEducacional.id", criterio:"id = ${paramTurma}")
+	percorrer(fonteTurmaFuncionario){
+		imprimir item
+		se(item.turma.itemEducacional.id == nulo){
+			crit+= item.turmaDisciplina.itemEducacional.id + ","
+		} senao {
+			crit+= item.turma.itemEducacional.id + ","
+		}
+	}
+	crit+= "0)"
+} senao {
+	se(paramFuncionario != nulo){
+		fonteFuncionario = Dados.profesores.v1.funcionario.lista(campos:"servidor.id,matricula,servidor.pessoa.nome", criterio:"id = ${paramFuncionario}")
+		servidorID = fonteFuncionario[0].servidor.id
+		professorAssinatura = fonteFuncionario[0].servidor.pessoa.nome
+		professorMatricula = fonteFuncionario[0].matricula
+		crit+= " and itemConteudo.conteudo.servidor = ${servidorID}"
+	}
+}
+se(paramPeriodo != nulo){
+	crit+= " and alocacaoAula.periodoAvaliativo.descricao like '${paramPeriodo}'"
+}
+
+imprimir crit
+
+percorrer(fonteItemConteudoAula.lista(campos:"itemConteudo.conteudo.tema, itemConteudo.conteudo.dataInicio, itemConteudo.conteudo.dataFim, itemConteudo.conteudo.tipoConteudo, alocacaoAula.estabelecimento.pessoa.nome, alocacaoAula.estabelecimento.pessoa.telefone, alocacaoAula.estabelecimento.pessoa.site, alocacaoAula.servidor.pessoa.nome, alocacaoAula.itemEducacional.descricao, alocacaoAula.periodoAvaliativo.descricao, alocacaoAula.anoLetivo.ano, alocacaoAula.periodoAvaliativo.calendarioMatrizCurricular.matrizCurricular.curso.descricao, alocacaoAula.turma.descricao, itemConteudo.turma.etapaMatriz.matriz.descricao, itemConteudo.turma.turno, itemConteudo.turma.id, itemConteudo.conteudo.objetivosGerais, itemConteudo.conteudo.objetivosEspecificos, itemConteudo.conteudo.metodologiaUtilizada, itemConteudo.conteudo.praticasPedagogicas, itemConteudo.conteudo.recursosDidaticos, itemConteudo.conteudo.referenciasBibliograficas, alocacaoAula.periodoAvaliativo.id, alocacaoAula.itemEducacional.id, itemConteudo.id", criterio:crit, ordenacao:"alocacaoAula.turma.descricao asc, alocacaoAula.itemEducacional.descricao asc, alocacaoAula.periodoAvaliativo.descricao asc, alocacaoAula.data asc")){aulaCont->
+
+	se(paramFuncionario != nulo){
+		professorAssinatura = aulaCont.alocacaoAula.servidor.pessoa.nome
+		
+	}
+	
+	//  and periodoAvaliativo.id = ${aulaCont.alocacaoAula.periodoAvaliativo.id} and servidor.id = ${servidorID}
+	percorrer(fonteItemConteudoAula.lista(campos:"alocacaoAula.data", criterio:"itemConteudo.id = ${aulaCont.itemConteudo.id}")){aulaLoc->
+		totalAulas++
+	}
+	
+	imprimir "TEMA: " + aulaCont.itemConteudo.conteudo.tema + " | PERIODO: " + aulaCont.itemConteudo.conteudo.dataInicio + "/" + aulaCont.itemConteudo.conteudo.dataFim + " | TIPO: " + aulaCont.itemConteudo.conteudo.tipoConteudo + " | TOTAULAS: " + totalAulas + " | IDTURMA: " + aulaCont.itemConteudo.turma.id + " | IDPERIODO: " + aulaCont.alocacaoAula.periodoAvaliativo.id + " | IDPLANEJAMENTO " + aulaCont.itemConteudo.id
+	
+	fonte.inserirLinha(
+		turma: aulaCont.alocacaoAula.turma.descricao,
+		disciplina: aulaCont.alocacaoAula.itemEducacional.descricao,
+		periodo: aulaCont.alocacaoAula.periodoAvaliativo.descricao,
+		estabelecimentoNome: aulaCont.alocacaoAula.estabelecimento.pessoa.nome,
+		estabelecimentoTelefone: "(${aulaCont.alocacaoAula.estabelecimento.pessoa.telefone.esquerda(2)}) ${aulaCont.alocacaoAula.estabelecimento.pessoa.telefone.direita(8)}",
+		estabelecimentoSite: aulaCont.alocacaoAula.estabelecimento.pessoa.site,
+		estabelecimentoCidadeUF: municipioEstab,
+		professor: aulaCont.alocacaoAula.servidor.pessoa.nome,
+		tema: aulaCont.itemConteudo.conteudo.tema,
+		tipoConteudo: aulaCont.itemConteudo.conteudo.tipoConteudo,
+		ano: aulaCont.alocacaoAula.anoLetivo.ano,
+		curso: aulaCont.alocacaoAula.periodoAvaliativo.calendarioMatrizCurricular.matrizCurricular.curso.descricao,
+		dataInicio: aulaCont.itemConteudo.conteudo.dataInicio,
+		dataFim: aulaCont.itemConteudo.conteudo.dataFim,
+		matriz: aulaCont.itemConteudo.turma.etapaMatriz.matriz.descricao,
+		turno: aulaCont.itemConteudo.turma.turno,
+		objetivosGerais: aulaCont.itemConteudo.conteudo.objetivosGerais,
+		objetivosEspecificos: aulaCont.itemConteudo.conteudo.objetivosEspecificos,
+		metodologiaUtilizada: aulaCont.itemConteudo.conteudo.metodologiaUtilizada,
+		praticasPedagogicas: aulaCont.itemConteudo.conteudo.praticasPedagogicas,
+		recursosDidaticos: aulaCont.itemConteudo.conteudo.recursosDidaticos,
+		referenciasBibliograficas: aulaCont.itemConteudo.conteudo.referenciasBibliograficas,
+		diretor: diretor,
+		diretorMatricula: diretorMatricula,
+		coordenador: coordenador,
+		coordenadorMatricula: coordenadorMatricula,
+		administrativo: administrativo,
+		administrativoMatricula: administrativoMatricula,
+		professorAssinatura: professorAssinatura,
+		professorMatricula: professorMatricula,
+		totalAulas: totalAulas
+	)
+	
+	totalAulas = 0
+}
+
+
+retornar fonte

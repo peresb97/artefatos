@@ -1,0 +1,142 @@
+/*
+Esquema.caracter	java.lang.String								Nenhum
+Esquema.inteiro		java.lang.Long 									Nenhum
+Esquema.numero		java.math.BigDecimal							Nenhum
+Esquema.data		java.util.Date									Nenhum
+Esquema.objeto		Utilização do "_" para acessar a propriedade	Lista de propriedades do objeto
+Esquema.lista		java.util.List									Esquema da lista
+*/
+
+
+paramEstabelecimentoId = parametros.estabelecimento.valor
+paramFuncionarioId = parametros.funcionario.valor
+paramTurmaId = parametros.turma.valor
+paramDisciplinaDesc = parametros.disciplina
+paramPeriodoId = parametros.periodo.valor
+
+paramServidorId = 0
+
+percorrer(Dados.profesores.v1.funcionario.lista(campos:"servidor.id",criterio:"id = " + paramFuncionarioId)){func->
+	paramServidorId = func.servidor.id
+}
+
+retornoFonte = [
+  estabelecimentoNome: Esquema.caracter,
+  professorNome: Esquema.caracter,
+  turmaNome: Esquema.caracter,
+  disciplinaNome: Esquema.caracter,
+  periodoNome: Esquema.caracter,
+  turnoNome: Esquema.caracter,
+  horasPrevistas: Esquema.numero,
+  horasMinistradas: Esquema.numero,
+  periodoDataInicial: Esquema.data,
+  periodoDataFinal: Esquema.data,
+  totalDiasPrevistos: Esquema.inteiro,
+  totalDiasTrabalhados: Esquema.inteiro,
+  dataHoje: Esquema.caracter
+]
+
+
+fonte = Dados.dinamico.v2.novo(retornoFonte)
+fonteAlocacao = Dados.profesores.v1.alocacaoAula
+
+minutosPrevitos = 0
+minutosMinistrados = 0
+diasPrevistos = 0
+diasTrabalhados = 0
+
+
+estNome = ""
+perNome = ""
+profNome = ""
+dispNome = ""
+turNome = ""
+trnNome = ""
+perDataIni = Datas.hoje()
+perDataFim = Datas.hoje()
+
+dataInicio = Datas.hoje()
+dataFim = Datas.hoje()
+
+dataHojeExtenso = Datas.dia(Datas.hoje()) + " de " + Datas.nomeMes(Datas.hoje()) + " de " + Datas.ano(Datas.hoje())
+
+percorrer(fonteAlocacao.listar(campos:"estabelecimento.pessoa.nome, turma.descricao, servidor.pessoa.nome, data, inicioAula, fimAula, itemEducacional.descricao, periodoAvaliativo.descricao, periodoAvaliativo.dataInicial, periodoAvaliativo.dataFinal, turma.turno", criterio:"estabelecimento.id = " + paramEstabelecimentoId + " and servidor.id = " + paramServidorId + " and turma.id = " + paramTurmaId + " and itemEducacional.descricao like '" + paramDisciplinaDesc + "' and periodoAvaliativo.id = " + paramPeriodoId, ordenacao:"servidor.pessoa.nome asc, turma.id asc, itemEducacional.descricao asc, periodoAvaliativo.descricao asc")){auloca->
+  
+  dataInicio = Datas.dataHora(1800,1,1,(Numeros.numero(auloca.inicioAula.esquerda(2))),(Numeros.numero(auloca.inicioAula.subTexto(2,2))))
+  dataFim = Datas.dataHora(1800,1,1,(Numeros.numero(auloca.fimAula.esquerda(2))),(Numeros.numero(auloca.fimAula.subTexto(2,2))))
+  
+  //imprimir "Prof: " + pNome + " | Turma: " + tNome + " | Disciplina: " + discp + " | Minutos: " + minutosPrevitos
+  
+  se((profNome == auloca.servidor.pessoa.nome && auloca.turma.descricao == turNome && auloca.itemEducacional.descricao == dispNome && perNome == auloca.periodoAvaliativo.descricao) || profNome == ""){
+	minutosPrevitos = minutosPrevitos + Datas.diferencaMinutos(dataInicio,dataFim)
+    se (auloca.data <= Datas.hoje()){
+    	minutosMinistrados = minutosMinistrados + Datas.diferencaMinutos(dataInicio,dataFim)
+		diasTrabalhados++
+    }
+    //imprimir "Inicio: " + dataInicio + " | Fim: " + dataFim
+    /*
+    profNome = auloca.servidor.pessoa.nome
+	turNome = auloca.turma.descricao
+    dispNome = auloca.itemEducacional.descricao
+	perNome = auloca.periodoAvaliativo.descricao
+	*/
+	diasPrevistos++
+	
+  } senao {
+    imprimir "Estabelecimento: " + estNome + " | Prof: " + profNome + " | Turma: " + turNome + " | Disciplina: " + dispNome + " | Periodo: " + perNome + " | Turno: " + trnNome + " | Horas Previstas: " + Numeros.trunca((minutosPrevitos/60),1) + " | Horas ministradas: " + Numeros.trunca((minutosMinistrados/60),1) + " | DataInicio: " + perDataIni + " | DataFinal: " + perDataFim + " | DiasPrevistos: " + diasPrevistos + " | DiasTrabalhadaos: " + diasTrabalhados
+	
+	
+	fonte.inserirLinha(
+		estabelecimentoNome: estNome,
+		professorNome: profNome,
+		turmaNome: turNome,
+		disciplinaNome: dispNome,
+		periodoNome: perNome,
+		turnoNome: trnNome,
+		horasPrevistas: Numeros.trunca((minutosPrevitos/60),1),
+		horasMinistradas: Numeros.trunca((minutosMinistrados/60),1),
+		periodoDataInicial: perDataIni,
+		periodoDataFinal: perDataFim,
+		totalDiasPrevistos: diasPrevistos,
+		totalDiasTrabalhados: diasTrabalhados,
+		dataHoje: dataHojeExtenso
+	)
+	
+    minutosPrevitos = 0
+    minutosMinistrados = 0
+	diasPrevistos = 0
+	diasTrabalhados = 0
+      
+  }
+    	
+	estNome = auloca.estabelecimento.pessoa.nome
+    profNome = auloca.servidor.pessoa.nome
+	turNome = auloca.turma.descricao
+    dispNome = auloca.itemEducacional.descricao
+	perNome = auloca.periodoAvaliativo.descricao
+	trnNome = auloca.turma.turno
+	perDataIni = auloca.periodoAvaliativo.dataInicial
+	perDataFim = auloca.periodoAvaliativo.dataFinal
+    
+}
+
+imprimir "Estabelecimento: " + estNome + " | Prof: " + profNome + " | Turma: " + turNome + " | Disciplina: " + dispNome + " | Periodo: " + perNome + " | Turno: " + trnNome + " | Horas Previstas: " + Numeros.trunca((minutosPrevitos/60),1) + " | Horas ministradas: " + Numeros.trunca((minutosMinistrados/60),1) + " | DataInicio: " + perDataIni + " | DataFinal: " + perDataFim + " | DiasPrevistos: " + diasPrevistos + " | DiasTrabalhadaos: " + diasTrabalhados
+
+	fonte.inserirLinha(
+		estabelecimentoNome: estNome,
+		professorNome: profNome,
+		turmaNome: turNome,
+		disciplinaNome: dispNome,
+		periodoNome: perNome,
+		turnoNome: trnNome,
+		horasPrevistas: Numeros.trunca((minutosPrevitos/60),1),
+		horasMinistradas: Numeros.trunca((minutosMinistrados/60),1),
+		periodoDataInicial: perDataIni,
+		periodoDataFinal: perDataFim,
+		totalDiasPrevistos: diasPrevistos,
+		totalDiasTrabalhados: diasTrabalhados,
+  		dataHoje: dataHojeExtenso
+      	
+	)
+	
+retornar fonte

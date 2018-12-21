@@ -1,0 +1,72 @@
+paramTurma = parametros.turma.selecionado.valor
+paramDisciplinas = parametros.professor_disciplina.selecionado.valor
+paramEstabelecimento = parametros.escola.selecionado.valor
+paramAdmin = parametros.admin.selecionado?.valor
+paramCoord = parametros.coord.selecionado?.valor
+
+
+esquema = [
+	professor: Esquema.caracter,
+	professorMatricula: Esquema.caracter,
+	diretor: Esquema.caracter,
+	diretorMatricula: Esquema.caracter,
+	coordenador: Esquema.caracter,
+	coordenadorMatricula: Esquema.caracter,
+	administrativo: Esquema.caracter,
+	administrativoMatricula: Esquema.caracter
+]
+
+fonte = Dados.dinamico.v1.novo(esquema)
+
+fonteEquipeDir = Dados.profesores.v1.equipeDiretiva
+fonteFuncionario = Dados.profesores.v1.EnturmacaoFuncionario
+fonteTurmaDisc = Dados.profesores.v1.turmaDisciplina
+
+professor = ""
+professorMatricula = ""
+diretor = ""
+diretorMatricula = ""
+coordenador = ""
+coordenadorMatricula = ""
+administrativo = ""
+administrativoMatricula = ""
+idDisc = 0
+
+percorrer(fonteTurmaDisc.lista(campos:"itemEducacional.id, itemEducacional.descricao",criterio:"id = ${paramDisciplinas}")){
+	idDisc = item.itemEducacional.descricao
+}
+
+percorrer(fonteFuncionario.lista(campos:"professor.servidor.pessoa.nome, professor.matricula",criterio:"turma.id = ${paramTurma} and itemEducacional.descricao = '${idDisc}'")){
+	professor = item.professor.servidor.pessoa.nome
+	professorMatricula = item.professor.matricula
+}
+
+percorrer(fonteEquipeDir.lista(campos:"id,funcionario.servidor.pessoa.nome, funcionario.matricula, funcionario.cargo.descricao, funcionario.cargoComissionado.descricao", criterio:"estabelecimento.id = ${paramEstabelecimento}")){eqpDir->
+
+	se(eqpDir.funcionario.cargo.descricao == "DIRETOR ESCOLAR" || eqpDir.funcionario.cargoComissionado.descricao == "DIRETOR ESCOLAR"){
+		diretor = eqpDir.funcionario.servidor.pessoa.nome
+		diretorMatricula = eqpDir.funcionario.matricula
+	}
+	se(("" + eqpDir.id) == ("" + paramCoord)){
+		coordenador = eqpDir.funcionario.servidor.pessoa.nome
+		coordenadorMatricula = eqpDir.funcionario.matricula
+	}
+	se(("" + eqpDir.id) == ("" + paramAdmin)){
+		administrativo = eqpDir.funcionario.servidor.pessoa.nome
+		administrativoMatricula = eqpDir.funcionario.matricula
+	}
+
+}
+
+fonte.inserirLinha(
+	professor: professor,
+	professorMatricula: professorMatricula,
+	diretor: diretor,
+	diretorMatricula: diretorMatricula,
+	coordenador: coordenador,
+	coordenadorMatricula: coordenadorMatricula,
+	administrativo: administrativo,
+	administrativoMatricula: administrativoMatricula
+)
+
+retornar fonte

@@ -1,0 +1,236 @@
+/*
+Nome				Tipo do dado no JRXML							Parâmetros obrigatório
+Esquema.caracter	java.lang.String								Nenhum
+Esquema.inteiro		java.lang.Long									Nenhum
+Esquema.numero		java.math.BigDecimal							Nenhum
+Esquema.data		java.util.Date									Nenhum
+Esquema.objeto		Utilização do "_" para acessar a propriedade	Lista de propriedades do objeto
+Esquema.lista		java.util.List									Esquema da lista
+*/
+
+paramAluno = parametros.aluno.selecionado.valor
+
+esquema = [
+listaNotas: Esquema.objeto([
+	disciplina: Esquema.caracter,
+	nota1ano: Esquema.numero,
+	nota2ano: Esquema.numero,
+	nota3ano: Esquema.numero,
+	nota4ano: Esquema.numero,
+	nota5ano: Esquema.numero,
+	nota6ano: Esquema.numero,
+	nota7ano: Esquema.numero,
+	nota8ano: Esquema.numero,
+	nota9ano: Esquema.numero
+])
+
+]
+
+fonte = Dados.dinamico.v1.novo(esquema)
+
+fonteMatriz = Dados.educacao.v1."registro-avaliacao"
+fonteEquivalencia = Dados.educacao.v1.EtapaMatrizEquivalencia
+fonteHistorico = Dados.educacao.v1.itemHistoricoEscolar
+fonteHistoricoEquivalencia = Dados.educacao.v1.equivalenciaHistoricoEscolar
+
+nomDisp = ""
+mapaNotas = []
+existe = 0
+equiValor = ""
+
+
+percorrer(fonteMatriz.lista(campos:"notaNumerica, itemAvaliacaoTurma.itemEducacional.descricao, itemAvaliacaoTurma.itemEducacional.pai.descricao, enturmacao.turma.etapaMatriz.id", criterio: "enturmacao.matricula.aluno.id = " + paramAluno, ordenacao: "id asc, enturmacao.turma.etapaMatriz.matriz.descricao desc, enturmacao.turma.descricao asc, itemAvaliacaoTurma.itemEducacional.descricao asc")){listaMatriz->
+
+
+	nomDisp = listaMatriz.itemAvaliacaoTurma.itemEducacional.descricao
+  
+	se(nomDisp == "" || nomDisp.tamanho() < 2){
+
+		nomDisp = listaMatriz.itemAvaliacaoTurma.itemEducacional.pai.descricao
+
+	}
+  
+	percorrer(fonteEquivalencia.lista(campos:"chave.equivalenciaEtapa",criterio:"chave.etapa.id = " + listaMatriz.enturmacao.turma.etapaMatriz.id)){listaEqui->
+
+		equiValor = listaEqui.chave.equivalenciaEtapa
+
+	}
+  
+  //imprimir "1: " + equiValor + " | " + nomDisp + " | " + listaMatriz.notaNumerica
+  
+	percorrer(mapaNotas){
+		se(item.discp == nomDisp){
+			se(equiValor == "1° ano"){
+				mapaNotas[indice] = [discp:nomDisp, n1:listaMatriz.notaNumerica, n2:item.n2, n3:item.n3, n4:item.n4, n5:item.n5, n6:item.n6, n7:item.n7, n8:item.n8, n9:item.n9]
+			}
+			se(equiValor == "2° ano"){
+				mapaNotas[indice] = [discp:nomDisp, n1:item.n1, n2:listaMatriz.notaNumerica, n3:item.n3, n4:item.n4, n5:item.n5, n6:item.n6, n7:item.n7, n8:item.n8, n9:item.n9]
+			}
+			se(equiValor == "3° ano"){
+				mapaNotas[indice] = [discp:nomDisp, n1:item.n1, n2:item.n2, n3:listaMatriz.notaNumerica, n4:item.n4, n5:item.n5, n6:item.n6, n7:item.n7, n8:item.n8, n9:item.n9]
+			}
+			se(equiValor == "4° ano"){
+				mapaNotas[indice] = [discp:nomDisp, n1:item.n1, n2:item.n2, n3:item.n3, n4:listaMatriz.notaNumerica, n5:item.n5, n6:item.n6, n7:item.n7, n8:item.n8, n9:item.n9]
+			}
+			se(equiValor == "5° ano"){
+				mapaNotas[indice] = [discp:nomDisp, n1:item.n1, n2:item.n2, n3:item.n3, n4:item.n4, n5:listaMatriz.notaNumerica, n6:item.n6, n7:item.n7, n8:item.n8, n9:item.n9]
+			}
+			se(equiValor == "6° ano"){
+				mapaNotas[indice] = [discp:nomDisp, n1:item.n1, n2:item.n2, n3:item.n3, n4:item.n4, n5:item.n5, n6:listaMatriz.notaNumerica, n7:item.n7, n8:item.n8, n9:item.n9]
+			}
+			se(equiValor == "7° ano"){
+				mapaNotas[indice] = [discp:nomDisp, n1:item.n1, n2:item.n2, n3:item.n3, n4:item.n4, n5:item.n5, n6:item.n6, n7:listaMatriz.notaNumerica, n8:item.n8, n9:item.n9]
+			}
+			se(equiValor == "8° ano"){
+				mapaNotas[indice] = [discp:nomDisp, n1:item.n1, n2:item.n2, n3:item.n3, n4:item.n4, n5:item.n5, n6:item.n6, n7:item.n7, n8:listaMatriz.notaNumerica, n9:item.n9]
+			}
+			se(equiValor == "9° ano"){
+				mapaNotas[indice] = [discp:nomDisp, n1:item.n1, n2:item.n2, n3:item.n3, n4:item.n4, n5:item.n5, n6:item.n6, n7:item.n7, n8:item.n8, n9:listaMatriz.notaNumerica]
+			}
+			existe = 1
+		}
+
+	}
+  
+	se(existe == 0){
+		se(equiValor == "1° ano"){
+			mapaNotas << [discp:nomDisp, n1:listaMatriz.notaNumerica, n2:-1.0, n3:-1.0, n4:-1.0, n5:-1.0, n6:-1.0, n7:-1.0, n8:-1.0, n9:-1.0]
+		}
+		se(equiValor == "2° ano"){
+			mapaNotas << [discp:nomDisp, n1:-1.0, n2:listaMatriz.notaNumerica, n3:-1.0, n4:-1.0, n5:-1.0, n6:-1.0, n7:-1.0, n8:-1.0, n9:-1.0]
+		}
+		se(equiValor == "3° ano"){
+			mapaNotas << [discp:nomDisp, n1:-1.0, n2:-1.0, n3:listaMatriz.notaNumerica, n4:-1.0, n5:-1.0, n6:-1.0, n7:-1.0, n8:-1.0, n9:-1.0]
+		}
+		se(equiValor == "4° ano"){
+			mapaNotas << [discp:nomDisp, n1:-1.0, n2:-1.0, n3:-1.0, n4:listaMatriz.notaNumerica, n5:-1.0, n6:-1.0, n7:-1.0, n8:-1.0, n9:-1.0]
+		}
+		se(equiValor == "5° ano"){
+			mapaNotas << [discp:nomDisp, n1:-1.0, n2:-1.0, n3:-1.0, n4:-1.0, n5:listaMatriz.notaNumerica, n6:-1.0, n7:-1.0, n8:-1.0, n9:-1.0]
+		}
+		se(equiValor == "6° ano"){
+			mapaNotas << [discp:nomDisp, n1:-1.0, n2:-1.0, n3:-1.0, n4:-1.0, n5:-1.0, n6:listaMatriz.notaNumerica, n7:-1.0, n8:-1.0, n9:-1.0]
+		}
+		se(equiValor == "7° ano"){
+			mapaNotas << [discp:nomDisp, n1:-1.0, n2:-1.0, n3:-1.0, n4:-1.0, n5:-1.0, n6:-1.0, n7:listaMatriz.notaNumerica, n8:-1.0, n9:-1.0]
+		}
+		se(equiValor == "8° ano"){
+			mapaNotas << [discp:nomDisp, n1:-1.0, n2:-1.0, n3:-1.0, n4:-1.0, n5:-1.0, n6:-1.0, n7:-1.0, n8:listaMatriz.notaNumerica, n9:-1.0]
+		}
+		se(equiValor == "9° ano"){
+			mapaNotas << [discp:nomDisp, n1:-1.0, n2:-1.0, n3:-1.0, n4:-1.0, n5:-1.0, n6:-1.0, n7:-1.0, n8:-1.0, n9:listaMatriz.notaNumerica]
+		}
+	}
+	
+	existe = 0
+
+}
+
+
+percorrer(fonteHistorico.lista(campos:"historicoEscolar.id, notaNumerica, eixoTematico.descricao, itemOrganizacaoCurricular.descricao, historicoEscolar.nivelModalidade, historicoEscolar.etapaEnsino",criterio:"historicoEscolar.aluno.id = " + paramAluno)){fonteHis->
+
+  nomDisp = fonteHis.itemOrganizacaoCurricular.descricao
+  imprimir nomDisp
+
+  se(nomDisp.tamanho() < 2){
+    nomDisp = fonteHis.eixoTematico.descricao
+  }
+  
+  percorrer(fonteHistoricoEquivalencia.lista(campos:"equivalenciaEtapa, historicoEscolar.etapaEnsino ",criterio:"id = " + fonteHis.historicoEscolar.id)){histoEqui->
+      
+    se(fonteHis.historicoEscolar.etapaEnsino == histoEqui.historicoEscolar.etapaEnsino){
+      equiValor = histoEqui.equivalenciaEtapa
+    }
+    
+  }
+  
+  	percorrer(mapaNotas){
+		se(item.discp == nomDisp){
+			se(equiValor == "ETAPA_1"){
+				mapaNotas[indice] = [discp:nomDisp, n1:fonteHis.notaNumerica, n2:item.n2, n3:item.n3, n4:item.n4, n5:item.n5, n6:item.n6, n7:item.n7, n8:item.n8, n9:item.n9]
+			}
+			se(equiValor == "ETAPA_2"){
+				mapaNotas[indice] = [discp:nomDisp, n1:item.n1, n2:fonteHis.notaNumerica, n3:item.n3, n4:item.n4, n5:item.n5, n6:item.n6, n7:item.n7, n8:item.n8, n9:item.n9]
+			}
+			se(equiValor == "ETAPA_3"){
+				mapaNotas[indice] = [discp:nomDisp, n1:item.n1, n2:item.n2, n3:fonteHis.notaNumerica, n4:item.n4, n5:item.n5, n6:item.n6, n7:item.n7, n8:item.n8, n9:item.n9]
+			}
+			se(equiValor == "ETAPA_4"){
+				mapaNotas[indice] = [discp:nomDisp, n1:item.n1, n2:item.n2, n3:item.n3, n4:fonteHis.notaNumerica, n5:item.n5, n6:item.n6, n7:item.n7, n8:item.n8, n9:item.n9]
+			}
+			se(equiValor == "ETAPA_5"){
+				mapaNotas[indice] = [discp:nomDisp, n1:item.n1, n2:item.n2, n3:item.n3, n4:item.n4, n5:fonteHis.notaNumerica, n6:item.n6, n7:item.n7, n8:item.n8, n9:item.n9]
+			}
+			se(equiValor == "ETAPA_6"){
+				mapaNotas[indice] = [discp:nomDisp, n1:item.n1, n2:item.n2, n3:item.n3, n4:item.n4, n5:item.n5, n6:fonteHis.notaNumerica, n7:item.n7, n8:item.n8, n9:item.n9]
+			}
+			se(equiValor == "ETAPA_7"){
+				mapaNotas[indice] = [discp:nomDisp, n1:item.n1, n2:item.n2, n3:item.n3, n4:item.n4, n5:item.n5, n6:item.n6, n7:fonteHis.notaNumerica, n8:item.n8, n9:item.n9]
+			}
+			se(equiValor == "ETAPA_8"){
+				mapaNotas[indice] = [discp:nomDisp, n1:item.n1, n2:item.n2, n3:item.n3, n4:item.n4, n5:item.n5, n6:item.n6, n7:item.n7, n8:fonteHis.notaNumerica, n9:item.n9]
+			}
+			se(equiValor == "ETAPA_9"){
+				mapaNotas[indice] = [discp:nomDisp, n1:item.n1, n2:item.n2, n3:item.n3, n4:item.n4, n5:item.n5, n6:item.n6, n7:item.n7, n8:item.n8, n9:fonteHis.notaNumerica]
+			}
+			existe = 1
+		}
+
+	}
+  
+	se(existe == 0){
+		se(equiValor == "ETAPA_1"){
+			mapaNotas << [discp:nomDisp, n1:fonteHis.notaNumerica, n2:-1.0, n3:-1.0, n4:-1.0, n5:-1.0, n6:-1.0, n7:-1.0, n8:-1.0, n9:-1.0]
+		}
+		se(equiValor == "ETAPA_2"){
+			mapaNotas << [discp:nomDisp, n1:-1.0, n2:fonteHis.notaNumerica, n3:-1.0, n4:-1.0, n5:-1.0, n6:-1.0, n7:-1.0, n8:-1.0, n9:-1.0]
+		}
+		se(equiValor == "ETAPA_3"){
+			mapaNotas << [discp:nomDisp, n1:-1.0, n2:-1.0, n3:fonteHis.notaNumerica, n4:-1.0, n5:-1.0, n6:-1.0, n7:-1.0, n8:-1.0, n9:-1.0]
+		}
+		se(equiValor == "ETAPA_4"){
+			mapaNotas << [discp:nomDisp, n1:-1.0, n2:-1.0, n3:-1.0, n4:fonteHis.notaNumerica, n5:-1.0, n6:-1.0, n7:-1.0, n8:-1.0, n9:-1.0]
+		}
+		se(equiValor == "ETAPA_5"){
+			mapaNotas << [discp:nomDisp, n1:-1.0, n2:-1.0, n3:-1.0, n4:-1.0, n5:fonteHis.notaNumerica, n6:-1.0, n7:-1.0, n8:-1.0, n9:-1.0]
+		}
+		se(equiValor == "ETAPA_6"){
+			mapaNotas << [discp:nomDisp, n1:-1.0, n2:-1.0, n3:-1.0, n4:-1.0, n5:-1.0, n6:fonteHis.notaNumerica, n7:-1.0, n8:-1.0, n9:-1.0]
+		}
+		se(equiValor == "ETAPA_7"){
+			mapaNotas << [discp:nomDisp, n1:-1.0, n2:-1.0, n3:-1.0, n4:-1.0, n5:-1.0, n6:-1.0, n7:fonteHis.notaNumerica, n8:-1.0, n9:-1.0]
+		}
+		se(equiValor == "ETAPA_8"){
+			mapaNotas << [discp:nomDisp, n1:-1.0, n2:-1.0, n3:-1.0, n4:-1.0, n5:-1.0, n6:-1.0, n7:-1.0, n8:fonteHis.notaNumerica, n9:-1.0]
+		}
+		se(equiValor == "ETAPA_9"){
+			mapaNotas << [discp:nomDisp, n1:-1.0, n2:-1.0, n3:-1.0, n4:-1.0, n5:-1.0, n6:-1.0, n7:-1.0, n8:-1.0, n9:fonteHis.notaNumerica]
+		}
+	}
+	
+	existe = 0
+  
+}
+
+
+percorrer(mapaNotas){
+	fonte.inserirLinha(
+		listaNotas:[
+			disciplina: item.discp,
+			nota1ano: item.n1,
+			nota2ano: item.n2,
+			nota3ano: item.n3,
+			nota4ano: item.n4,
+			nota5ano: item.n5,
+			nota6ano: item.n6,
+			nota7ano: item.n7,
+			nota8ano: item.n8,
+			nota9ano: item.n9
+		]
+		
+		
+	)
+  
+}
+
+retornar fonte

@@ -1,0 +1,85 @@
+/*
+Nome				Tipo do dado no JRXML							Parâmetros obrigatório
+Esquema.caracter	java.lang.String								Nenhum
+Esquema.inteiro		java.lang.Long									Nenhum
+Esquema.numero		java.math.BigDecimal							Nenhum
+Esquema.data		java.util.Date									Nenhum
+Esquema.objeto		Utilização do "_" para acessar a propriedade	Lista de propriedades do objeto
+Esquema.lista		java.util.List									Esquema da lista
+
+esquema = [
+  nome: Esquema.caracter,
+  salario: Esquema.numero,
+  pai: Esquema.objeto([
+    nome: Esquema.caracter,
+    nascimento: Esquema.data,
+    dependentes: Esquema.lista(Esquema.objeto([
+      nome: Esquema.caracter,
+      idade: Esquema.inteiro
+    ]))
+  ])
+]
+*/
+
+paramAno = parametros.anoLetivo.valor
+paramEstabelecimento = parametros.estabelecimento.valor
+paramFuncionario = parametros.funcionario.valor
+paramTurma = parametros.turma.valor
+paramPeriodo = parametros.periodo.valor
+paramAdmin = parametros.admin.valor
+paramCoord = parametros.coord.valor
+paramDisciplina = parametros.disciplina.valor
+
+esquema = [
+	nomeEstab: Esquema.caracter,
+	nomeAluno: Esquema.caracter,
+	curso: Esquema.caracter,
+	etapa: Esquema.caracter,
+	turma: Esquema.caracter,
+	turno: Esquema.caracter,
+	disciplina: Esquema.caracter,
+	nomeProfessor: Esquema.caracter,
+	periodo: Esquema.caracter,
+	perDataInicial: Esquema.data,
+	perDataFim: Esquema.data,
+	instAvaliacao: Esquema.caracter,
+	dataAvaliacao: Esquema.data,
+	nota: Esquema.numero,
+	situacao: Esquema.caracter,
+	professor: Esquema.caracter,
+	professorMat: Esquema.caracter,
+	diretor: Esquema.caracter,
+	diretorMat: Esquema.caracter,
+	coordenador: Esquema.caracter,
+	coordenadorMat: Esquema.caracter
+]
+
+fonte = Dados.dinamico.v2.novo(esquema)
+
+fonteEquipeDir = Dados.profesores.v1.equipeDiretiva
+fonteFuncionario = Dados.profesores.v1.funcionario.lista(campos:"servidor.id, matricula", criterio:"id = ${paramFuncionario}")
+fonteRegistroAvaliacao = Dados.profesores.v1."registro-avaliacao"
+
+// equipe diretiva
+percorrer(fonteEquipeDir.lista(campos:"id,funcionario.servidor.pessoa.nome, funcionario.matricula, funcionario.cargo.descricao, funcionario.cargoComissionado.descricao", criterio:"estabelecimento.id = ${paramEstabelecimento}")){eqpDir->
+
+	se(eqpDir.funcionario.cargo.descricao == "DIRETOR ESCOLAR" || eqpDir.funcionario.cargoComissionado.descricao == "DIRETOR ESCOLAR"){
+		diretor = eqpDir.funcionario.servidor.pessoa.nome
+		diretorMatricula = eqpDir.funcionario.matricula
+	}
+	se(eqpDir.id == paramCoord){
+		coordenador = eqpDir.funcionario.servidor.pessoa.nome
+		coordenadorMatricula = eqpDir.funcionario.matricula
+	}
+	se(eqpDir.id == paramAdmin){
+		administrativo = eqpDir.funcionario.servidor.pessoa.nome
+		administrativoMatricula = eqpDir.funcionario.matricula
+	}
+
+}
+
+percorrer(fonteRegistroAvaliacao.lista(campos"notaNumerica, modoAvaliacao, instrumentoAvaliacao, enturmacao.turma.descricao, enturmacao.matricula.aluno.pessoa.nome, ")){
+
+
+
+}

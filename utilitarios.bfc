@@ -1,0 +1,171 @@
+formataCpfCnpj = {tipo,cpfCnpj ->
+se(tipo == "FISICA"){
+cpfCnpj = cpfCnpj.subTexto(0,3) + "." + 
+    cpfCnpj.subTexto(3,3) + "." +
+            cpfCnpj.subTexto(6,3) + "-" + 
+            cpfCnpj.subTexto(9,2) 
+}senao{
+cpfCnpj = cpfCnpj.subTexto(0,2) + "." + 
+    cpfCnpj.subTexto(2,3) + "." +
+            cpfCnpj.subTexto(5,3) + "/" + 
+            cpfCnpj.subTexto(8,4) + "-" +
+            cpfCnpj.subTexto(12,2)
+}
+retornar cpfCnpj
+}
+
+
+/*
+
+Variavel = Scripts.utilitarios.importar()
+
+*/
+
+limpaTexto = {texto ->
+  
+	texto = texto.expressao(~/[à|á|ã]/).substituirPor("a")
+	texto = texto.expressao(~/[Á|Ã|À]/).substituirPor("A")
+	texto = texto.expressao(~/[é|ê]/).substituirPor("e")
+	texto = texto.expressao(~/[É|Ê]/).substituirPor("E")
+	texto = texto.expressao(~/[í]/).substituirPor("i")
+	texto = texto.expressao(~/[Í]/).substituirPor("I")
+	texto = texto.expressao(~/[õ|ó|ô]/).substituirPor("o")
+	texto = texto.expressao(~/[Õ|Ó|Ô]/).substituirPor("O")
+	texto = texto.expressao(~/[ü|ú]/).substituirPor("u")
+	texto = texto.expressao(~/[Ú|Ü]/).substituirPor("U")
+	texto = texto.expressao(~/[ç]/).substituirPor("c")
+	texto = texto.expressao(~/[Ç]/).substituirPor("C")
+//	texto = texto.expressao(~/ /).substituirPor("")
+	texto = texto.expressao(~/[,|~\\n~\|~\/~\|-|_|*|.|!|@|#|$|%|¨|&|*|^|´|.|~|:|;|)|(|%|~\-|]/).substituirPor(" ")
+  
+  retornar texto
+}
+
+padronizaMatriculaSJS = {disciplina ->
+
+  disc = limpaTexto(disciplina)
+  discPadrao = ""
+  
+	se(disc == "ARTE"){
+		discPadrao = "ARTE"
+	}
+	se(disc == "ARTE I"){
+		discPadrao = "ARTE I"
+	}
+	se(disc == "ARTE II"){
+		discPadrao = "ARTE II"
+	}
+	se(disc == "EDUCACAO FISICA"){
+		discPadrao = "ED FISICA"
+	}
+	se(disc == "EDUCACAO FISICA I"){
+		discPadrao = "ED FISICA I"
+	}
+	se(disc == "EDUCACAO FISICA II"){
+		discPadrao = "ED FISICA II"
+	}
+	se(disc == "INFORMATICA"){
+		discPadrao = "INFORMATICA"
+	}
+	se(disc == "INFORMATICA I"){
+		discPadrao = "INFORMATICA I"
+	}
+	se(disc == "INFORMATICA II"){
+		discPadrao = "INFORMATICA II"
+	}
+	se(disc.expressao(~/(E|e)spanhol|ESPANHOL/).encontrouPadrao()){
+		discPadrao = "LÍNGUA ESTRANGEIRA - ESPANHOL"
+	}
+	se(disc.expressao(~/(I|i)ngles|INGLES/).encontrouPadrao()){
+		discPadrao = "LÍNGUA ESTRANGEIRA - INGLÊS"
+	}
+	se(disc == "LINGUA PORTUGUESA E LITERATURA I" || disc == "LINGUA PORTUGUESA" || disc == "LINGUA PORTUGUESA I"){
+		discPadrao = "LINGUA PORTUGUESA E LITERATURA I"
+	}
+	se(disc == "LINGUA PORTUGUESA E LITERATURA II" || disc == "LINGUA PORTUGUESA II"){
+		discPadrao = "LINGUA PORTUGUESA E LITERATURA II"
+	}
+	se(disc == "MATEMATICA" || disc == "MATEMATICA I"){
+		discPadrao = "MATEMATICA I"
+	}
+	se(disc == "MATEMATICA II"){
+		discPadrao = "MATEMATICA II"
+	}
+	se(disc.expressao(~/(B|b)iologia|BIOLOGIA/).encontrouPadrao()){
+		discPadrao = "BIOLOGIA"
+	}
+	se(disc.expressao(~/(Q|q)uimica|QUIMICA/).encontrouPadrao()){
+		discPadrao = "QUIMICA"
+	}
+	se(!disc.expressao(~/(E|e)ducacao|EDUCACAO|(E|e)d|ED/).encontrouPadrao() && disc.expressao(~/(F|f)isica|FISICA/).encontrouPadrao()){
+		discPadrao = "FISICA"
+	}
+	se(disc.expressao(~/(F|f)ilosofia|FILOSOFIA/).encontrouPadrao()){
+		discPadrao = "FILOSOFIA"
+	}
+	se(disc == "HISTORIA"){
+		discPadrao = "HISTORIA"
+	}
+	se(disc == "HISTORIA I"){
+		discPadrao = "HISTORIA I"
+	}
+	se(disc == "HISTORIA II"){
+		discPadrao = "HISTORIA II"
+	}
+	se(disc == "GEOGRAFIA"){
+		discPadrao = "GEOGRAFIA"
+	}
+	se(disc == "GEOGRAFIA I"){
+		discPadrao = "GEOGRAFIA I"
+	}
+	se(disc == "GEOGRAFIA II"){
+		discPadrao = "GEOGRAFIA II"
+	}
+	se(disc.expressao(~/(S|s)ociologia|SOCIOLOGIA/).encontrouPadrao()){
+		discPadrao = "SOCIOLOGIA"
+	}
+	se(disc == "CIENCIAS"){
+		discPadrao = "CIENCIAS"
+	}
+	se(disc == "CIENCIAS I"){
+		discPadrao = "CIENCIAS I"
+	}
+	se(disc == "CIENCIAS II"){
+		discPadrao = "CIENCIAS II"
+	}
+	se(disc.expressao(~/(R|r)eligi|RELIGI/).encontrouPadrao()){
+		discPadrao = "ENSINO RELIGIOSO"
+	}
+	
+	
+	retornar discPadrao
+
+}
+
+formataTelefone = {num ->
+
+	numeroFormatado = num
+
+	se(num.tamanho() == 10){
+		numeroFormatado = "(${num.esquerda(2)}) ${num.direita(8)}"
+	}
+	se(num.tamanho() == 11){
+		numeroFormatado = "(${num.esquerda(2)}) ${num.direita(9)}"
+	}
+	
+	retornar numeroFormatado
+}
+
+formataCEP = {cep ->
+
+	retornar = "${cep.esqueda(5)}-${cep.direita(3)}"
+	
+}
+
+Scripts.exportar(
+  				formataCpfCnpj:formataCpfCnpj,
+				formataTelefone:formataTelefone,
+				formataCEP:formataCEP,
+				limpaTexto:limpaTexto,
+				padronizaMatriculaSJS:padronizaMatriculaSJS
+                )

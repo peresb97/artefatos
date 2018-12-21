@@ -1,0 +1,229 @@
+utils = importar "utilitarios"
+/*
+Nome				Tipo do dado no JRXML							Parâmetros obrigatório
+Esquema.caracter	java.lang.String								Nenhum
+Esquema.inteiro		java.lang.Long									Nenhum
+Esquema.numero		java.math.BigDecimal							Nenhum
+Esquema.data		java.util.Date									Nenhum
+Esquema.objeto		Utilização do "_" para acessar a propriedade	Lista de propriedades do objeto
+Esquema.lista		java.util.List									Esquema da lista
+
+esquema = [
+  nome: Esquema.caracter,
+  salario: Esquema.numero,
+  pai: Esquema.objeto([
+    nome: Esquema.caracter,
+    nascimento: Esquema.data,
+    dependentes: Esquema.lista(Esquema.objeto([
+      nome: Esquema.caracter,
+      idade: Esquema.inteiro
+    ]))
+  ])
+]
+
+*/
+
+paramAno = parametros.anoLetivo.valor
+paramEstabelecimento = parametros.estabelecimento.valor
+paramTurma = parametros.turma.valor
+paramAdmin = parametros.admin.valor
+
+esquema2 = [
+	nomeAluno: Esquema.caracter,
+	disciplina: Esquema.caracter,
+	notaNumerica: Esquema.numero,
+	situacao: Esquema.caracter,
+	anoLetivo: Esquema.inteiro,
+	estabelecimento: Esquema.caracter,
+	estabelecimentoTelefone: Esquema.caracter,
+	estabelecimentoSite: Esquema.caracter,
+	turma: Esquema.caracter,
+	turno: Esquema.caracter,
+	matriz: Esquema.caracter,
+	etapa: Esquema.caracter,
+	dataAta: Esquema.data,
+	ata: Esquema.caracter,
+	numeroAta: Esquema.inteiro,
+	cargaHoraria: Esquema.inteiro,
+	diretor: Esquema.caracter,
+	diretorMatricula: Esquema.caracter,
+	coordenador: Esquema.caracter,
+	coordenadorMatricula: Esquema.caracter,
+	administrativo: Esquema.caracter,
+	administrativoMatricula: Esquema.caracter,
+	modalidade: Esquema.caracter
+]
+
+fonte = Dados.dinamico.v2.novo(esquema2)
+
+fonteRegAvaliacao = Dados.educacao.v1."registro-avaliacao"
+fonteResFrequencia = Dados.educacao.v1."resultado-frequencia"
+fonteTurma = Dados.educacao.v1.turma
+fonteTurmaDisc = Dados.educacao.v1.turmaDisciplina
+fonteEquipeDir = Dados.educacao.v1.equipeDiretiva
+
+disc = ""
+teleFormat = ""
+percentualFaltas = 0
+ata = ""
+dataAta = Datas.hoje()
+numeroAta = 0
+numAulas = 0
+faltas = 0
+situacao = ""
+cargaHorariaDisc = ""
+cargaHorariaTurma = 0
+diretor = ""
+diretorMatricula = ""
+coordenador = ""
+coordenadorMatricula = ""
+administrativo = ""
+administrativoMatricula = ""
+
+percorrer(fonteEquipeDir.lista(campos:"id,funcionario.servidor.pessoa.nome, funcionario.matricula, funcionario.cargo.descricao, funcionario.cargoComissionado.descricao", criterio:"estabelecimento.id = ${paramEstabelecimento}")){eqpDir->
+
+	se(eqpDir.funcionario.cargo.descricao == "DIRETOR ESCOLAR" || eqpDir.funcionario.cargoComissionado.descricao == "DIRETOR ESCOLAR"){
+		diretor = eqpDir.funcionario.servidor.pessoa.nome
+		diretorMatricula = eqpDir.funcionario.matricula
+	}
+	se(eqpDir.funcionario.cargo.descricao == "COORDENADOR PEDAGOGICO" || eqpDir.funcionario.cargoComissionado.descricao == "COORDENADOR PEDAGOGICO"){
+		coordenador = eqpDir.funcionario.servidor.pessoa.nome
+		coordenadorMatricula = eqpDir.funcionario.matricula
+	}
+	se(eqpDir.id == paramAdmin){
+		administrativo = eqpDir.funcionario.servidor.pessoa.nome
+		administrativoMatricula = eqpDir.funcionario.matricula
+	}
+
+}
+
+crit = "anoLetivo.ano = ${paramAno} and estabelecimento.id = ${paramEstabelecimento} and enturmacao.turma.id = ${paramTurma} and ( itemAvaliacaoTurma.tipoPeriodo = 'MEDIA_FINAL' or itemAvaliacaoTurma.tipoPeriodo = 'MODULO')"
+ord = "enturmacao.matricula.aluno.pessoa.nome asc, itemAvaliacaoTurma.itemEducacional.descricao asc, itemAvaliacaoTurma.itemEducacional.pai.descricao asc"
+
+//imprimir crit
+
+percorrer(fonteRegAvaliacao.lista(campos:"anoLetivo.ano, enturmacao.turma.etapaMatriz.etapaInep.nome, enturmacao.turma.etapaMatriz.matriz.descricao, estabelecimento.pessoa.nome, estabelecimento.pessoa.telefone, estabelecimento.pessoa.site, enturmacao.turma.descricao, enturmacao.turma.turno, enturmacao.matricula.aluno.pessoa.nome, enturmacao.dataFim, notaNumerica, instrumentoAvaliacao.servidor.pessoa.nome, itemAvaliacaoTurma.itemEducacional.descricao, itemAvaliacaoTurma.itemEducacional.pai.descricao, enturmacao.matricula.situacao, enturmacao.turma.camposAdicionais.padrao.data, enturmacao.turma.camposAdicionais.padrao.ata, enturmacao.turma.camposAdicionais.padrao.numeroata, itemAvaliacaoTurma.itemEducacional.id, enturmacao.matricula.aluno.id, enturmacao.id, enturmacao.turma.id, instrumentoAvaliacao.viewTurmaDisciplina.etapaMatrizDisciplina.id, instrumentoAvaliacao.viewTurmaDisciplina.etapaMatrizDisciplina.cargaHoraria, instrumentoAvaliacao.viewTurmaAtividade.cargaHoraria, enturmacao.turma.vagaEtapa.etapaMatriz.id, enturmacao.turma.configuracaoHorasAulas.cargaHorariaSemanal, enturmacao.turma.etapaMatriz.matriz.diasLetivos, modoAvaliacao, enturmacao.turma.modalidadeTurma", criterio:crit, ordenacao:ord)){ regAval ->
+
+	/*se(regAval.anoLetivo.ano > 2017){
+		crit = crit + " and (itemEducacional.id = ${regAval.itemAvaliacaoTurma.itemEducacional.id} or itemEducacional.id = ${regAval.itemAvaliacaoTurma.itemEducacional.pai.id})"
+	}*/
+	
+	//Porcentagem de faltas
+	crit = "anoLetivo.ano = ${paramAno} and enturmacao.id = ${regAval.enturmacao.id}"
+	percorrer(fonteResFrequencia.lista(campos:"percentualTotal",criterio:crit)){resFreq->
+		se (resFreq.percentualTotal > 0){
+			percentualFaltas = resFreq.percentualTotal
+//			imprimir "Freq = " + percentualFaltas
+		}
+	}
+	
+	//carga horaria por disciplina
+	se(regAval.enturmacao.turma.modalidadeTurma == "EJA" || regAval.enturmacao.turma.modalidadeTurma == nulo){
+		percorrer(fonteTurmaDisc.lista(campos:"etapaMatrizDisciplina.disciplina.id, etapaMatrizDisciplina.cargaHoraria", criterio:"itemEducacional.id = ${regAval.itemAvaliacaoTurma.itemEducacional.id}")){turmDisc->
+			cargaHorariaDisc = "\nCH: " + (turmDisc.etapaMatrizDisciplina.cargaHoraria/3600) + " h/a"
+			//imprimir "CH" + cargaHorariaDisc
+		}
+		//imprimir "IN CH: " + regAval.itemAvaliacaoTurma.itemEducacional.id
+	} senao {
+	//carga horaria por turma
+		cargaHorariaTurma = Numeros.arredonda(((regAval.enturmacao.turma.etapaMatriz.matriz.diasLetivos / 5) * (regAval.enturmacao.turma.configuracaoHorasAulas.cargaHorariaSemanal/3600)),0)
+	}
+	//imprimir "Ent.id = " + regAval.enturmacao.id + " | Et.Mat.Dis.ID = " + regAval.instrumentoAvaliacao.viewTurmaDisciplina.etapaMatrizDisciplina.id
+	//imprimir "Mod: " + regAval.enturmacao.turma.modalidadeTurma
+	
+	//formatacao
+	teleFormat = utils.formataTelefone(regAval.estabelecimento.pessoa.telefone)
+	disc = regAval.itemAvaliacaoTurma.itemEducacional.descricao
+
+	se(disc.tamanho() < 2){
+		disc = regAval.itemAvaliacaoTurma.itemEducacional.pai.descricao
+	}
+	
+	imprimir regAval.enturmacao.matricula.aluno.pessoa.nome + " - " + regAval.enturmacao.matricula.situacao
+	switch(regAval.enturmacao.matricula.situacao){
+
+		case "APROVADO":
+			situacao = "AP"
+			break
+		case "CURSANDO":
+			situacao = "CR"
+			break
+		case "DISPENSADO":
+			situacao = "DS"
+			break
+		case "REPROVADO_FREQUENCIA":
+			situacao = "RF"
+			break
+		case "REPROVADO":
+			situacao = "RP"
+			break
+		case "DEIXOU_FREQUENTAR":
+			situacao = "DE"
+			break
+		case "TRANSFERIDO":
+			situacao = "TR"
+			break
+		case "APROVADO_CONSELHO":
+			situacao = "AC"
+			break
+		default:
+			situacao = "OT"
+
+	}
+	
+	se(situacao == "AP" && regAval.notaNumerica < 7){
+		situacao == "AC"
+	}
+	
+//	imprimir "DiasLetivos: " + regAval.enturmacao.turma.etapaMatriz.matriz.diasLetivos
+//	imprimir "CH Semanal: " + regAval.enturmacao.turma.configuracaoHorasAulas.cargaHorariaSemanal
+	
+	percorrer(fonteTurma.lista(campos:"camposAdicionais.padrao.data, camposAdicionais.padrao.ata, camposAdicionais.padrao.numeroata", criterio:"id = ${regAval.enturmacao.turma.id}")){tur->
+	
+		dataAta = tur.camposAdicionais.padrao.data?:Datas.data(1800,1,1)
+		ata = tur.camposAdicionais.padrao.ata?:""
+		numeroAta = tur.camposAdicionais.padrao.numeroata?:0
+		
+	}
+	
+	//avaliacao descritiva
+	se(regAval.modoAvaliacao == "DESCRITIVA"){
+		notaNumerica = -1
+	}
+	
+	fonte.inserirLinha(
+		nomeAluno: regAval.enturmacao.matricula.aluno.pessoa.nome,
+		disciplina: disc + cargaHorariaDisc,
+		notaNumerica: regAval.notaNumerica,
+		situacao: percentualFaltas + "%\n" + situacao,
+		anoLetivo: regAval.anoLetivo.ano,
+		estabelecimento: regAval.estabelecimento.pessoa.nome,
+		estabelecimentoTelefone: teleFormat,
+		estabelecimentoSite: regAval.estabelecimento.pessoa.site,
+		turma: regAval.enturmacao.turma.descricao,
+		turno: regAval.enturmacao.turma.turno,
+		matriz: regAval.enturmacao.turma.etapaMatriz.matriz.descricao,
+		etapa: regAval.enturmacao.turma.etapaMatriz.etapaInep.nome,
+		dataAta: dataAta,
+		ata: ata,
+		numeroAta: numeroAta,
+		cargaHoraria: cargaHorariaTurma,
+		diretor: diretor,
+		diretorMatricula: diretorMatricula,
+		coordenador: coordenador,
+		coordenadorMatricula: coordenadorMatricula,
+		administrativo: administrativo,
+		administrativoMatricula: administrativoMatricula,
+		modalidade: regAval.enturmacao.turma.modalidadeTurma
+	)
+	
+	imprimir "Nome: ${regAval.enturmacao.matricula.aluno.pessoa.nome} | Disciplina: ${disc} | Nota: ${regAval.notaNumerica} | Situacao: ${regAval.enturmacao.matricula.situacao} | AULAS: ${numAulas} | FALTAS: ${faltas}"
+	
+	percentualFaltas = 0
+	numAulas = 0
+	faltas = 0
+	cargaHorariaDisc = ""
+	cargaHorariaTurma = 0
+}
+
+retornar fonte

@@ -1,0 +1,297 @@
+utils = importar "utilitarios"
+/*
+Nome				Tipo do dado no JRXML							Parâmetros obrigatório
+Esquema.caracter	java.lang.String								Nenhum
+Esquema.inteiro		java.lang.Long									Nenhum
+Esquema.numero		java.math.BigDecimal							Nenhum
+Esquema.data		java.util.Date									Nenhum
+Esquema.objeto		Utilização do "_" para acessar a propriedade	Lista de propriedades do objeto
+Esquema.lista		java.util.List									Esquema da lista
+
+esquema = [
+  nome: Esquema.caracter,
+  salario: Esquema.numero,
+  pai: Esquema.objeto([
+    nome: Esquema.caracter,
+    nascimento: Esquema.data,
+    dependentes: Esquema.lista(Esquema.objeto([
+      nome: Esquema.caracter,
+      idade: Esquema.inteiro
+    ]))
+  ])
+]
+
+*/
+
+imprimir "Inicio "+ Datas.hoje().formatar('yyyy-MM-dd HH:mm:ss.SSS')
+
+paramAno = parametros.anoLetivo.valor
+paramEstabelecimento = parametros.estabelecimento.valor
+paramTurma = parametros.turma.valor
+paramAdmin = parametros.admin.valor
+paramCoord = parametros.coord.valor
+
+esquema2 = [
+        enturmaID              : Esquema.inteiro,
+        nomeAluno              : Esquema.caracter,
+        disciplina             : Esquema.caracter,
+        notaNumerica           : Esquema.caracter,
+        situacao               : Esquema.caracter,
+        anoLetivo              : Esquema.inteiro,
+        estabelecimentoTelefone: Esquema.caracter,
+        estabelecimentoSite    : Esquema.caracter,
+        turma                  : Esquema.caracter,
+        turno                  : Esquema.caracter,
+        matriz                 : Esquema.caracter,
+        etapa                  : Esquema.caracter,
+        dataAta                : Esquema.data,
+        estabelecimento        : Esquema.caracter,
+        ata                    : Esquema.caracter,
+        numeroAta              : Esquema.caracter,
+        cargaHoraria           : Esquema.inteiro,
+        diretor                : Esquema.caracter,
+        diretorMatricula       : Esquema.caracter,
+        coordenador            : Esquema.caracter,
+        coordenadorMatricula   : Esquema.caracter,
+        administrativo         : Esquema.caracter,
+        administrativoMatricula: Esquema.caracter,
+        modalidade             : Esquema.caracter
+]
+
+fonte = Dados.dinamico.v2.novo(esquema2)
+
+fonteRegAvaliacao = Dados.educacao.v1."registro-avaliacao"
+fonteResFrequencia = Dados.educacao.v1."resultado-frequencia"
+fonteTurma = Dados.educacao.v1.turma
+fonteTurmaDisc = Dados.educacao.v1.turmaDisciplina
+fonteEquipeDir = Dados.educacao.v1.equipeDiretiva
+fonteEnturmacao = Dados.educacao.v1.enturmacao
+fonteItemAvalTurma = Dados.educacao.v1."item-avaliacao-turma"
+
+disc = ""
+teleFormat = ""
+percentualFaltas = 0
+ata = ""
+dataAta = Datas.hoje()
+numeroAta = 0
+situacao = ""
+cargaHorariaDisc = ""
+cargaHorariaTurma = 0
+diretor = ""
+diretorMatricula = ""
+coordenador = ""
+coordenadorMatricula = ""
+administrativo = ""
+administrativoMatricula = ""
+notaDoItem = ""
+professor = ""
+
+percorrer(fonteEquipeDir.lista(campos: "id,funcionario.servidor.pessoa.nome, funcionario.matricula, funcionario.cargo.descricao, funcionario.cargoComissionado.descricao", criterio: "estabelecimento.id = ${paramEstabelecimento}")) { eqpDir ->
+
+    se(eqpDir.funcionario.cargo.descricao == "DIRETOR ESCOLAR" || eqpDir.funcionario.cargoComissionado.descricao == "DIRETOR ESCOLAR") {
+        diretor = eqpDir.funcionario.servidor.pessoa.nome
+        diretorMatricula = eqpDir.funcionario.matricula
+    }
+    se(eqpDir.id == paramCoord) {
+        coordenador = eqpDir.funcionario.servidor.pessoa.nome
+        coordenadorMatricula = eqpDir.funcionario.matricula
+    }
+    se(eqpDir.id == paramAdmin) {
+        administrativo = eqpDir.funcionario.servidor.pessoa.nome
+        administrativoMatricula = eqpDir.funcionario.matricula
+    }
+
+}
+
+imprimir "Fim equipe diretiva  "+ Datas.hoje().formatar('yyyy-MM-dd HH:mm:ss.SSS')
+
+crit = "anoLetivo.ano = ${paramAno} and estabelecimento.id = ${paramEstabelecimento} and turma.id = ${paramTurma} and (dataFim is null or (matricula.situacao = 'TRANSFERIDO' or matricula.situacao = 'CANCELAMENTO'))"
+
+
+itensAvaliaveis = fonteItemAvalTurma.lista(campos: "itemEducacional.descricao, itemEducacional.pai.descricao, itemEducacional.id, tipoPeriodo, itemAvaliavel.modoAvaliacao", criterio: "turma.id = ${paramTurma} and (tipoPeriodo = 'MEDIA_FINAL' or tipoPeriodo = 'MODULO')", ordenacao: "itemEducacional.descricao asc")
+
+imprimir "Fim avaliaveis "+ Datas.hoje().formatar('yyyy-MM-dd HH:mm:ss.SSS')
+
+camposAdicionais = fonteTurma.lista(campos: "camposAdicionais.padrao.data, camposAdicionais.padrao.ata, camposAdicionais.padrao.numero", criterio: "id = ${paramTurma}")
+
+imprimir "Fim campos adicionais "+ Datas.hoje().formatar('yyyy-MM-dd HH:mm:ss.SSS')
+
+percorrer(fonteEnturmacao.lista(campos: "anoLetivo.ano, turma.etapaMatriz.etapaInep.nome, turma.etapaMatriz.matriz.descricao, estabelecimento.pessoa.nome, estabelecimento.pessoa.telefone, estabelecimento.pessoa.site, turma.descricao, turma.turno, matricula.aluno.pessoa.nome, dataFim, matricula.situacao, matricula.aluno.id, id, turma.id, turma.vagaEtapa.etapaMatriz.id, turma.configuracaoHorasAulas.cargaHorariaSemanal, turma.etapaMatriz.matriz.diasLetivos, turma.modalidadeTurma", criterio: crit, ordenacao: "matricula.aluno.pessoa.nome asc")) { enturma ->
+
+    imprimir "inicio enturmacao " + enturma.id + " - " + Datas.hoje().formatar('yyyy-MM-dd HH:mm:ss.SSS')
+
+    percorrer(itensAvaliaveis) { avalTurma ->
+
+        //imprimir "TIPO: ${avalTurma.tipoPeriodo}"
+
+        percorrer(fonteRegAvaliacao.lista(campos: "notaNumerica, notaConceito.sigla, notaConceito.valorCalculo, modoAvaliacao, itemAvaliacaoTurma.tipoPeriodo", criterio: "enturmacao.id = ${enturma.id} and itemAvaliacaoTurma.id = ${avalTurma.id}", ordenacao: "")) { regAval ->
+            se(regAval.itemAvaliacaoTurma.tipoPeriodo == "Média final" || regAval.itemAvaliacaoTurma.tipoPeriodo == "Módulo") {
+
+                //imprimir "TIPO: ${regAval.itemAvaliacaoTurma.tipoPeriodo}"
+                //imprimir "MODO: ${regAval.modoAvaliacao}"
+                switch (regAval.modoAvaliacao) {
+                    case "CONCEITO":
+                        notaDoItem = regAval.notaConceito.sigla;
+                        //imprimir "Conceito: " + notaDoItem
+                        break;
+                    case "CONCEITO_NUMERICO":
+                        notaDoItem = "" + regAval.notaConceito.valorCalculo;
+                        //imprimir "Conceito Numerico: " + notaDoItem
+                        break;
+                    case "DESCRITIVO":
+                        notaDoItem = "DESC";
+                        //imprimir "Descritivo: " + notaDoItem
+                        break;
+                    default:
+						se(regAval.notaNumerica > 0){
+							notaDoItem = Numeros.trunca((regAval.notaNumerica * 10), 0)
+							notaDoItem += ""
+							notaDoItem = notaDoItem.esquerda(notaDoItem.tamanho() - 1) + "," + notaDoItem.direita(1)
+						} senao {
+							notaDoItem = "0,0"
+						}
+                //imprimir "Numerico: " + notaDoItem
+                }
+
+            }
+
+        }
+
+        se(notaDoItem == "") {
+            se(avalTurma.itemAvaliavel.modoAvaliacao == "DESCRITIVO") {
+                notaDoItem = "Desc"
+            }
+            se(avalTurma.itemAvaliavel.modoAvaliacao == "CONCEITO") {
+                notaDoItem = "Conc"
+            }
+        }
+
+        /*se(notaDoItem == nulo){
+            notaDoItem = -1
+        }*/
+
+        //Porcentagem de faltas
+        crit = "anoLetivo.ano = ${paramAno} and enturmacao.id = ${enturma.id}"
+        percorrer(fonteResFrequencia.lista(campos: "percentualTotal", criterio: crit)) { resFreq ->
+            se(resFreq.percentualTotal > 0) {
+                percentualFaltas = resFreq.percentualTotal
+//				imprimir "Freq = " + percentualFaltas
+            }
+        }
+
+        //carga horaria por disciplina
+        se(enturma.turma.modalidadeTurma == "EJA" || enturma.turma.modalidadeTurma == nulo) {
+            percorrer(fonteTurmaDisc.lista(campos: "etapaMatrizDisciplina.disciplina.id, etapaMatrizDisciplina.cargaHoraria", criterio: "itemEducacional.id = ${avalTurma.itemEducacional.id}")) { turmDisc ->
+                cargaHorariaDisc = "\nCH: " + (turmDisc.etapaMatrizDisciplina.cargaHoraria / 3600) + " h/a"
+            }
+        } senao {
+            //carga horaria por turma
+            cargaHorariaTurma = Numeros.arredonda(((enturma.turma.etapaMatriz.matriz.diasLetivos / 5) * (enturma.turma.configuracaoHorasAulas.cargaHorariaSemanal / 3600)), 0)
+        }
+
+        //formatacao
+        teleFormat = utils.formataTelefone(enturma.estabelecimento.pessoa.telefone)
+
+        percorrer(camposAdicionais) { tur ->
+
+            dataAta = tur.camposAdicionais.padrao.data ?: Datas.data(1800, 1, 1)
+            ata = tur.camposAdicionais.padrao.ata ?: ""
+            numeroAta = tur.camposAdicionais.padrao.numero ?: ""
+
+            //imprimir "Data: " + tur.camposAdicionais.padrao.data + " | Numero: " + tur.camposAdicionais.padrao.numero
+
+        }
+
+        disc = avalTurma.itemEducacional.descricao
+
+        se(disc.tamanho() < 2) {
+            disc = avalTurma.itemEducacional.pai.descricao
+        }
+
+        situacao = ""
+        //imprimir enturma.matricula.aluno.pessoa.nome + " - " + enturma.matricula.situacao
+        switch (enturma.matricula.situacao) {
+
+            case "APROVADO":
+                situacao = percentualFaltas + "%\n" + "AP"
+                break
+            case "CURSANDO":
+                situacao = percentualFaltas + "%\n" + "CR"
+                break
+            case "DISPENSADO":
+                situacao = percentualFaltas + "%\n" + "DS"
+                break
+            case "REPROVADO_FREQUENCIA":
+                situacao = percentualFaltas + "%\n" + "RF"
+                break
+            case "REPROVADO":
+                situacao = percentualFaltas + "%\n" + "RP"
+                break
+            case "DEIXOU_FREQUENTAR":
+                situacao = percentualFaltas + "%\n" + "DE"
+                break
+            case "TRANSFERIDO":
+                situacao = "TR"
+                notaDoItem = ""
+                break
+            case "APROVADO_CONSELHO":
+                situacao = percentualFaltas + "%\n" + "AC"
+                break
+            case "CANCELAMENTO":
+                situacao = "CA"
+                notaDoItem = ""
+                break
+            default:
+                situacao = percentualFaltas + "%\n" + "OT"
+
+        }
+
+        /*
+        se(situacao == "AP" && notaDoItem < 7){ //nota
+            situacao == "AC"
+        }
+        */
+
+
+
+        fonte.inserirLinha(
+                enturmaID: enturma.id,
+                nomeAluno: enturma.matricula.aluno.pessoa.nome,
+                disciplina: disc + cargaHorariaDisc,
+                notaNumerica: notaDoItem,
+                situacao: situacao,
+                anoLetivo: enturma.anoLetivo.ano,
+                estabelecimento: enturma.estabelecimento.pessoa.nome,
+                estabelecimentoTelefone: teleFormat,
+                estabelecimentoSite: enturma.estabelecimento.pessoa.site,
+                turma: enturma.turma.descricao,
+                turno: enturma.turma.turno,
+                matriz: enturma.turma.etapaMatriz.matriz.descricao,
+                etapa: enturma.turma.etapaMatriz.etapaInep.nome,
+                dataAta: dataAta,
+                ata: ata,
+                numeroAta: numeroAta,
+                cargaHoraria: cargaHorariaTurma,
+                diretor: diretor,
+                diretorMatricula: diretorMatricula,
+                coordenador: coordenador,
+                coordenadorMatricula: coordenadorMatricula,
+                administrativo: administrativo,
+                administrativoMatricula: administrativoMatricula,
+                modalidade: enturma.turma.modalidadeTurma
+        )
+
+        //imprimir "Nome: ${enturma.matricula.aluno.pessoa.nome} | Disciplina: ${disc} | Nota: ${notaDoItem} | Situacao: ${enturma.matricula.situacao}"
+
+        percentualFaltas = 0
+        cargaHorariaDisc = ""
+        cargaHorariaTurma = 0
+        notaDoItem = ""
+
+    }
+
+    imprimir "Fim enturmacao " + enturma.id + " - " + Datas.hoje().formatar('yyyy-MM-dd HH:mm:ss.SSS')
+}
+
+imprimir "Fim Fonte de dados "+ Datas.hoje().formatar('yyyy-MM-dd HH:mm:ss.SSS')
+retornar fonte

@@ -1,0 +1,124 @@
+/*
+Nome				Tipo do dado no JRXML							Parâmetros obrigatório
+Esquema.caracter	java.lang.String								Nenhum
+Esquema.inteiro		java.lang.Long									Nenhum
+Esquema.numero		java.math.BigDecimal							Nenhum
+Esquema.data		java.util.Date									Nenhum
+Esquema.objeto		Utilização do "_" para acessar a propriedade	Lista de propriedades do objeto
+Esquema.lista		java.util.List									Esquema da lista
+
+esquema = [
+  nome: Esquema.caracter,
+  salario: Esquema.numero,
+  pai: Esquema.objeto([
+    nome: Esquema.caracter,
+    nascimento: Esquema.data,
+    dependentes: Esquema.lista(Esquema.objeto([
+      nome: Esquema.caracter,
+      idade: Esquema.inteiro
+    ]))
+  ])
+]
+
+*/
+
+paramAno = parametros.ano.valor
+paramAluno = parametros.aluno.valor
+paramTurma = parametros.turma.valor
+paramTurno = parametros.turno.valor
+paramPeriodo = parametros.periodo.valor
+
+esquema = [
+	nomeEstabelecimento: Esquema.caracter,
+	telefoneEstab: Esquema.caracter,
+	siteEstab: Esquema.caracter,
+	aluId: Esquema.inteiro,
+	aluNome: Esquema.caracter,
+	turmaId: Esquema.inteiro,
+	turmaNome: Esquema.caracter,
+	notaDescritiva: Esquema.caracter,
+	situacao: Esquema.caracter,
+	periodo: Esquema.caracter,
+	periodoDesc: Esquema.caracter,
+	disciplina: Esquema.caracter,
+	matriz: Esquema.caracter,
+	etapa: Esquema.caracter,
+	nivel: Esquema.caracter,
+	turno: Esquema.caracter,
+	frequencia: Esquema.numero,
+	totalFaltas: Esquema.inteiro,
+	tipoPeriodo: Esquema.caracter
+]
+
+fonte = Dados.dinamico.v2.novo(esquema)
+
+fonteRegAvaliacao = Dados.educacao.v1."registro-avaliacao"
+fonteResFrequencia = Dados.educacao.v1."resultado-frequencia"
+
+percentualFaltas = 0
+totalFaltas = 0
+periodo = ""
+descricao = ""
+
+crit = "notaDescritiva is not null and modoAvaliacao = 'DESCRITIVO'"
+se (paramAno != nulo){
+	crit += " and anoLetivo.ano = ${paramAno}"
+}
+se(paramPeriodo != nulo){
+	crit+ = " and itemAvaliacaoTurma.periodoAvaliativo.descricao like '${paramPeriodo}'"
+}
+se (paramTurno != nulo){
+	crit += " and enturmacao.turma.descricao like '${paramPeriodo}'"
+} senao {
+	se (paramAluno != nulo){
+		crit += " and enturmacao.matricula.aluno.id = ${paramAluno}"
+	}
+	se (paramTurma != nulo){
+		crit += " and enturmacao.turma.id = ${paramTurma}"
+	}
+}
+
+percorrer(fonteRegAvaliacao.lista(campos:"entidade, modoAvaliacao, notaDescritiva, parecer, enturmacao.id, enturmacao.matricula.aluno.id, enturmacao.matricula.aluno.pessoa.nome, enturmacao.matricula.data, enturmacao.matricula.situacao, enturmacao.matricula.tipo, enturmacao.matricula.turno, enturmacao.turma.etapaMatriz.identificacao, enturmacao.turma.etapaMatriz.matriz.curso.nivelEscolar, enturmacao.turma.id, enturmacao.turma.vagaEtapa.etapaMatriz.matriz.descricao, estabelecimento.codigoInep, estabelecimento.pessoa.nome, estabelecimento.pessoa.site, estabelecimento.pessoa.telefone, itemAvaliacaoTurma.itemEducacional.descricao, itemAvaliacaoTurma.itemEducacional.id, itemAvaliacaoTurma.periodoAvaliativo.calendarioMatrizCurricular.descricaoPeriodoAvaliativo, itemAvaliacaoTurma.periodoAvaliativo.descricao, itemAvaliacaoTurma.periodoAvaliativo.id, itemAvaliacaoTurma.tipoPeriodo, enturmacao.turma.descricao", criterio:crit, ordenacao:"enturmacao.matricula.aluno.pessoa.nome asc, itemAvaliacaoTurma.periodoAvaliativo.descricao asc, itemAvaliacaoTurma.itemEducacional.descricao asc")){regAval->
+
+	crit = "enturmacao.id = ${regAval.enturmacao.id}"
+	percorrer(fonteResFrequencia.lista(campos:"percentualTotal, quantidadeFaltasTotais",criterio:crit)){resFreq->
+		se (resFreq.percentualTotal > 0){
+			percentualFaltas = resFreq.percentualTotal
+			totalFaltas = resFreq.quantidadeFaltasTotais
+			// imprimir "Freq = " + percentualFaltas
+		}
+	}
+	
+	imprimir "Tipo: " + regAval.itemAvaliacaoTurma.tipoPeriodo + " | Periodo: " + regAval.itemAvaliacaoTurma.periodoAvaliativo.descricao + " | Desc: " + regAval.itemAvaliacaoTurma.periodoAvaliativo.calendarioMatrizCurricular.descricaoPeriodoAvaliativo + " | Turma: " + regAval.enturmacao.turma.descricao
+	
+	descricao+= regAval.itemAvaliacaoTurma.periodoAvaliativo.calendarioMatrizCurricular.descricaoPeriodoAvaliativo
+	periodo+= regAval.itemAvaliacaoTurma.periodoAvaliativo.descricao.esquerda(2) + " " + descricao
+
+	fonte.inserirLinha(
+	nomeEstabelecimento: regAval.estabelecimento.pessoa.nome,
+	telefoneEstab: regAval.estabelecimento.pessoa.telefone,
+	siteEstab: regAval.estabelecimento.pessoa.site,
+	aluId: regAval.enturmacao.matricula.aluno.id,
+	aluNome: regAval.enturmacao.matricula.aluno.pessoa.nome,
+	turmaId: regAval.enturmacao.turma.id,
+	turmaNome: regAval.enturmacao.turma.descricao,
+	notaDescritiva: regAval.notaDescritiva,
+	situacao: regAval.enturmacao.matricula.situacao,
+	periodo: periodo,
+	periodoDesc: descricao,
+	disciplina: regAval.itemAvaliacaoTurma.itemEducacional.descricao,
+	matriz: regAval.enturmacao.turma.vagaEtapa.etapaMatriz.matriz.descricao,
+	etapa: regAval.enturmacao.turma.etapaMatriz.identificacao,
+	nivel: regAval.enturmacao.turma.etapaMatriz.matriz.curso.nivelEscolar,
+	turno: regAval.enturmacao.matricula.turno,
+	frequencia: percentualFaltas,
+	totalFaltas: totalFaltas,
+	tipoPeriodo: regAval.itemAvaliacaoTurma.tipoPeriodo
+	)
+	
+	periodo = ""
+	descricao = ""
+
+}
+
+retornar fonte

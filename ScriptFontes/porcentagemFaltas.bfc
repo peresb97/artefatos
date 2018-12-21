@@ -1,0 +1,110 @@
+/*
+Esquema.caracter	java.lang.String								Nenhum
+Esquema.inteiro		java.lang.Long 									Nenhum
+Esquema.numero		java.math.BigDecimal							Nenhum
+Esquema.data		java.util.Date									Nenhum
+Esquema.objeto		Utilização do "_" para acessar a propriedade	Lista de propriedades do objeto
+Esquema.lista		java.util.List									Esquema da lista
+*/
+
+paramEstabId = parametros.estabelecimento.selecionado.valor
+paramTurmaId = parametros.turma.selecionado.valor
+paramPerId = parametros.periodo.selecionado.valor
+
+esquemaFaltas = [
+	nomeAluno: Esquema.caracter,/*
+	disciplina: Esquema.caracter,*/
+	periodo: Esquema.caracter,
+	turma: Esquema.caracter,
+	dataMatricula: Esquema.data,
+	numeroFaltas: Esquema.inteiro,
+	numeroAulas: Esquema.inteiro,
+	porcentagemFaltas: Esquema.numero
+]
+
+fonteRet = Dados.dinamico.v1.novo(esquemaFaltas)
+fonteRegFaltas = Dados.educacao.v1."registro-faltas"
+fonteAlocAula = Dados.educacao.v1.alocacaoAula
+
+numAulas = 0
+porcentagem = 0
+aluID = 0
+totalFaltas = 0
+aluNome = ""
+perID = 0
+perDesc = ""
+dataEnt = Datas.data(1800,1,1)
+datFim = Datas.data(1800,1,1)
+
+percorrer(fonteAlocAula.listar(campos:"data",criterio:"periodoAvaliativo.id = " + paramPerId)){
+	numAulas = numAulas + 1
+}
+
+percorrer(fonteRegFaltas.lista(campos:"enturmacao.matricula.aluno.id, enturmacao.dataFim, enturmacao.matricula.aluno.pessoa.nome, quantidadeFaltas, itemEducacional.descricao, itemEducacional.id, periodoAvaliativo.descricao, enturmacao.turma.descricao, periodoAvaliativo.id, enturmacao.dataInicio", criterio:"estabelecimento.id = " + paramEstabId +/* " and periodoAvaliativo.id = " + paramPerId + */" and enturmacao.turma.id = " + paramTurmaId, ordenacao: "periodoAvaliativo.id asc, enturmacao.matricula.aluno.pessoa.nome asc, enturmacao.matricula.aluno.id asc")){regFal->
+
+	datFim = regFal.enturmacao.dataFim
+	
+	se(datFim.ano() == 1800){
+		
+		periodoID = regFal.periodoAvaliativo.id
+		periodoDesc = regFal.periodoAvaliativo.descricao
+		turmaDesc = regFal.enturmacao.turma.descricao
+		numAulas = 0
+		
+		
+		se(numAulas == 0){
+			numAulas = 1
+		}
+
+		se(aluID == regFal.enturmacao.matricula.aluno.id && perID == periodoID){
+			totalFaltas = totalFaltas + regFal.quantidadeFaltas
+		} senao {
+			se(aluID != 0){
+				porcentagem = (100 - (totalFaltas*100)/numAulas)
+			
+				fonteRet.inserirLinha(
+					nomeAluno: aluNome,
+					periodo: perDesc,
+					turma: turmaDesc,
+					dataMatricula: dataEnt,
+					numeroFaltas: totalFaltas,
+					numeroAulas: numAulas,
+					porcentagemFaltas: porcentagem
+				)
+			
+			}
+			
+			dataEnt = regFal.enturmacao.dataInicio
+			perID = periodoID
+			totalFaltas = regFal.quantidadeFaltas
+			aluID = regFal.enturmacao.matricula.aluno.id
+			aluNome = regFal.enturmacao.matricula.aluno.pessoa.nome
+			perDesc = periodoDesc
+			
+		}
+	
+	}
+	
+	
+}
+
+
+se(datFim.ano() == 1800){
+	se(aluID != 0){
+
+		porcentagem = (100 - (totalFaltas*100)/numAulas)
+
+		fonteRet.inserirLinha(
+			nomeAluno: aluNome,
+			periodo: periodoDesc,
+			turma: turmaDesc,
+			dataMatricula: dataEnt,
+			numeroFaltas: totalFaltas,
+			numeroAulas: numAulas,
+			porcentagemFaltas: porcentagem
+		)
+
+	}
+}
+
+retornar fonteRet

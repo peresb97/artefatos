@@ -1,0 +1,238 @@
+/*
+Nome				Tipo do dado no JRXML							Parâmetros obrigatório
+Esquema.caracter	java.lang.String								Nenhum
+Esquema.inteiro		java.lang.Long									Nenhum
+Esquema.numero		java.math.BigDecimal							Nenhum
+Esquema.data		java.util.Date									Nenhum
+Esquema.objeto		Utilização do "_" para acessar a propriedade	Lista de propriedades do objeto
+Esquema.lista		java.util.List									Esquema da lista
+*/
+
+
+paramEscola = parametros.estabelecimento.selecionado.valor
+paramAluno = parametros.aluno.selecionado.valor
+paramNivel = "" + parametros.nivel.selecionado
+
+esquema = [
+  disciplina: Esquema.caracter,
+  curso: Esquema.caracter,
+  equivalente: Esquema.caracter,
+  notaNum: Esquema.numero
+]
+
+fonte = Dados.dinamico.v1.novo(esquema)
+
+fonteMatriz = Dados.educacao.v1."registro-avaliacao"
+fonteEquivalencia = Dados.educacao.v1.EtapaMatrizEquivalencia
+fonteHistoricoEquivalencia = Dados.educacao.v1.equivalenciaHistoricoEscolar
+fonteHistoricoItem = Dados.educacao.v1.itemHistoricoEscolar
+fonteHistoricoMatricula = Dados.educacao.v1.itemHistoricoEscolarMatricula
+fonteHistorico = Dados.educacao.v1.historicoEscolar
+fonteFiliacao = Dados.educacao.v1.alunoFiliacao
+
+nomDisp = ""
+equiValor = ""
+cursoTipo = ""
+nivel = ""
+
+
+
+/*  Dados do aluno e histórico	*/
+
+
+percorrer(fonteHistorico.lista(campos:"id, aluno.id, anoLetivo, descricaoCurso, etapaEnsino, diasLetivos, cargaHorariaTotal, totalFaltas, percentualFrequencia, situacao, municipio.nome, municipio.uf, nivelEscolar", ordenacao:"anoLetivo asc", criterio:"aluno.id = " + paramAluno + " and nivelEscolar = '" + paramNivel + "'")){listaHist->
+
+	imprimir listaHist
+}
+
+
+/*----------------------------------------*/
+
+
+/*	Dados filiação	*/
+
+percorrer(fonteFiliacao.lista(campos:"filiacao.pessoa.nome, tipo", criterio:"aluno.id = " + paramAluno + " and tipo != 'TUTOR'")){listaFil->
+
+	imprimir listaFil
+
+}
+
+/*----------------------------------------*/
+
+
+percorrer(fonteMatriz.lista(campos:"notaNumerica, itemAvaliacaoTurma.itemEducacional.descricao, itemAvaliacaoTurma.tipoPeriodo, itemAvaliacaoTurma.itemEducacional.pai.descricao, enturmacao.turma.etapaMatriz.id, enturmacao.turma.etapaMatriz.identificacao, enturmacao.matricula.tipo, enturmacao.turma.etapaMatriz.matriz.curso.nivelEscolar", criterio: "enturmacao.matricula.aluno.id = " + paramAluno, ordenacao: "id desc, enturmacao.turma.etapaMatriz.matriz.descricao desc, enturmacao.turma.descricao asc, itemAvaliacaoTurma.itemEducacional.descricao asc")){listaMatriz->
+  
+  
+  nomDisp = listaMatriz.itemAvaliacaoTurma.itemEducacional.descricao
+  
+  se(nomDisp == nulo || nomDisp.tamanho() < 2){
+    
+    nomDisp = listaMatriz.itemAvaliacaoTurma.itemEducacional.pai.descricao
+    
+  }
+  
+  percorrer(fonteEquivalencia.lista(campos:"chave.equivalenciaEtapa",criterio:"chave.etapa.id = " + listaMatriz.enturmacao.turma.etapaMatriz.id)){listaEqui->
+    
+    equiValor = listaEqui.chave.equivalenciaEtapa
+    
+  }
+  
+  se(listaMatriz.enturmacao.matricula.tipo == "EJA"){
+    cursoTipo = "BLOCO " + listaMatriz.enturmacao.turma.etapaMatriz.identificacao 
+  } senao {
+    cursoTipo = listaMatriz.enturmacao.turma.etapaMatriz.identificacao + " ANO"
+  }
+  
+  /*
+imprimir "1: " + equiValor + " | " + nomDisp + " | " + listaMatriz.notaNumerica
+
+se(listaMatriz.notaNumerica == nulo){
+nota = "-"
+} senao {
+nota = "" + listaMatriz.notaNumerica
+se (nota.tamanho() == 1){
+nota = nota + ".0"
+}
+}
+*/
+  
+  se(listaMatriz.enturmacao.turma.etapaMatriz.matriz.curso.nivelEscolar != nulo){
+    nivel = "" + listaMatriz.enturmacao.turma.etapaMatriz.matriz.curso.nivelEscolar
+  }
+  
+  //se (nivel == paramNivel){
+    
+    fonte.inserirLinha(
+      disciplina: nomDisp,
+      curso: cursoTipo,
+      equivalente: equiValor,
+      notaNum: listaMatriz.notaNumerica
+    )
+    
+    //imprimir "IN -> Disc: " + nomDisp + " | Curso: " + cursoTipo + " | Equi: " + equiValor +  " | nota: " + listaMatriz.notaNumerica + " | nivel: " + nivel + " | tipo: " + listaMatriz.itemAvaliacaoTurma.tipoPeriodo
+    
+  //}
+  //imprimir "OUT -> Disc: " + nomDisp + " | Curso: " + cursoTipo + " | Equi: " + equiValor +  " | nota: " + listaMatriz.notaNumerica + " | nivel: " + nivel + " | tipo: " + listaMatriz.itemAvaliacaoTurma.tipoPeriodo
+  
+  nivel = ""
+  equiValor = ""
+  
+  
+}
+
+equiValor =""
+
+percorrer(fonteHistoricoItem.lista(campos:"historicoEscolar.id, notaNumerica, eixoTematico.descricao, itemOrganizacaoCurricular.descricao, historicoEscolar.etapaEnsino",criterio:"historicoEscolar.aluno.id = " + paramAluno)){fonteHis->
+  
+  nomDisp = fonteHis.itemOrganizacaoCurricular.descricao
+  
+  se(nomDisp.tamanho() < 2){
+    nomDisp = fonteHis.eixoTematico.descricao
+  }
+  
+  percorrer(fonteHistoricoEquivalencia.lista(campos:"equivalenciaEtapa, historicoEscolar.etapaEnsino, historicoEscolar.nivelEscolar",criterio:"id = " + fonteHis.historicoEscolar.id)){histoEqui->
+    
+    se(fonteHis.historicoEscolar.etapaEnsino == histoEqui.historicoEscolar.etapaEnsino){
+      equiValor = histoEqui.equivalenciaEtapa
+    }
+    
+  }
+  
+  //  equiValor = Caracteres.direita(equiValor,1)
+  //  equiValor = equiValor + "° ano"
+  
+  /*
+nota = "" + fonteHis.notaNumerica
+
+se(fonteHis.notaNumerica == nulo){
+nota = "-"
+} senao {
+nota = "" + fonteHis.notaNumerica
+se (nota.tamanho() == 1){
+nota = nota + ".0"
+}
+}*/
+  
+  se(fonteHis.historicoEscolar.nivelEscolar != nulo){
+    nivel = "" + fonteHis.historicoEscolar.nivelEscolar
+  }
+  
+  //se (nivel == paramNivel){
+    
+    
+    fonte.inserirLinha(
+      disciplina: nomDisp,
+      curso: fonteHis.historicoEscolar.etapaEnsino,
+      equivalente: equiValor,
+      notaNum: fonteHis.notaNumerica
+    )
+    
+    imprimir "IN -> Disc: " + nomDisp + " | Curso: " + fonteHis.historicoEscolar.etapaEnsino + " | Equi: " + equiValor +  " | nota: " + fonteHis.notaNumerica + " | nivel: " + nivel 
+    
+  //}
+  //imprimir "OUT -> Disc: " + nomDisp + " | Curso: " + fonteHis.historicoEscolar.etapaEnsino + " | Equi: " + equiValor +  " | nota: " + fonteHis.notaNumerica + " | nivel: " + nivel 
+  
+  nivel = ""
+  equiValor = ""
+  
+}
+
+
+/*
+percorrer(fonteHistoricoMatricula.lista(campos:"matricula.id, notaNumerica, etapa.disciplina.descricao, etapa.eixoTematico.descricao, etapa.etapa.identificacao, etapa.etapa.classificacao, matricula.etapaMatriz.classificacao",criterio:"matricula.aluno.id = " + paramAluno)){fonteMat->
+  
+  nomDisp = fonteMat.etapa.disciplina.descricao
+  
+  se(nomDisp.tamanho() < 2){
+    nomDisp = fonteMat.etapa.eixoTematico.descricao
+  }
+  
+  percorrer(fonteHistoricoEquivalencia.lista(campos:"equivalenciaEtapa, historicoEscolar.etapaEnsino, historicoEscolar.nivelEscolar",criterio:"id = " + fonteMat.matricula.id)){histoEqui->
+    
+    se(fonteMat.etapa.etapa.identificacao == histoEqui.historicoEscolar.etapaEnsino){
+      equiValor = histoEqui.equivalenciaEtapa
+    }
+    
+  }
+  
+  //  equiValor = Caracteres.direita(equiValor,1)
+  //  equiValor = equiValor + "° ano"
+  
+/*
+nota = "" + fonteMat.notaNumerica
+
+se(fonteMat.notaNumerica == nulo){
+	nota = "-"
+} senao { v
+	nota = "" + fonteMat.notaNumerica
+	se (nota.tamanho() == 1){
+		nota = nota + ".0"
+	}
+}*//*
+  
+  se(fonteMat.etapa.etapa.identificacao != nulo){
+    nivel = "" + fonteMat.etapa.etapa.identificacao
+  }
+  
+  //se (nivel == paramNivel){
+    
+    
+    fonte.inserirLinha(
+      disciplina: nomDisp,
+      curso: fonteMat.etapa.etapa.identificacao,
+      equivalente: equiValor,
+      notaNum: fonteMat.notaNumerica
+    )
+    
+    //imprimir "IN -> Disc: " + nomDisp + " | Curso: " + fonteMat.matricula.etapaMatriz.classificacao + " | Equi: " + equiValor +  " | nota: " + fonteMat.notaNumerica + " | nivel: " + nivel 
+    
+  //}
+  //imprimir "OUT -> Disc: " + nomDisp + " | Curso: " + fonteMat.matricula.etapaMatriz.classificacao + " | Equi: " + equiValor +  " | nota: " + fonteMat.notaNumerica + " | nivel: " + fonteMat.etapa.etapa.identificacao + " OU " + fonteMat.etapa.etapa.classificacao
+  
+  nivel = ""
+  equiValor = ""
+  
+}
+
+*/
+retornar fonte

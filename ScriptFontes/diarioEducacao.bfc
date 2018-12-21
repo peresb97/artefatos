@@ -1,0 +1,41 @@
+ans = parametros.ano.valor
+mtrz = parametros.matriz.valor
+escl = parametros.escola.selecionado.valor
+prd = parametros.periodo.selecionado.valor
+
+eschema = [
+    diaPeriodo: Esquema.inteiro,
+	mesPeriodo: Esquema.inteiro
+]
+
+fonte = Dados.dinamico.v1.novo(eschema);
+
+prd = Caracteres.substituir(prd,"°","_")
+
+registroFaltas = Dados.educacao.v1.periodoAvaliativo;
+camps = "dataInicial,dataFinal,calendarioMatrizCurricular(descricao)";
+crits = "anoLetivo.ano = " + ans + " and descricao like '%" + prd + "%' and estabelecimento.id = " + escl
+
+percorrer(registroFaltas.listar(campos:camps,criterio:crits)){
+
+	matrizDescricao = item.calendarioMatrizCurricular.descricao
+	dataInicio = item.dataInicial;
+	dataFim = item.dataFinal;
+	diasAulas = Numeros.absoluto(Datas.diferencaDias(dataInicio,dataFim)) + 1;
+	
+	se(matrizDescricao == mtrz){
+
+		percorrer(ate:diasAulas){
+			insereDia = dataInicio.adicionaDias(indice-1);
+			se(Datas.diaSemana(insereDia) != 1 && Datas.diaSemana(insereDia) != 7){
+				fonte.inserirLinha(
+					diaPeriodo:insereDia.dia(),
+					mesPeriodo:insereDia.mes()
+				)
+			}
+		}
+	}
+
+}
+
+retornar fonte;

@@ -1,0 +1,213 @@
+utils = importar "utilitarios"
+/*
+Nome				Tipo do dado no JRXML							Parâmetros obrigatório
+Esquema.caracter	java.lang.String								Nenhum
+Esquema.inteiro		java.lang.Long									Nenhum
+Esquema.numero		java.math.BigDecimal							Nenhum
+Esquema.data		java.util.Date									Nenhum
+Esquema.objeto		Utilização do "_" para acessar a propriedade	Lista de propriedades do objeto
+Esquema.lista		java.util.List									Esquema da lista
+
+esquema = [
+  nome: Esquema.caracter,
+  salario: Esquema.numero,
+  pai: Esquema.objeto([
+    nome: Esquema.caracter,
+    nascimento: Esquema.data,
+    dependentes: Esquema.lista(Esquema.objeto([
+      nome: Esquema.caracter,
+      idade: Esquema.inteiro
+    ]))
+  ])
+]
+
+*/
+
+paramAno = parametros.anoLetivo.valor
+paramEstabelecimento = parametros.estabelecimento.valor
+paramTurma = parametros.turma.valor
+paramAluno = parametros.aluno.valor
+
+
+esquema = [
+	nomeAluno: Esquema.caracter,
+	alunoId: Esquema.inteiro,
+	disciplina: Esquema.caracter,
+	notaNumerica: Esquema.numero,
+	situacao: Esquema.caracter,
+	anoLetivo: Esquema.inteiro,
+	estabelecimento: Esquema.caracter,
+	estabelecimentoTelefone: Esquema.caracter,
+	estabelecimentoSite: Esquema.caracter,
+	turma: Esquema.caracter,
+	turno: Esquema.caracter,
+	matriz: Esquema.caracter,
+	etapa: Esquema.caracter,
+	periodo: Esquema.caracter,
+	faltas: Esquema.inteiro,
+	porcentagemFaltas: Esquema.numero,
+	tipoDado: Esquema.caracter,	//para encaixar melhor no crosstab
+	valor: Esquema.numero,		//
+	nivel: Esquema.caracter
+]
+
+fonte = Dados.dinamico.v2.novo(esquema)
+
+fonteRegAvaliacao = Dados.educacao.v1."registro-avaliacao"
+fonteRegFrequencia = Dados.educacao.v1."registro-faltas"
+fonteAlocacaoAula = Dados.educacao.v1.alocacaoAula
+
+registroAvaliacao = []
+registroFaltas = []
+registroAulas = []
+faltas = 0
+totalAulas = 0
+disciplina = ""
+periodo = ""
+teleFormat = ""
+id = 0
+
+crit = "anoLetivo.ano = ${paramAno} and estabelecimento.id = ${paramEstabelecimento} and enturmacao.turma.id = ${paramTurma}"
+se(paramAluno != nulo){
+	crit = crit + " and enturmacao.matricula.aluno.id = ${paramAluno}"
+}
+
+percorrer(fonteRegAvaliacao.lista(campos:"enturmacao.matricula.aluno.id, anoLetivo.ano, enturmacao.turma.etapaMatriz.etapaInep.nome, enturmacao.turma.etapaMatriz.matriz.descricao, estabelecimento.pessoa.nome, estabelecimento.pessoa.telefone, estabelecimento.pessoa.site, enturmacao.turma.descricao, enturmacao.turma.id, enturmacao.turma.turno, enturmacao.matricula.aluno.pessoa.nome, enturmacao.dataFim, notaNumerica,  instrumentoAvaliacao.servidor.pessoa.nome, itemAvaliacaoTurma.itemEducacional.descricao, itemAvaliacaoTurma.itemEducacional.id, itemAvaliacaoTurma.itemEducacional.pai.descricao, enturmacao.matricula.situacao, enturmacao.matriculaAtividade.situacao, enturmacao.id, itemAvaliacaoTurma.tipoPeriodo", criterio:crit, ordenacao:"enturmacao.matricula.aluno.pessoa.nome asc, itemAvaliacaoTurma.itemEducacional.descricao asc, itemAvaliacaoTurma.itemEducacional.pai.descricao asc")){
+
+	se(item.enturmacao.matricula.situacao == "APROVADO" || item.enturmacao.matricula.situacao == "REPROVADO"){
+	
+		registroAvaliacao << item
+		
+		//imprimir "Nome: ${item.enturmacao.matricula.aluno.pessoa.nome} | Nota: ${item.notaNumerica}"
+	
+	}
+
+}
+
+crit = "anoLetivo.ano = ${paramAno}"
+se(paramAluno != nulo){
+	crit = crit + " and enturmacao.matricula.aluno.id = ${paramAluno}"
+}
+
+percorrer(fonteRegFrequencia.lista(campos:"enturmacao.id, quantidadeFaltas, quantidadeTotais, quantidadeAulas", criterio:crit)){
+
+	registroFaltas << item
+
+}
+
+percorrer(fonteAlocacaoAula.listar(campos:"data, anoLetivo.ano, turma.id, itemEducacional.id", criterio:"turma.id = ${paramTurma}")){
+
+	se(item.anoLetivo.ano == paramAno){
+		registroAulas << item
+	}
+
+}
+
+percorrer(registroAvaliacao){regAval->
+
+	if((regAval.itemAvaliacaoTurma.tipoPeriodo == "Módulo")/* || (regAval.itemAvaliacaoTurma.tipoPeriodo == "Média do período") */|| (regAval.itemAvaliacaoTurma.tipoPeriodo == "Conselho de classe") || (regAval.itemAvaliacaoTurma.tipoPeriodo == "Média final")){
+
+		percorrer(registroFaltas){regFal->
+		
+			imprimir regAval.enturmacao.id + " | " + regFal.enturmacao.id
+			
+			if(regAval.enturmacao.id == regFal.enturmacao.id){
+				faltas = "" + regFal.quantidadeFaltas
+				parar()
+			}
+			
+		
+		}
+		
+		
+		percorrer(registroAulas){regAula->
+		
+			if(regAval.itemEducacional.id == regAula.itemEducacional.id){
+			
+				totalAulas++
+			
+			}
+		
+		}
+		
+		se(regAval.itemAvaliacaoTurma.tipoPeriodo == "Módulo"){
+			periodo = "Módulo " + regAval.itemAvaliacaoTurma.itemEducacional.descricao
+			disciplina = regAval.itemAvaliacaoTurma.itemEducacional.pai.descricao
+		} senao {
+			periodo = regAval.itemAvaliacaoTurma.tipoPeriodo
+			disciplina = regAval.itemAvaliacaoTurma.itemEducacional.descricao
+		}
+		
+		switch(periodo){
+			case "Média final":
+				periodo = "cc" + periodo
+				break
+			case "Conselho de classe":
+				periodo = "bb" + periodo
+				break
+			default:
+				periodo = "aa" + periodo
+		}
+		
+		teleFormat = utils.formataTelefone(regAval.estabelecimento.pessoa.telefone)
+		
+		se(totalAulas == 0){
+			porcentFaltas = 100
+		} senao {
+			porcentFaltas = (faltas / totalAulas)*100
+		}
+
+		fonte.inserirLinha(
+			nomeAluno: regAval.enturmacao.matricula.aluno.pessoa.nome,
+			alunoId: regAval.enturmacao.matricula.aluno.id,
+			disciplina: disciplina,
+			notaNumerica: regAval.notaNumerica,
+			situacao: regAval.enturmacao.matriculaAtividade.situacao,
+			anoLetivo: regAval.anoLetivo.ano,
+			estabelecimento: regAval.estabelecimento.pessoa.nome,
+			estabelecimentoTelefone: teleFormat,
+			estabelecimentoSite: regAval.estabelecimento.pessoa.site,
+			turma: regAval.enturmacao.turma.descricao,
+			turno: regAval.enturmacao.turma.turno,
+			matriz: regAval.enturmacao.turma.etapaMatriz.matriz.descricao,
+			etapa: regAval.enturmacao.turma.etapaMatriz.etapaInep.nome,
+			periodo: periodo,
+			faltas: faltas,
+			porcentagemFaltas: porcentFaltas,
+			tipoDado: "Nota",
+			valor: regAval.notaNumerica,
+			nivel: regAval.enturmacao.turma.etapaMatriz.matriz.curso.nivelEscolar
+		)
+		
+		fonte.inserirLinha(
+			nomeAluno: regAval.enturmacao.matricula.aluno.pessoa.nome,
+			alunoId: regAval.enturmacao.matricula.aluno.id,
+			disciplina: disciplina,
+			notaNumerica: regAval.notaNumerica,
+			situacao: regAval.enturmacao.matriculaAtividade.situacao,
+			anoLetivo: regAval.anoLetivo.ano,
+			estabelecimento: regAval.estabelecimento.pessoa.nome,
+			estabelecimentoTelefone: teleFormat,
+			estabelecimentoSite: regAval.estabelecimento.pessoa.site,
+			turma: regAval.enturmacao.turma.descricao,
+			turno: regAval.enturmacao.turma.turno,
+			matriz: regAval.enturmacao.turma.etapaMatriz.matriz.descricao,
+			etapa: regAval.enturmacao.turma.etapaMatriz.etapaInep.nome,
+			periodo: periodo,
+			faltas: faltas,
+			porcentagemFaltas: porcentFaltas,
+			tipoDado: "Faltas",
+			valor: faltas,
+			nivel: regAval.enturmacao.turma.etapaMatriz.matriz.curso.nivelEscolar
+		)
+	
+	}
+	
+	faltas = 0
+	totalAulas = 0
+
+	imprimir "Nome: ${regAval.enturmacao.matricula.aluno.pessoa.nome} | ID: ${regAval.enturmacao.matricula.aluno.id} | Nota: ${regAval.notaNumerica} | Periodo: ${regAval.itemAvaliacaoTurma.tipoPeriodo}"
+
+}
+
+retornar fonte

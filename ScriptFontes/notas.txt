@@ -1,0 +1,74 @@
+\\192.168.2.30\Publico\Formularios_Logos_Imagens_assinaturas\filial_criciuma\betha_wallpaper.jpg
+
+Criterio.onde('situacaoFuncionamento').igual('EM_ATIVIDADE');
+
+E.F. 1º Semestre LP, Mat, Infor, Ciê
+
+
+Criterio.onde('estabelecimento.id').igual(Numeros.numero(parametros.estabelecimento.selecionado.valor)).e(Criterio.grupo(Criterio.onde('funcionario.cargoComissionado.descricao').contem("ADMINISTRAÇÃO").ou('funcionario.cargo.descricao').contem("%ADMINISTRAÇÃO%")));
+
+Criterio.onde('estabelecimento.id').igual(Numeros.numero(parametros.estabelecimento.selecionado.valor)).e(Criterio.grupo(Criterio.onde('funcionario.cargoComissionado.descricao').contem("%TÉCNICO EM ADMINISTRAÇÃO%").ou('funcionario.cargo.descricao').contem("%TÉCNICO EM ADMINISTRAÇÃO%")));
+
+
+Criterio.onde('anoLetivo.ano').igual(Numeros.numero(parametros.anoLetivo.selecionado.valor)).e('estabelecimento.id').igual(Numeros.numero(parametros.estabelecimento.selecionado.valor)).e('funcionario.id').igual(Numeros.numero(parametros.funcionario.selecionado.valor))
+
+
+Criterio.onde('estabelecimento.id').igual(Numeros.numero(parametros.estabelecimento.selecionado.valor))
+
+
+Criterio.onde('estabelecimento.id').igual(Numeros.numero(parametros.estabelecimento.selecionado.valor)).e('funcionario.cargo.descricao').igual('TÉCNICO EM ADMINISTRAÇÃO')
+
+Criterio.onde('estabelecimento.id').igual(Numeros.numero(parametros.estabelecimento.selecionado.valor)).e('funcionario.cargoComissionado.descricao')igual('COORDENADOR PEDAGOGICO')
+
+planejamento: numero aula alocadas por turma
+situacao VANDERLEI aulas 09/10 11/10
+
+planejamento
+aulas por disciplina
+deleta aulas
+script filtro
+
+frequencia
+duplicada
+
+josiane vargas
+turmas por disciplina
+
+boletim do professor
+deixar sรณ medias do periodo informado
+
+um janela
+
+media notas parciais
+
+dados da mitricula, espelho
+
+semestrais
+
+5 ano manha ata outros
+boletim professor
+
+faltas
+
+acrescentar competencias
+
+anselmo historia
+
+
+boletim descritivo
+jardim 1
+
+planajemanto
+elaine rocha cardoso
+
+988167276
+
+
+thaina 
+aline borba
+
+avaliacao
+1º ano 1
+
+descritivo
+conceito

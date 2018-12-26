@@ -153,7 +153,7 @@ enturmacoes = fonteEnturmacao.lista(campos: "matricula.aluno.id, matricula.aluno
         "estabelecimento.id = ${paramEstabelecimento} ${critTurma}", ordenacao: "turma.id asc, matricula.aluno.pessoa.nome asc")
 
 percorrer(enturmacoes){ enturma ->
-    se(!(enturma.dataFim.ano() > 1900 && enturma.matricula.situacao == "CURSANDO")){
+    se(!(enturma.dataFim.ano() > 1900 && enturma.matricula.situacao == "CURSANDO") && enturma.matricula.situacao != "CANCELAMENTO"){
         alunos << enturma
     }
 }

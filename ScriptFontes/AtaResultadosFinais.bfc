@@ -105,14 +105,24 @@ percorrer(fonteEquipeDir.lista(campos: "id,funcionario.servidor.pessoa.nome, fun
 
 imprimir "Fim equipe diretiva  "+ Datas.hoje().formatar('yyyy-MM-dd HH:mm:ss.SSS')
 
-crit = "anoLetivo.ano = ${paramAno} and estabelecimento.id = ${paramEstabelecimento} and turma.id = ${paramTurma} and (dataFim is null or (matricula.situacao = 'TRANSFERIDO' or matricula.situacao = 'CANCELAMENTO'))"
+crit = "anoLetivo.ano = ${paramAno} and estabelecimento.id = ${paramEstabelecimento} and turma.id = ${paramTurma} and (dataFim is null or matricula.situacao = 'TRANSFERIDO')"
 
 
 itensAvaliaveis = fonteItemAvalTurma.lista(campos: "itemEducacional.descricao, itemEducacional.pai.descricao, itemEducacional.id, tipoPeriodo, itemAvaliavel.modoAvaliacao", criterio: "turma.id = ${paramTurma} and (tipoPeriodo = 'MEDIA_FINAL' or tipoPeriodo = 'MODULO')", ordenacao: "itemEducacional.descricao asc")
 
 imprimir "Fim avaliaveis "+ Datas.hoje().formatar('yyyy-MM-dd HH:mm:ss.SSS')
 
+//campos adicionais
 camposAdicionais = fonteTurma.lista(campos: "camposAdicionais.padrao.data, camposAdicionais.padrao.ata, camposAdicionais.padrao.numero", criterio: "id = ${paramTurma}")
+        percorrer(camposAdicionais) { tur ->
+
+            dataAta = tur.camposAdicionais.padrao.data ?: Datas.data(1800, 1, 1)
+            ata = tur.camposAdicionais.padrao.ata ?: ""
+            numeroAta = tur.camposAdicionais.padrao.numero ?: ""
+
+            //imprimir "Data: " + tur.camposAdicionais.padrao.data + " | Numero: " + tur.camposAdicionais.padrao.numero
+
+}
 
 imprimir "Fim campos adicionais "+ Datas.hoje().formatar('yyyy-MM-dd HH:mm:ss.SSS')
 
@@ -171,13 +181,19 @@ percorrer(fonteEnturmacao.lista(campos: "anoLetivo.ano, turma.etapaMatriz.etapaI
         }*/
 
         //Porcentagem de faltas
+		semregistro = true
         crit = "anoLetivo.ano = ${paramAno} and enturmacao.id = ${enturma.id}"
-        percorrer(fonteResFrequencia.lista(campos: "percentualTotal", criterio: crit)) { resFreq ->
+        percorrer(fonteResFrequencia.lista(campos: "enturmacao.id, enturmacao.matricula.aluno.pessoa.nome, percentualTotal", criterio: crit)) { resFreq ->
+			imprimir 'ID: ' + resFreq.enturmacao.id + ' | Nome: ' + resFreq.enturmacao.matricula.aluno.pessoa.nome + ' | ' + resFreq.percentualTotal
             se(resFreq.percentualTotal > 0) {
                 percentualFaltas = resFreq.percentualTotal
-//				imprimir "Freq = " + percentualFaltas
             }
+			semregistro = false
         }
+		//coloca frequencia a 100% caso não haja registro de frequencia na fonte
+		se (semregistro){
+			percentualFaltas = 100
+		}
 
         //carga horaria por disciplina
         se(enturma.turma.modalidadeTurma == "EJA" || enturma.turma.modalidadeTurma == nulo) {
@@ -191,16 +207,6 @@ percorrer(fonteEnturmacao.lista(campos: "anoLetivo.ano, turma.etapaMatriz.etapaI
 
         //formatacao
         teleFormat = utils.formataTelefone(enturma.estabelecimento.pessoa.telefone)
-
-        percorrer(camposAdicionais) { tur ->
-
-            dataAta = tur.camposAdicionais.padrao.data ?: Datas.data(1800, 1, 1)
-            ata = tur.camposAdicionais.padrao.ata ?: ""
-            numeroAta = tur.camposAdicionais.padrao.numero ?: ""
-
-            //imprimir "Data: " + tur.camposAdicionais.padrao.data + " | Numero: " + tur.camposAdicionais.padrao.numero
-
-        }
 
         disc = avalTurma.itemEducacional.descricao
 
@@ -251,8 +257,6 @@ percorrer(fonteEnturmacao.lista(campos: "anoLetivo.ano, turma.etapaMatriz.etapaI
             situacao == "AC"
         }
         */
-
-
 
         fonte.inserirLinha(
                 enturmaID: enturma.id,

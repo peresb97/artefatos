@@ -107,8 +107,7 @@ imprimir "Fim equipe diretiva  "+ Datas.hoje().formatar('yyyy-MM-dd HH:mm:ss.SSS
 
 crit = "anoLetivo.ano = ${paramAno} and estabelecimento.id = ${paramEstabelecimento} and turma.id = ${paramTurma} and (dataFim is null or matricula.situacao = 'TRANSFERIDO')"
 
-
-itensAvaliaveis = fonteItemAvalTurma.lista(campos: "itemEducacional.descricao, itemEducacional.pai.descricao, itemEducacional.id, tipoPeriodo, itemAvaliavel.modoAvaliacao", criterio: "turma.id = ${paramTurma} and (tipoPeriodo = 'MEDIA_FINAL' or tipoPeriodo = 'MODULO')", ordenacao: "itemEducacional.descricao asc")
+itensAvaliaveis = fonteItemAvalTurma.lista(campos: "id, itemEducacional.descricao, itemEducacional.pai.descricao, itemEducacional.id, tipoPeriodo, itemAvaliavel.modoAvaliacao", criterio: "turma.id = ${paramTurma} and (tipoPeriodo = 'MEDIA_FINAL' or tipoPeriodo = 'MODULO')", ordenacao: "itemEducacional.descricao asc")
 
 imprimir "Fim avaliaveis "+ Datas.hoje().formatar('yyyy-MM-dd HH:mm:ss.SSS')
 
@@ -128,14 +127,16 @@ imprimir "Fim campos adicionais "+ Datas.hoje().formatar('yyyy-MM-dd HH:mm:ss.SS
 
 percorrer(fonteEnturmacao.lista(campos: "anoLetivo.ano, turma.etapaMatriz.etapaInep.nome, turma.etapaMatriz.matriz.descricao, estabelecimento.pessoa.nome, estabelecimento.pessoa.telefone, estabelecimento.pessoa.site, turma.descricao, turma.turno, matricula.aluno.pessoa.nome, dataFim, matricula.situacao, matricula.aluno.id, id, turma.id, turma.vagaEtapa.etapaMatriz.id, turma.configuracaoHorasAulas.cargaHorariaSemanal, turma.etapaMatriz.matriz.diasLetivos, turma.modalidadeTurma", criterio: crit, ordenacao: "matricula.aluno.pessoa.nome asc")) { enturma ->
 
-    imprimir "inicio enturmacao " + enturma.id + " - " + Datas.hoje().formatar('yyyy-MM-dd HH:mm:ss.SSS')
+    //imprimir "inicio enturmacao " + enturma.id + " - " + Datas.hoje().formatar('yyyy-MM-dd HH:mm:ss.SSS')
 
     percorrer(itensAvaliaveis) { avalTurma ->
 
-        //imprimir "TIPO: ${avalTurma.tipoPeriodo}"
+        //imprimir "AvalID: ${avalTurma.id}"
 
         percorrer(fonteRegAvaliacao.lista(campos: "notaNumerica, notaConceito.sigla, notaConceito.valorCalculo, modoAvaliacao, itemAvaliacaoTurma.tipoPeriodo", criterio: "enturmacao.id = ${enturma.id} and itemAvaliacaoTurma.id = ${avalTurma.id}", ordenacao: "")) { regAval ->
-            se(regAval.itemAvaliacaoTurma.tipoPeriodo == "Média final" || regAval.itemAvaliacaoTurma.tipoPeriodo == "Módulo") {
+		
+			//imprimir "Numerica: " + regAval.notaNumerica + " " + regAval.itemAvaliacaoTurma.tipoPeriodo
+            se(regAval.itemAvaliacaoTurma.tipoPeriodo == "Média final" || regAval.itemAvaliacaoTurma.tipoPeriodo == "Módulo"){
 
                 //imprimir "TIPO: ${regAval.itemAvaliacaoTurma.tipoPeriodo}"
                 //imprimir "MODO: ${regAval.modoAvaliacao}"
@@ -153,14 +154,16 @@ percorrer(fonteEnturmacao.lista(campos: "anoLetivo.ano, turma.etapaMatriz.etapaI
                         //imprimir "Descritivo: " + notaDoItem
                         break;
                     default:
+						//imprimir "Numerica: " + regAval.notaNumerica
+						
 						se(regAval.notaNumerica > 0){
-							notaDoItem = Numeros.trunca((regAval.notaNumerica * 10), 0)
-							notaDoItem += ""
+							notaDoItem = "" + Numeros.trunca((regAval.notaNumerica * 10), 0)
 							notaDoItem = notaDoItem.esquerda(notaDoItem.tamanho() - 1) + "," + notaDoItem.direita(1)
 						} senao {
 							notaDoItem = "0,0"
 						}
-                //imprimir "Numerico: " + notaDoItem
+						
+						//imprimir "Item: " + notaDoItem
                 }
 
             }
@@ -184,7 +187,7 @@ percorrer(fonteEnturmacao.lista(campos: "anoLetivo.ano, turma.etapaMatriz.etapaI
 		semregistro = true
         crit = "anoLetivo.ano = ${paramAno} and enturmacao.id = ${enturma.id}"
         percorrer(fonteResFrequencia.lista(campos: "enturmacao.id, enturmacao.matricula.aluno.pessoa.nome, percentualTotal", criterio: crit)) { resFreq ->
-			imprimir 'ID: ' + resFreq.enturmacao.id + ' | Nome: ' + resFreq.enturmacao.matricula.aluno.pessoa.nome + ' | ' + resFreq.percentualTotal
+			//imprimir 'ID: ' + resFreq.enturmacao.id + ' | Nome: ' + resFreq.enturmacao.matricula.aluno.pessoa.nome + ' | ' + resFreq.percentualTotal
             se(resFreq.percentualTotal > 0) {
                 percentualFaltas = resFreq.percentualTotal
             }
@@ -285,7 +288,7 @@ percorrer(fonteEnturmacao.lista(campos: "anoLetivo.ano, turma.etapaMatriz.etapaI
                 modalidade: enturma.turma.modalidadeTurma
         )
 
-        //imprimir "Nome: ${enturma.matricula.aluno.pessoa.nome} | Disciplina: ${disc} | Nota: ${notaDoItem} | Situacao: ${enturma.matricula.situacao}"
+        imprimir "Nome: ${enturma.matricula.aluno.pessoa.nome} | Disciplina: ${disc} | Nota: ${notaDoItem} | Situacao: ${enturma.matricula.situacao}"
 
         percentualFaltas = 0
         cargaHorariaDisc = ""

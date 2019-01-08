@@ -22,6 +22,8 @@ esquema = [
 
 */
 
+paramEntidade = parametros.entidade.valor
+paramMaterial = parametros.material.valor
 
 esquema = [
 	objeto: Esquema.caracter,
@@ -37,17 +39,19 @@ esquema = [
 
 fonte = Dados.dinamico.v2.novo(esquema)
 
-fonteItens = Dados.contratos.v1.materiais.busca(campos:"id, descricao, unidadeMedida.simbolo, id",ordernacao:"descricao asc, id asc")
-fonteAditivosItens = Dados.contratos.v1.contratacoes.aditivos.itens
+fonteMateriais = Dados.contratos.v1.materiais.busca(campos:"id, descricao, unidadeMedida.simbolo, id",ordernacao:"descricao asc, id asc")
+fonteAditivosItens = Dados.contratos.v1.contratacoes.aditivos.itens.busca(campos:"id, quantidade, valorItem, valorTotal, contratacaoItem.valorTotal, aditivo.dataAditivo, contratacaoItem.material.id, contratacaoItem.valorUnitarioPercentual", ordenacao:"aditivo.dataAditivo asc, aditivo.id asc")
 
 percentual = nulo
 ultimo = 0
+count = 0
+listaAditivos = []
 
-percorrer(fonteItens){itens->
+percorrer(fonteMateriais){itens->
 
 	imprimir itens.descricao
 
-	percorrer(fonteAditivosItens.busca(campos:"id, quantidade, valorItem, valorTotal, contratacaoItem.valorTotal, aditivo.dataAditivo, contratacaoItem.material.id, contratacaoItem.valorUnitarioPercentual", ordenacao:"aditivo.dataAditivo asc, aditivo.id asc")){adds->
+	percorrer(fonteAditivosItens){adds->
 	
 		se(adds.contratacaoItem.material.id == itens.id){
 		
@@ -55,9 +59,9 @@ percorrer(fonteItens){itens->
 			
 			percentual = (adds.valorItem / (ultimo == 0?1:ultimo)) - 1
 			
-			imprimir adds.quantidade + " , " + adds.valorItem + " , " + adds.valorTotal + " , " + percentual + " , " + ultimo + " , " + adds.contratacaoItem.valorUnitarioPercentual
+			//imprimir adds.quantidade + " , " + adds.valorItem + " , " + adds.valorTotal + " , " + percentual + " , " + ultimo + " , " + adds.contratacaoItem.valorUnitarioPercentual
 			
-			fonte.inserirLinha(
+			listaAditivos << [
 				objeto: itens.descricao,
 				dataAditivo: adds.aditivo.dataAditivo,
 				quantidade: adds.quantidade,
@@ -67,13 +71,37 @@ percorrer(fonteItens){itens->
 				valorItemAnterior: ultimo,
 				porcentagem: percentual,
 				itemId: itens.id
-			)
+			]
 			
 			ultimo = adds.valorItem
 			percentual = 0
+			count++
 		}
+
 	}
 	
+	point = 0
+	percorrer(3..1){
+		if((listaAditivos.size() - item) >= 0){
+			point = listaAditivos.size() - item
+			imprimir point + " , " + listaAditivos[point].objeto + " , " + listaAditivos[point].quantidade + " , " + listaAditivos[point].valorItem + " , " + listaAditivos[point].valorItemAnterior
+			fonte.inserirLinha(
+				objeto: listaAditivos[point].objeto,
+				dataAditivo: listaAditivos[point].dataAditivo,
+				quantidade: listaAditivos[point].quantidade,
+				unidadeMedida: listaAditivos[point].unidadeMedida,
+				valorItem: listaAditivos[point].valorItem,
+				valorTotal: listaAditivos[point].valorTotal,
+				valorItemAnterior: listaAditivos[point].valorItemAnterior,
+				porcentagem: listaAditivos[point].porcentagem,
+				itemId: listaAditivos[point].itemId
+			)
+		}
+	}
+
+	listaAditivos = []
+	
+	count = 0
 	ultimo = 0
 }
 

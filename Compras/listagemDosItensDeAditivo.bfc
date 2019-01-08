@@ -21,3 +21,60 @@ esquema = [
 ]
 
 */
+
+
+esquema = [
+	objeto: Esquema.caracter,
+	dataAditivo: Esquema.data,
+	quantidade: Esquema.numero,
+	unidadeMedida: Esquema.caracter,
+	valorItem: Esquema.numero,
+	valorTotal: Esquema.numero,
+	valorItemAnterior: Esquema.numero,
+	porcentagem: Esquema.numero,
+	itemId: Esquema.inteiro
+]
+
+fonte = Dados.dinamico.v2.novo(esquema)
+
+fonteItens = Dados.contratos.v1.materiais.busca(campos:"id, descricao, unidadeMedida.simbolo, id",ordernacao:"descricao asc, id asc")
+fonteAditivosItens = Dados.contratos.v1.contratacoes.aditivos.itens
+
+percentual = nulo
+ultimo = 0
+
+percorrer(fonteItens){itens->
+
+	imprimir itens.descricao
+
+	percorrer(fonteAditivosItens.busca(campos:"id, quantidade, valorItem, valorTotal, contratacaoItem.valorTotal, aditivo.dataAditivo, contratacaoItem.material.id, contratacaoItem.valorUnitarioPercentual", ordenacao:"aditivo.dataAditivo asc, aditivo.id asc")){adds->
+	
+		se(adds.contratacaoItem.material.id == itens.id){
+		
+			ultimo = ultimo == 0?adds.contratacaoItem.valorUnitarioPercentual:ultimo
+			
+			percentual = (adds.valorItem / (ultimo == 0?1:ultimo)) - 1
+			
+			imprimir adds.quantidade + " , " + adds.valorItem + " , " + adds.valorTotal + " , " + percentual + " , " + ultimo + " , " + adds.contratacaoItem.valorUnitarioPercentual
+			
+			fonte.inserirLinha(
+				objeto: itens.descricao,
+				dataAditivo: adds.aditivo.dataAditivo,
+				quantidade: adds.quantidade,
+				unidadeMedida: itens.unidadeMedida.simbolo,
+				valorItem: adds.valorItem,
+				valorTotal: adds.valorTotal,
+				valorItemAnterior: ultimo,
+				porcentagem: percentual,
+				itemId: itens.id
+			)
+			
+			ultimo = adds.valorItem
+			percentual = 0
+		}
+	}
+	
+	ultimo = 0
+}
+
+retornar fonte

@@ -1,27 +1,3 @@
-/*
-Nome				Tipo do dado no JRXML							Parâmetros obrigatório
-Esquema.caracter	java.lang.String								Nenhum
-Esquema.inteiro		java.lang.Long									Nenhum
-Esquema.numero		java.math.BigDecimal							Nenhum
-Esquema.data		java.util.Date									Nenhum
-Esquema.objeto		Utilização do "_" para acessar a propriedade	Lista de propriedades do objeto
-Esquema.lista		java.util.List									Esquema da lista
-
-esquema = [
-  nome: Esquema.caracter,
-  salario: Esquema.numero,
-  pai: Esquema.objeto([
-    nome: Esquema.caracter,
-    nascimento: Esquema.data,
-    dependentes: Esquema.lista(Esquema.objeto([
-      nome: Esquema.caracter,
-      idade: Esquema.inteiro
-    ]))
-  ])
-]
-
-*/
-
 paramEntidade = parametros.entidade.valor
 paramMaterial = parametros.material.valor
 
@@ -39,8 +15,21 @@ esquema = [
 
 fonte = Dados.dinamico.v2.novo(esquema)
 
-fonteMateriais = Dados.contratos.v1.materiais.busca(campos:"id, descricao, unidadeMedida.simbolo, id",ordernacao:"descricao asc, id asc")
-fonteAditivosItens = Dados.contratos.v1.contratacoes.aditivos.itens.busca(campos:"id, quantidade, valorItem, valorTotal, contratacaoItem.valorTotal, aditivo.dataAditivo, contratacaoItem.material.id, contratacaoItem.valorUnitarioPercentual", ordenacao:"aditivo.dataAditivo asc, aditivo.id asc")
+critMat = "id != 0"
+if(paramMaterial != null){
+	critMat = "id = ${paramMaterial}"
+}
+
+critEnt = "id != 0"
+if(paramEntidade != null){
+	critEnt = "entidade.id = ${paramEntidade}"
+}
+
+imprimir critMat
+imprimir critEnt
+
+fonteMateriais = Dados.contratos.v1.materiais.busca(campos:"id, descricao, unidadeMedida.simbolo, id", ordenacao:"descricao asc, id asc", criterio:critMat)
+fonteAditivosItens = Dados.contratos.v1.contratacoes.aditivos.itens.busca(campos:"id, quantidade, valorItem, valorTotal, contratacaoItem.valorTotal, aditivo.dataAditivo, contratacaoItem.material.id, contratacaoItem.valorUnitarioPercentual", ordenacao:"aditivo.dataAditivo asc, aditivo.id asc", criterio:critEnt)
 
 percentual = nulo
 ultimo = 0
@@ -59,7 +48,7 @@ percorrer(fonteMateriais){itens->
 			
 			percentual = (adds.valorItem / (ultimo == 0?1:ultimo)) - 1
 			
-			//imprimir adds.quantidade + " , " + adds.valorItem + " , " + adds.valorTotal + " , " + percentual + " , " + ultimo + " , " + adds.contratacaoItem.valorUnitarioPercentual
+//			imprimir adds.quantidade + " , " + adds.valorItem + " , " + adds.valorTotal + " , " + percentual + " , " + ultimo + " , " + adds.contratacaoItem.valorUnitarioPercentual
 			
 			listaAditivos << [
 				objeto: itens.descricao,
@@ -77,14 +66,16 @@ percorrer(fonteMateriais){itens->
 			percentual = 0
 			count++
 		}
-
+	
 	}
+	
+	listaAditivos.sort {itemId,dataAditivo}
 	
 	point = 0
 	percorrer(3..1){
 		if((listaAditivos.size() - item) >= 0){
 			point = listaAditivos.size() - item
-			imprimir point + " , " + listaAditivos[point].objeto + " , " + listaAditivos[point].quantidade + " , " + listaAditivos[point].valorItem + " , " + listaAditivos[point].valorItemAnterior
+//			imprimir point + " , " + listaAditivos[point].objeto + " , " + listaAditivos[point].quantidade + " , " + listaAditivos[point].valorItem + " , " + listaAditivos[point].valorItemAnterior
 			fonte.inserirLinha(
 				objeto: listaAditivos[point].objeto,
 				dataAditivo: listaAditivos[point].dataAditivo,
@@ -98,7 +89,7 @@ percorrer(fonteMateriais){itens->
 			)
 		}
 	}
-
+	
 	listaAditivos = []
 	
 	count = 0

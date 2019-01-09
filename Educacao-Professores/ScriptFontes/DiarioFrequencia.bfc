@@ -1,26 +1,3 @@
-/*
-Nome            Tipo do dado no JRXML                    Parâmetros obrigatório
-Esquema.caracter   java.lang.String                        Nenhum
-Esquema.inteiro       java.lang.Long                         Nenhum
-Esquema.numero    java.math.BigDecimal                     Nenhum
-Esquema.data      java.util.Date                         Nenhum
-Esquema.objeto    Utilização do "_" para acessar a propriedade   Lista de propriedades do objeto
-Esquema.lista     java.util.List                         Esquema da lista
-
-esquema = [
-  nome: Esquema.caracter,
-  salario: Esquema.numero,
-  pai: Esquema.objeto([
-    nome: Esquema.caracter,
-    nascimento: Esquema.data,
-    dependentes: Esquema.lista(Esquema.objeto([
-      nome: Esquema.caracter,
-      idade: Esquema.inteiro
-    ]))
-  ])
-]
-
-*/
 paramAno = parametros.anoLetivo.valor
 paramEstabelecimento = parametros.estabelecimento.valor
 paramFuncionario = parametros.funcionario.valor
@@ -28,7 +5,6 @@ paramTurma = parametros.turma.valor
 paramPeriodo = parametros.periodo.valor
 paramAdmin = parametros.admin.valor
 paramCoord = parametros.coord.valor
-//paramDisciplina = parametros.disciplina.valor
 
 esquema = [
         turma                  : Esquema.caracter,
@@ -83,12 +59,13 @@ administrativoMatricula = ""
 nomeEData = ""
 turID = ""
 critTurma = ""
+critFal = ""
 
 
 imprimir "Inicio "+ Datas.hoje().formatar('yyyy-MM-dd HH:mm:ss.SSS')
 
-criterioFaltas = "alocacaoAula.servidor.id = ${servidorID} and estabelecimento.id = ${paramEstabelecimento} and anoLetivo.ano = ${paramAno} "
-crit = "servidor.id = ${servidorID} and estabelecimento.id = ${paramEstabelecimento} and anoLetivo.ano = ${paramAno} "
+criterioFaltas = "alocacaoAula.servidor.id = ${servidorID} and estabelecimento.id = ${paramEstabelecimento} and anoLetivo.ano = ${paramAno}"
+crit = "servidor.id = ${servidorID} and estabelecimento.id = ${paramEstabelecimento} and anoLetivo.ano = ${paramAno}"
 
 se(paramPeriodo != nulo) {
     crit += " and periodoAvaliativo.descricao like '${paramPeriodo}'" /*  and itemEducacional.id = ${paramDisciplina}*/
@@ -99,19 +76,30 @@ se(paramPeriodo != nulo) {
 se(paramTurma != nulo) {
     fonteTurmaFuncionario = Dados.profesores.v1.turmasFuncionarios.lista(campos: "turma.id", criterio: "id = ${paramTurma}")
     turID = fonteTurmaFuncionario[0].turma.id
-    critTurma += " and turma.id = ${turID} "
-    criterioFaltas +=  " and enturmacao.turma.id = ${turID} "
+    critTurma += " and turma.id = ${turID}"
+    critFal +=  " and enturmacao.turma.id = ${turID}"
 } senao {
     critTurma += " and turma.id in ("
-    criterioFaltas += " and turma.id in ("
+    critFal += " and enturmacao.turma.id in ("
     fonteTurmaFuncionario = Dados.profesores.v1.turmasFuncionarios.lista(campos: "turma.id", criterio: "funcionario.id = ${paramFuncionario}")
     percorrer(fonteTurmaFuncionario) { turFunc ->
         critTurma += turFunc.turma.id + ","
-        criterioFaltas += turFunc.turma.id + ","
+        critFal += turFunc.turma.id + ","
     }
     critTurma += "0)"
-    criterioFaltas += "0)"
+    critFal += "0)"
 }
+
+//ajuste terrivel, melhorar se puder
+if(critTurma == " and turma.id in (0)"){
+	critTurma = ""
+}
+if(critFal == " and enturmacao.turma.id in (0)"){
+	critFal = ""
+}
+// --
+
+criterioFaltas += critFal
 crit += critTurma
 
 imprimir 'fim turma funcionarios '+ Datas.hoje().formatar('yyyy-MM-dd HH:mm:ss.SSS')
@@ -150,7 +138,7 @@ imprimir 'fim alocaoes de aula '+ Datas.hoje().formatar('yyyy-MM-dd HH:mm:ss.SSS
 //percorrer essa fonte para pegar todas as aulas da disciplina
 alunos = []
 enturmacoes = fonteEnturmacao.lista(campos: "matricula.aluno.id, matricula.aluno.pessoa.nome, dataInicio, dataFim, turma.id, matricula.situacao", criterio:
-        "estabelecimento.id = ${paramEstabelecimento} ${critTurma}", ordenacao: "turma.id asc, matricula.aluno.pessoa.nome asc")
+        "estabelecimento.id = ${paramEstabelecimento} ${critTurma} and anoLetivo.ano = ${paramAno}", ordenacao: "turma.id asc, matricula.aluno.pessoa.nome asc")
 
 percorrer(enturmacoes){ enturma ->
     se(!(enturma.dataFim.ano() > 1900 && enturma.matricula.situacao == "CURSANDO") && enturma.matricula.situacao != "CANCELAMENTO"){

@@ -3,7 +3,7 @@ paramMaterial = parametros.material.valor
 
 esquema = [
 	objeto: Esquema.caracter,
-	dataAditivo: Esquema.data,
+	dataRegistro: Esquema.data,
 	quantidade: Esquema.numero,
 	unidadeMedida: Esquema.caracter,
 	valorItem: Esquema.numero,
@@ -30,61 +30,77 @@ imprimir critEnt
 
 fonteMateriais = Dados.contratos.v1.materiais.busca(campos:"id, descricao, unidadeMedida.simbolo, id", ordenacao:"descricao asc, id asc", criterio:critMat)
 fonteAditivosItens = Dados.contratos.v1.contratacoes.aditivos.itens.busca(campos:"id, quantidade, valorItem, valorTotal, contratacaoItem.valorTotal, aditivo.dataAditivo, contratacaoItem.material.id, contratacaoItem.valorUnitarioPercentual", ordenacao:"aditivo.dataAditivo asc, aditivo.id asc", criterio:critEnt)
+fonteItensContratacao = Dados.contratos.v1.contratacoes.itens
 
 percentual = nulo
 ultimo = 0
-count = 0
+ant = 0
 listaAditivos = []
 
 percorrer(fonteMateriais){itens->
 
 	imprimir itens.descricao
+	
+	percorrer(fonteItensContratacao.busca(campos:"valorUnitarioPercentual, valorTotal, quantidade, material.id, material.unidadeMedida.simbolo, contratacao.dataAssinatura", criterio:"material.id = ${itens.id}" )){cont->
+		
+		ultimo = ultimo == 0?cont.valorUnitarioPercentual:ultimo
+		
+		listaAditivos << [
+			objeto: itens.descricao,
+			dataRegistro: cont.contratacao.dataAssinatura,
+			quantidade: cont.quantidade,
+			unidadeMedida: cont.material.unidadeMedida.simbolo,
+			valorItem: cont.valorUnitarioPercentual,
+			valorTotal: cont.valorTotal,
+			itemId: itens.id
+		]
+		
+		
+	}
 
 	percorrer(fonteAditivosItens){adds->
 	
 		se(adds.contratacaoItem.material.id == itens.id){
-		
-			ultimo = ultimo == 0?adds.contratacaoItem.valorUnitarioPercentual:ultimo
-			
-			percentual = (adds.valorItem / (ultimo == 0?1:ultimo)) - 1
 			
 //			imprimir adds.quantidade + " , " + adds.valorItem + " , " + adds.valorTotal + " , " + percentual + " , " + ultimo + " , " + adds.contratacaoItem.valorUnitarioPercentual
 			
 			listaAditivos << [
 				objeto: itens.descricao,
-				dataAditivo: adds.aditivo.dataAditivo,
+				dataRegistro: adds.aditivo.dataAditivo,
 				quantidade: adds.quantidade,
 				unidadeMedida: itens.unidadeMedida.simbolo,
 				valorItem: adds.valorItem,
 				valorTotal: adds.valorTotal,
-				valorItemAnterior: ultimo,
-				porcentagem: percentual,
 				itemId: itens.id
 			]
 			
-			ultimo = adds.valorItem
-			percentual = 0
-			count++
 		}
 	
 	}
 	
-	listaAditivos.sort {itemId,dataAditivo}
+	listaAditivos = listaAditivos.sort {a,b -> a.dataRegistro <=> b.dataRegistro}
+	
+	percorrer(listaAditivos){
+		imprimir item
+	}
 	
 	point = 0
 	percorrer(3..1){
+		ant = listaAditivos.size() - item - 1
 		if((listaAditivos.size() - item) >= 0){
 			point = listaAditivos.size() - item
-//			imprimir point + " , " + listaAditivos[point].objeto + " , " + listaAditivos[point].quantidade + " , " + listaAditivos[point].valorItem + " , " + listaAditivos[point].valorItemAnterior
+			
+			percentual = (listaAditivos[point].valorItem / (ant < 0?listaAditivos[point].valorItem:listaAditivos[ant].valorItem)) - 1
+			
 			fonte.inserirLinha(
 				objeto: listaAditivos[point].objeto,
-				dataAditivo: listaAditivos[point].dataAditivo,
+				dataRegistro: listaAditivos[point].dataRegistro,
 				quantidade: listaAditivos[point].quantidade,
 				unidadeMedida: listaAditivos[point].unidadeMedida,
 				valorItem: listaAditivos[point].valorItem,
 				valorTotal: listaAditivos[point].valorTotal,
-				valorItemAnterior: listaAditivos[point].valorItemAnterior,
-				porcentagem: listaAditivos[point].porcentagem,
+				valorItemAnterior: (ant < 0?0:listaAditivos[ant].valorItem),
+				porcentagem: percentual,
 				itemId: listaAditivos[point].itemId
 			)
 		}
@@ -92,8 +108,6 @@ percorrer(fonteMateriais){itens->
 	
 	listaAditivos = []
 	
-	count = 0
-	ultimo = 0
 }
 
 retornar fonte

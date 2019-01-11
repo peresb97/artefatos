@@ -1,0 +1,104 @@
+esquema = [
+	cotacaoID: Esquema.inteiro,
+	materialID: Esquema.inteiro,
+	materialDescricao: Esquema.caracter,
+	materialUnidade: Esquema.caracter,
+	quantidadeCotada: Esquema.numero,
+	cotacaoFornecedor1: Esquema.caracter,
+	cotacaoValor1: Esquema.numero,
+	cotacaoFornecedor2: Esquema.caracter,
+	cotacaoValor2: Esquema.numero,
+	cotacaoFornecedor3: Esquema.caracter,
+	cotacaoValor3: Esquema.numero,
+	valorMedio: Esquema.numero,
+	valorTotal: Esquema.numero
+]
+
+fonte = Dados.dinamico.v2.novo(esquema)
+
+fonteCotacaoItem = Dados.compras.v1.cotacoes.itens.busca(campos:"cotacao.id, material.id, material.descricao, material.unidadeMedida.simbolo, quantidadeCotada, valorMedio")
+fonteCotacaoParticipantes = Dados.compras.v1.cotacoes.participantes.itens
+
+fornec1 = ""
+fornec2 = ""
+fornec3 = ""
+cot1 = 0
+cot2 = 0
+cot3 = 0
+valTotal = 0
+pos = 1
+
+percorrer(fonteCotacaoItem){cots->
+	
+	percorrer(fonteCotacaoParticipantes.busca(campos:"id, valorCotado, id.cotacaoParticipante.fornecedor.pessoa.nome, situacao", criterio:"id.cotacaoItem.id = ${cots.id} and situacao in ('VENCEU','EMPATE')", ordenacao:"valorCotado asc, id.cotacaoParticipante.fornecedor.id asc")){partV->
+		
+		valTotal = partV.valorCotado * cots.quantidadeCotada
+		switch(pos){
+			case 1:
+				fornec1 = partV.id.cotacaoParticipante.fornecedor.pessoa.nome
+				cot1 = partV.valorCotado
+				break
+			case 2:
+				fornec2 = partV.id.cotacaoParticipante.fornecedor.pessoa.nome
+				cot2 = partV.valorCotado
+				break
+			case 3:
+				fornec3 = partV.id.cotacaoParticipante.fornecedor.pessoa.nome
+				cot3 = partV.valorCotado
+				break
+		}
+		
+		imprimir "VENC: " + partV
+		
+		pos++
+	}
+	
+	percorrer(fonteCotacaoParticipantes.busca(campos:"id, valorCotado, id.cotacaoParticipante.fornecedor.pessoa.nome, situacao", criterio:"id.cotacaoItem.id = ${cots.id} and situacao not in ('VENCEU','EMPATE')", ordenacao:"valorCotado asc, id.cotacaoParticipante.fornecedor.id asc")){partP->
+		
+		if(valTotal == 0 && pos == 1){
+			valTotal = partP.valorCotado * cots.quantidadeCotada
+		}
+		
+		switch(pos){
+			case 1:
+				fornec1 = partP.id.cotacaoParticipante.fornecedor.pessoa.nome
+				cot1 = partP.valorCotado
+				break
+			case 2:
+				fornec2 = partP.id.cotacaoParticipante.fornecedor.pessoa.nome
+				cot2 = partP.valorCotado
+				break
+			case 3:
+				fornec3 = partP.id.cotacaoParticipante.fornecedor.pessoa.nome
+				cot3 = partP.valorCotado
+				break
+		}
+		
+		imprimir "PERD: " + partP
+		
+		pos++
+		if(pos > 3){
+			parar()
+		}
+	}
+	
+	fonte.inserirLinha(
+		cotacaoID: cots.cotacao.id,
+		materialID: cots.material.id,
+		materialDescricao: cots.material.descricao,
+		materialUnidade: cots.material.unidadeMedida.simbolo,
+		quantidadeCotada: cots.quantidadeCotada,
+		cotacaoFornecedor1: fornec1,
+		cotacaoValor1: cot1,
+		cotacaoFornecedor2: fornec2,
+		cotacaoValor2: cot2,
+		cotacaoFornecedor3: fornec3,
+		cotacaoValor3: cot3,
+		valorMedio: cots.valorMedio,
+		valorTotal: valTotal
+	)
+	
+	pos = 1
+}
+
+retornar fonte

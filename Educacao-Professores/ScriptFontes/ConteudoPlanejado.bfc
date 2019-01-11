@@ -136,7 +136,9 @@ se(paramPeriodo != nulo){
 
 imprimir crit
 
-percorrer(fonteItemConteudoAula.lista(campos:"itemConteudo.conteudo.tema, itemConteudo.conteudo.dataInicio, itemConteudo.conteudo.dataFim, itemConteudo.conteudo.tipoConteudo, alocacaoAula.estabelecimento.pessoa.nome, alocacaoAula.estabelecimento.pessoa.telefone, alocacaoAula.estabelecimento.pessoa.site, alocacaoAula.servidor.pessoa.nome, alocacaoAula.itemEducacional.descricao, alocacaoAula.periodoAvaliativo.descricao, alocacaoAula.anoLetivo.ano, alocacaoAula.periodoAvaliativo.calendarioMatrizCurricular.matrizCurricular.curso.descricao, alocacaoAula.turma.descricao, itemConteudo.turma.etapaMatriz.matriz.descricao, itemConteudo.turma.turno, itemConteudo.turma.id, itemConteudo.conteudo.objetivosGerais, itemConteudo.conteudo.objetivosEspecificos, itemConteudo.conteudo.metodologiaUtilizada, itemConteudo.conteudo.praticasPedagogicas, itemConteudo.conteudo.recursosDidaticos, itemConteudo.conteudo.referenciasBibliograficas, alocacaoAula.periodoAvaliativo.id, alocacaoAula.itemEducacional.id, itemConteudo.id", criterio:crit, ordenacao:"alocacaoAula.turma.descricao asc, alocacaoAula.itemEducacional.descricao asc, alocacaoAula.periodoAvaliativo.descricao asc, alocacaoAula.data asc")){aulaCont->
+disp = ""
+
+percorrer(fonteItemConteudoAula.lista(campos:"itemConteudo.conteudo.tema, itemConteudo.conteudo.dataInicio, itemConteudo.conteudo.dataFim, itemConteudo.conteudo.tipoConteudo, alocacaoAula.estabelecimento.pessoa.nome, alocacaoAula.estabelecimento.pessoa.telefone, alocacaoAula.estabelecimento.pessoa.site, alocacaoAula.servidor.pessoa.nome, alocacaoAula.itemEducacional.descricao, alocacaoAula.itemEducacional.pai.descricao, alocacaoAula.periodoAvaliativo.descricao, alocacaoAula.anoLetivo.ano, alocacaoAula.periodoAvaliativo.calendarioMatrizCurricular.matrizCurricular.curso.descricao, alocacaoAula.turma.descricao, itemConteudo.turma.etapaMatriz.matriz.descricao, itemConteudo.turma.turno, itemConteudo.turma.id, itemConteudo.conteudo.objetivosGerais, itemConteudo.conteudo.objetivosEspecificos, itemConteudo.conteudo.metodologiaUtilizada, itemConteudo.conteudo.praticasPedagogicas, itemConteudo.conteudo.recursosDidaticos, itemConteudo.conteudo.referenciasBibliograficas, alocacaoAula.periodoAvaliativo.id, alocacaoAula.itemEducacional.id, itemConteudo.id", criterio:crit, ordenacao:"alocacaoAula.turma.descricao asc, alocacaoAula.itemEducacional.descricao asc, alocacaoAula.periodoAvaliativo.descricao asc, alocacaoAula.data asc")){aulaCont->
 
 	se(paramFuncionario != nulo){
 		professorAssinatura = aulaCont.alocacaoAula.servidor.pessoa.nome
@@ -148,11 +150,18 @@ percorrer(fonteItemConteudoAula.lista(campos:"itemConteudo.conteudo.tema, itemCo
 		totalAulas++
 	}
 	
-	imprimir "TEMA: " + aulaCont.itemConteudo.conteudo.tema + " | PERIODO: " + aulaCont.itemConteudo.conteudo.dataInicio + "/" + aulaCont.itemConteudo.conteudo.dataFim + " | TIPO: " + aulaCont.itemConteudo.conteudo.tipoConteudo + " | TOTAULAS: " + totalAulas + " | IDTURMA: " + aulaCont.itemConteudo.turma.id + " | IDPERIODO: " + aulaCont.alocacaoAula.periodoAvaliativo.id + " | IDPLANEJAMENTO " + aulaCont.itemConteudo.id
+	discp = aulaCont.alocacaoAula.itemEducacional.descricao
+	imprimir discp
+	if(discp.size() < 2){
+		discp = aulaCont.alocacaoAula.itemEducacional.pai.descricao
+		imprimir discp
+	}
+	
+	imprimir "TEMA: " + aulaCont.itemConteudo.conteudo.tema + " | PERIODO: " + aulaCont.alocacaoAula.periodoAvaliativo.descricao + " | TIPO: " + aulaCont.itemConteudo.conteudo.tipoConteudo + " | TOTAULAS: " + totalAulas + " | IDTURMA: " + aulaCont.itemConteudo.turma.id + " | IDPERIODO: " + aulaCont.alocacaoAula.periodoAvaliativo.id + " | IDPLANEJAMENTO " + aulaCont.itemConteudo.id
 	
 	fonte.inserirLinha(
 		turma: aulaCont.alocacaoAula.turma.descricao,
-		disciplina: aulaCont.alocacaoAula.itemEducacional.descricao,
+		disciplina: discp,
 		periodo: aulaCont.alocacaoAula.periodoAvaliativo.descricao,
 		estabelecimentoNome: aulaCont.alocacaoAula.estabelecimento.pessoa.nome,
 		estabelecimentoTelefone: "(${aulaCont.alocacaoAula.estabelecimento.pessoa.telefone.esquerda(2)}) ${aulaCont.alocacaoAula.estabelecimento.pessoa.telefone.direita(8)}",

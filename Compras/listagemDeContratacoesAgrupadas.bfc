@@ -1,5 +1,5 @@
 paramAno = parametros.ano.valor
-paramObjeto = "(" + parametros.objeto + ")"
+//paramObjeto = "(" + parametros.objeto + ")"
 paramDataIni = parametros.dataInicial.valor
 paramDataFim = parametros.dataFinal.valor
 paramEnt = parametros.entidade.valor
@@ -33,9 +33,11 @@ if(paramAno != null){
 if(paramEnt != null){
 	crit += " and entidade.id = ${paramEnt}"
 }
+/*
 if(paramObjeto != "(null)"){
 	crit += " and material.id in ${paramObjeto}"
 }
+*/
 if(paramDataIni != null){
 	dataIni = paramDataIni.ano() + "-" + paramDataIni.mes() + "-" + paramDataIni.dia
 	crit += " and dataAssinatura >= ${dataIni}"
@@ -45,9 +47,11 @@ if(paramDataFim != null){
 	crit += " and dataAssinatura <= ${dataFim}"
 }
 
+imprimir crit
+
 switch(paramAgrupamento){
 	case "FORNECEDOR":
-		ord = "fornecedor.id asc"
+		ord = "fornecedor.id asc, tipoObjeto.id asc"
 		break
 	default:
 		ord = "tipoObjeto.id asc"

@@ -1,3 +1,6 @@
+paramEnt = parametros.entidade.valor
+paramMaterial = "(" + parametros.material + ")"
+
 esquema = [
 	cotacaoID: Esquema.inteiro,
 	materialID: Esquema.inteiro,
@@ -16,7 +19,16 @@ esquema = [
 
 fonte = Dados.dinamico.v2.novo(esquema)
 
-fonteCotacaoItem = Dados.compras.v1.cotacoes.itens.busca(campos:"cotacao.id, material.id, material.descricao, material.unidadeMedida.simbolo, quantidadeCotada, valorMedio")
+crit = "id > 0"
+
+if(paramEnt != null){
+	crit += " and entidade.id = ${paramEnt}"
+}
+if(paramMaterial != "(null)"){
+	crit += " and material.id in ${paramMaterial}"
+}
+
+fonteCotacaoItem = Dados.compras.v1.cotacoes.itens.busca(campos:"cotacao.numero, material.id, material.descricao, material.unidadeMedida.simbolo, quantidadeCotada, valorMedio", criterio:crit, ordenacao:"material.descricao asc, cotacao.numero asc")
 fonteCotacaoParticipantes = Dados.compras.v1.cotacoes.participantes.itens
 
 fornec1 = ""
@@ -83,7 +95,7 @@ percorrer(fonteCotacaoItem){cots->
 	}
 	
 	fonte.inserirLinha(
-		cotacaoID: cots.cotacao.id,
+		cotacaoID: cots.cotacao.numero,
 		materialID: cots.material.id,
 		materialDescricao: cots.material.descricao,
 		materialUnidade: cots.material.unidadeMedida.simbolo,
@@ -98,6 +110,13 @@ percorrer(fonteCotacaoItem){cots->
 		valorTotal: valTotal
 	)
 	
+	fornec1 = ""
+	fornec2 = ""
+	fornec3 = ""
+	cot1 = 0
+	cot2 = 0
+	cot3 = 0
+	valTotal = 0
 	pos = 1
 }
 

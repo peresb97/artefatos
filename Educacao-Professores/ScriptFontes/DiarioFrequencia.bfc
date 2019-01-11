@@ -127,7 +127,7 @@ percorrer(fonteEquipeDir.lista(campos: "id,funcionario.servidor.pessoa.nome, fun
 
 imprimir 'fim equipes diretivas '+ Datas.hoje().formatar('yyyy-MM-dd HH:mm:ss.SSS')
 
-aulas = fonteAlocaAula.listar(campos: "id, data, numero, turma.descricao, itemEducacional.descricao, periodoAvaliativo.descricao, periodoAvaliativo.id," +
+aulas = fonteAlocaAula.listar(campos: "id, data, numero, turma.descricao, itemEducacional.descricao, itemEducacional.pai.descricao, periodoAvaliativo.descricao, periodoAvaliativo.id," +
         " estabelecimento.pessoa.nome, estabelecimento.pessoa.telefone, estabelecimento.pessoa.site, anoLetivo.ano, servidor.pessoa.nome, periodoAvaliativo.dataInicial, " +
         "periodoAvaliativo.dataFinal, turma.turno, turma.etapaMatriz.matriz.curso.descricao, turma.id, itemEducacional.id",
         criterio: crit,
@@ -221,6 +221,11 @@ percorrer(aulas) { aul ->
 
     dia = aul.data.dia()
 
+	discp = aul.itemEducacional.descricao
+	if(discp.size < 2){
+		discp = aul.itemEducacional.pai.descricao
+	}
+
     percorrer(alunos) { alus ->
 
         percorrer(totalFaltas) { tf ->
@@ -248,7 +253,7 @@ percorrer(aulas) { aul ->
 
                     fonte.inserirLinha(
                             turma: aul.turma.descricao,
-                            disciplina: aul.itemEducacional.descricao,
+                            disciplina: discp,
                             periodo: aul.periodoAvaliativo.descricao,
                             nomeAluno: nomeEData,
                             dataAula: aul.data,
@@ -287,7 +292,7 @@ percorrer(aulas) { aul ->
             se(count == 0) {
                 fonte.inserirLinha(
                         turma: aul.turma.descricao,
-                        disciplina: aul.itemEducacional.descricao,
+                        disciplina: discp,
                         periodo: aul.periodoAvaliativo.descricao,
                         nomeAluno: nomeEData,
                         dataAula: aul.data,
@@ -325,7 +330,7 @@ percorrer(aulas) { aul ->
 
             fonte.inserirLinha(
                     turma: aul.turma.descricao,
-                    disciplina: aul.itemEducacional.descricao,
+                    disciplina: discp,
                     periodo: aul.periodoAvaliativo.descricao,
                     nomeAluno: nomeEData,
                     dataAula: aul.data,
@@ -358,7 +363,7 @@ percorrer(aulas) { aul ->
 
         fonte.inserirLinha(
                 turma: aul.turma.descricao,
-                disciplina: aul.itemEducacional.descricao,
+                disciplina: discp,
                 periodo: aul.periodoAvaliativo.descricao,
                 nomeAluno: nomeEData,
                 dataAula: aul.data,

@@ -1,0 +1,163 @@
+
+paramAno = parametros.anoLetivo.valor
+paramEstabelecimento = parametros.estabelecimento.valor
+paramTurma = parametros.turma.valor
+paramDisc = parametros.disciplina.valor
+paramDiscEJA = parametros.disciplinaEJA.valor
+paramPeriodo = parametros.periodo.valor
+paramAdmin = parametros.admin.valor
+paramCoord = parametros.coord.valor
+
+esquema = [
+	estabelecimento: Esquema.caracter,
+	matriz: Esquema.caracter,
+	etapa: Esquema.caracter,
+	turma: Esquema.caracter,
+	turno: Esquema.caracter,
+	disiciplina: Esquema.caracter,
+	periodo: Esquema.caracter,
+	anoLetivo: Esquema.caracter,
+	nomeAluno: Esquema.caracter,
+	situacao: Esquema.caracter,
+	mediaParcial: Esquema.numero,
+	notasRec: Esquema.numero,
+	mediaPer: Esquema.numero,
+	professor: Esquema.caracter,
+	professorMatricula: Esquema.caracter,
+	diretor: Esquema.caracter,
+	diretorMatricula: Esquema.caracter,
+	coordenador: Esquema.caracter,
+	coordenadorMatricula: Esquema.caracter,
+	administrativo: Esquema.caracter,
+	administrativoMatricula: Esquema.caracter,
+	instrAval1: Esquema.caracter,
+	notaInstrAval1: Esquema.numero,
+	instrAval2: Esquema.caracter,
+	notaInstrAval2: Esquema.numero,
+	instrAval3: Esquema.caracter,
+	notaInstrAval3: Esquema.numero,
+	instrAval4: Esquema.caracter,
+	notaInstrAval4: Esquema.numero,
+	instrAval5: Esquema.caracter,
+	notaInstrAval5: Esquema.numero,
+	instrAval6: Esquema.caracter,
+	notaInstrAval6: Esquema.numero,
+	instrAval7: Esquema.caracter,
+	notaInstrAval7: Esquema.numero,
+	instrAval8: Esquema.caracter,
+	notaInstrAval8: Esquema.numero,
+	instrAval9: Esquema.caracter,
+	notaInstrAval9: Esquema.numero,
+	instrAval10: Esquema.caracter,
+	notaInstrAval10: Esquema.numero
+]
+
+fonte = Dados.dinamico.v2.novo(esquema)
+
+dispID = 0
+dispDescricao = ""
+diretor = ""
+diretorMatricula = ""
+coordenador = ""
+coordenadorMatricula = ""
+administrativo = ""
+administrativoMatricula = ""
+
+// equipe diretiva
+
+fonteEquipeDir = Dados.profesores.v1.equipeDiretiva
+percorrer(fonteEquipeDir.lista(campos: "id,funcionario.servidor.pessoa.nome, funcionario.matricula, funcionario.cargo.descricao, funcionario.cargoComissionado.descricao", criterio: "estabelecimento.id = ${paramEstabelecimento}")){eqpDir ->
+
+	se(eqpDir.funcionario.cargo.descricao == "DIRETOR ESCOLAR" || eqpDir.funcionario.cargoComissionado.descricao == "DIRETOR ESCOLAR") {
+		diretor = eqpDir.funcionario.servidor.pessoa.nome
+		diretorMatricula = eqpDir.funcionario.matricula
+	}
+	se(eqpDir.id == paramCoord) {
+		coordenador = eqpDir.funcionario.servidor.pessoa.nome
+		coordenadorMatricula = eqpDir.funcionario.matricula
+	}
+	se(eqpDir.id == paramAdmin) {
+		administrativo = eqpDir.funcionario.servidor.pessoa.nome
+		administrativoMatricula = eqpDir.funcionario.matricula
+	}
+
+}
+
+se(criterio_disciplina != nulo){
+
+	disciplinaFonte = Dados.profesores.v1.turmaDisciplina
+
+	percorrer(disciplinaFonte.lista(campos:"itemEducacional.descricao, itemEducacional.id", criterio:" id = " + paramDisc)){
+		dispDescricao=item.itemEducacional.descricao
+		dispID=item.itemEducacional.id
+
+	}
+	
+} senao {
+
+	disciplinaFonte = Dados.profesores.v1.turmaDisciplinaEjaModular
+
+	percorrer(disciplinaFonte.lista(campos:"itemEducacional.descricao, itemEducacional.id", criterio:" id = " + paramDiscEJA)){
+		dispDescricao=item.itemEducacional.descricao
+		dispID=item.itemEducacional.id
+
+	}
+}
+
+fonteEnturmacao = Dados.profesores.v1.enturmacao.lista(campos:"id, matricula.aluno.pessoa.nome, matricula.situacao, turma.descricao, turma.id", criterio:"turma.id = ${paramTurma} and matricula.situacao != 'CANCELAMENTO' and (dataFim is null or matricula.situacao = 'TRANSFERIDO')")
+fonteFuncionario = Dados.profesores.v1.funcionario.lista(campos: "servidor.id, matricula", criterio: "id = ${paramFuncionario}")
+fonteInstrumentoAval = Dados.profesores.v1.instrumentoAvaliacao.lista(campos:"id, descricao, sigla, tipoInstrumento, servidor.pessoa.nome", criterio:"turma.id =" + paramTurma + " and viewTurmaDisciplina.itemEducacional.id=" + dispDescricao + " and viewPeriodoAvaliativo.descricao =" + paramPeriodo + " and ( tipoInstrumento = 'INSTRUMENTO_AVALIACAO' or tipoInstrumento = 'RECUPERACAO_PARALELA' or tipoInstrumento = 'RECUPERACAO_PERIODO_AVALIATIVO')", ordenacao:"data asc")
+fonteRegistroAval = Dados.profesores.v1."registro-avaliacao"
+
+mapaAlunos = []
+mapaInstr = []
+idsInstr = "("
+idsAlunos = "("
+
+percorrer(fonteEnturmacao){
+	mapaAlunos << item
+	idsAlunos += item.matricula.aluno.id + ","
+}
+
+percorrer(fonteInstrumentoAval){
+	mapaInstr << item
+	idsInstr += item.id + ","
+}
+
+idsInstr += "0)"
+idsAlunos += "0)"
+
+insAval1 = ""
+notaAval1 = ""
+insAval2 = ""
+notaAval2 = ""
+insAval3 = ""
+notaAval3 = ""
+insAval4 = ""
+notaAval4 = ""
+insAval5 = ""
+notaAval5 = ""
+insAval6 = ""
+notaAval6 = ""
+insAval7 = ""
+notaAval7 = ""
+insAval8 = ""
+notaAval8 = ""
+insAval9 = ""
+notaAval9 = ""
+insAval10 = ""
+notaAval10 = ""
+pos = 0
+nota = null
+
+percorrer(mapaAlunos){alus->
+	percorrer(mapaInstr){inst->
+		if(inst.tipoInstrumento != "RECUPERACAO_PARALELA" && inst.tipoInstrumento != "RECUPERACAO_PERIODO_AVALIATIVO"){
+			percorrer(fonteRegistroAval.lista(campos:"notaNumerica, notaDescritiva, modoAvaliacao, notaConceito.valorCalculo", criterio:"enturmacao.matricula.aluno.id = ${alus.matricula.aluno.id} and instrumentoAvaliacao.id = ${inst.id}")){
+			}
+		} else {
+			percorrer(fonteRegistroAval.lista(campos:"notaNumerica, notaDescritiva, modoAvaliacao, notaConceito.valorCalculo", criterio:"enturmacao.matricula.aluno.id = ${alus.matricula.aluno.id} and instrumentoAvaliacao.id = ${inst.id}")){
+			}
+		}
+	}
+}

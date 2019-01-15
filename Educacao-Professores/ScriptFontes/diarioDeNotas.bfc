@@ -1,10 +1,10 @@
 
-paramAno = parametros.anoLetivo.valor
+paramAno = parametros.ano.valor
 paramEstabelecimento = parametros.estabelecimento.valor
 paramTurma = parametros.turma.valor
 paramDisc = parametros.disciplina.valor
 paramDiscEJA = parametros.disciplinaEJA.valor
-paramPeriodo = parametros.periodo.valor
+paramPeriodo = parametros.periodo
 paramAdmin = parametros.admin.valor
 paramCoord = parametros.coord.valor
 
@@ -14,14 +14,14 @@ esquema = [
 	etapa: Esquema.caracter,
 	turma: Esquema.caracter,
 	turno: Esquema.caracter,
-	disiciplina: Esquema.caracter,
+	disciplina: Esquema.caracter,
 	periodo: Esquema.caracter,
-	anoLetivo: Esquema.caracter,
+	anoLetivo: Esquema.inteiro,
 	nomeAluno: Esquema.caracter,
 	situacao: Esquema.caracter,
-	mediaParcial: Esquema.numero,
-	notasRec: Esquema.numero,
-	mediaPer: Esquema.numero,
+	mediaParcial: Esquema.caracter,
+	notasRec: Esquema.caracter,
+	mediaPer: Esquema.caracter,
 	professor: Esquema.caracter,
 	professorMatricula: Esquema.caracter,
 	diretor: Esquema.caracter,
@@ -31,25 +31,25 @@ esquema = [
 	administrativo: Esquema.caracter,
 	administrativoMatricula: Esquema.caracter,
 	instrAval1: Esquema.caracter,
-	notaInstrAval1: Esquema.numero,
+	notaInstrAval1: Esquema.caracter,
 	instrAval2: Esquema.caracter,
-	notaInstrAval2: Esquema.numero,
+	notaInstrAval2: Esquema.caracter,
 	instrAval3: Esquema.caracter,
-	notaInstrAval3: Esquema.numero,
+	notaInstrAval3: Esquema.caracter,
 	instrAval4: Esquema.caracter,
-	notaInstrAval4: Esquema.numero,
+	notaInstrAval4: Esquema.caracter,
 	instrAval5: Esquema.caracter,
-	notaInstrAval5: Esquema.numero,
+	notaInstrAval5: Esquema.caracter,
 	instrAval6: Esquema.caracter,
-	notaInstrAval6: Esquema.numero,
+	notaInstrAval6: Esquema.caracter,
 	instrAval7: Esquema.caracter,
-	notaInstrAval7: Esquema.numero,
+	notaInstrAval7: Esquema.caracter,
 	instrAval8: Esquema.caracter,
-	notaInstrAval8: Esquema.numero,
+	notaInstrAval8: Esquema.caracter,
 	instrAval9: Esquema.caracter,
-	notaInstrAval9: Esquema.numero,
+	notaInstrAval9: Esquema.caracter,
 	instrAval10: Esquema.caracter,
-	notaInstrAval10: Esquema.numero
+	notaInstrAval10: Esquema.caracter
 ]
 
 fonte = Dados.dinamico.v2.novo(esquema)
@@ -83,14 +83,14 @@ percorrer(fonteEquipeDir.lista(campos: "id,funcionario.servidor.pessoa.nome, fun
 
 }
 
-se(criterio_disciplina != nulo){
+se(paramDisc != nulo){
 
 	disciplinaFonte = Dados.profesores.v1.turmaDisciplina
 
 	percorrer(disciplinaFonte.lista(campos:"itemEducacional.descricao, itemEducacional.id", criterio:" id = " + paramDisc)){
 		dispDescricao=item.itemEducacional.descricao
 		dispID=item.itemEducacional.id
-
+		critReg = " and itemAvaliacaoTurma.itemEducacional.id = ${dispID}"
 	}
 	
 } senao {
@@ -100,64 +100,291 @@ se(criterio_disciplina != nulo){
 	percorrer(disciplinaFonte.lista(campos:"itemEducacional.descricao, itemEducacional.id", criterio:" id = " + paramDiscEJA)){
 		dispDescricao=item.itemEducacional.descricao
 		dispID=item.itemEducacional.id
-
+		critReg = " and itemAvaliacaoTurma.itemEducacional.pai.id = ${dispID}"
 	}
+
 }
 
-fonteEnturmacao = Dados.profesores.v1.enturmacao.lista(campos:"id, matricula.aluno.pessoa.nome, matricula.situacao, turma.descricao, turma.id", criterio:"turma.id = ${paramTurma} and matricula.situacao != 'CANCELAMENTO' and (dataFim is null or matricula.situacao = 'TRANSFERIDO')")
-fonteFuncionario = Dados.profesores.v1.funcionario.lista(campos: "servidor.id, matricula", criterio: "id = ${paramFuncionario}")
-fonteInstrumentoAval = Dados.profesores.v1.instrumentoAvaliacao.lista(campos:"id, descricao, sigla, tipoInstrumento, servidor.pessoa.nome", criterio:"turma.id =" + paramTurma + " and viewTurmaDisciplina.itemEducacional.id=" + dispDescricao + " and viewPeriodoAvaliativo.descricao =" + paramPeriodo + " and ( tipoInstrumento = 'INSTRUMENTO_AVALIACAO' or tipoInstrumento = 'RECUPERACAO_PARALELA' or tipoInstrumento = 'RECUPERACAO_PERIODO_AVALIATIVO')", ordenacao:"data asc")
+fonteEnturmacao = Dados.profesores.v1.enturmacao.lista(campos:"id, estabelecimento.pessoa.nome, matricula.aluno.pessoa.nome, matricula.situacao, turma.descricao, turma.turno, turma.id, turma.etapaMatriz.etapaInep.nome, turma.etapaMatriz.matriz.descricao, anoLetivo.ano, matricula.avaliacaoDescritiva", criterio:"turma.id = ${paramTurma} and matricula.situacao != 'CANCELAMENTO' and (dataFim is null or matricula.situacao = 'TRANSFERIDO')", ordenacao: "matricula.aluno.pessoa.nome asc")
+fonteInstrumentoAval = Dados.profesores.v1.instrumentoAvaliacao.lista(campos:"id, descricao, sigla, tipoInstrumento, servidor.id, peso, viewPeriodoAvaliativo.descricao", criterio:"turma.id = " + paramTurma + " and viewTurmaDisciplina.itemEducacional.id = ${dispID} and viewPeriodoAvaliativo.descricao = '${paramPeriodo}'", ordenacao:"data asc, id asc, descricao asc")
 fonteRegistroAval = Dados.profesores.v1."registro-avaliacao"
+fonteFuncionario = Dados.profesores.v1.funcionario
 
 mapaAlunos = []
 mapaInstr = []
-idsInstr = "("
-idsAlunos = "("
+pesos = 0
 
 percorrer(fonteEnturmacao){
 	mapaAlunos << item
-	idsAlunos += item.matricula.aluno.id + ","
 }
+
+imprimir "Pesos: " + pesos
+
+professor = ""
+professorMatricula = ""
+servidorID = 0
 
 percorrer(fonteInstrumentoAval){
 	mapaInstr << item
-	idsInstr += item.id + ","
+	servidorID = item.servidor.id
+	periodo = item.viewPeriodoAvaliativo.descricao
+	
+	if(item.tipoInstrumento == "INSTRUMENTO_AVALIACAO"){
+		pesos += (item.peso==null)?1:(item.peso == 0?1:item.peso)
+	}
+	
 }
 
-idsInstr += "0)"
-idsAlunos += "0)"
+imprimir "ServID: " + servidorID
 
-insAval1 = ""
-notaAval1 = ""
-insAval2 = ""
-notaAval2 = ""
-insAval3 = ""
-notaAval3 = ""
-insAval4 = ""
-notaAval4 = ""
-insAval5 = ""
-notaAval5 = ""
-insAval6 = ""
-notaAval6 = ""
-insAval7 = ""
-notaAval7 = ""
-insAval8 = ""
-notaAval8 = ""
-insAval9 = ""
-notaAval9 = ""
-insAval10 = ""
-notaAval10 = ""
-pos = 0
+percorrer(fonteFuncionario.lista(campos: "servidor.pessoa.nome, matricula", criterio: "servidor.id = ${servidorID}")){func->
+
+	professor = func.servidor.pessoa.nome
+	professorMatricula = func.matricula
+
+}
+
+imprimir "Profe: " + professor + " | " + professorMatricula
+
+insAval1 = null
+notaAval1 = null
+insAval2 = null
+notaAval2 = null
+insAval3 = null
+notaAval3 = null
+insAval4 = null
+notaAval4 = null
+insAval5 = null
+notaAval5 = null
+insAval6 = null
+notaAval6 = null
+insAval7 = null
+notaAval7 = null
+insAval8 = null
+notaAval8 = null
+insAval9 = null
+notaAval9 = null
+insAval10 = null
+notaAval10 = null
+pos = 1
 nota = null
+notaRec = null
+soma = 0
+mediaPer = null
+mediaCalc = null
 
 percorrer(mapaAlunos){alus->
+
+	imprimir "Aluno: " + alus.matricula.aluno.pessoa.nome
+
 	percorrer(mapaInstr){inst->
-		if(inst.tipoInstrumento != "RECUPERACAO_PARALELA" && inst.tipoInstrumento != "RECUPERACAO_PERIODO_AVALIATIVO"){
-			percorrer(fonteRegistroAval.lista(campos:"notaNumerica, notaDescritiva, modoAvaliacao, notaConceito.valorCalculo", criterio:"enturmacao.matricula.aluno.id = ${alus.matricula.aluno.id} and instrumentoAvaliacao.id = ${inst.id}")){
+	
+		professor = inst.servidor.pessoa.nome
+		
+		if(inst.tipoInstrumento == "INSTRUMENTO_AVALIACAO"){
+		
+			if(!(alus.matricula.avaliacaoDescritiva)){
+				imprimir "nota instrumento"
+				percorrer(fonteRegistroAval.lista(campos:"notaNumerica, modoAvaliacao, notaConceito.sigla", criterio:"enturmacao.id = ${alus.id} and instrumentoAvaliacao.id = ${inst.id}")){regAval->
+					
+					switch(regAval.modoAvaliacao){
+						case "DESCRITIVO":
+							nota = "Desc"
+							break
+						case "NUMERICO":
+							nota = regAval.notaNumerica
+							soma += ((regAval.instrumentoAvaliacao.peso==null)?nota:(inst.peso==0?1:inst.peso) * nota)
+							imprimir "Soma: " + soma + " | peso: " + regAval.instrumentoAvaliacao.peso
+							break
+						default:
+							nota = regAval.notaConceito.sigla
+					}
+				}
+		
+			} else {
+				nota = "Desc"
 			}
+			
+			switch(pos){
+				case 1:
+					insAval1 = inst.descricao
+					notaAval1 = nota
+					break
+				case 2:
+					insAval2 = inst.descricao
+					notaAval2 = nota
+					break
+				case 3:
+					insAval3 = inst.descricao
+					notaAval3 = nota
+					break
+				case 4:
+					insAval4 = inst.descricao
+					notaAval4 = nota
+					break
+				case 5:
+					insAval5 = inst.descricao
+					notaAval5 = nota
+					break
+				case 6:
+					insAval6 = inst.descricao
+					notaAval6 = nota
+					break
+				case 7:
+					insAval7 = inst.descricao
+					notaAval7 = nota
+					break
+				case 8:
+					insAval8 = inst.descricao
+					notaAval8 = nota
+					break
+				case 9:
+					insAval9 = inst.descricao
+					notaAval9 = nota
+					break
+				case 10:
+					insAval10 = inst.descricao
+					notaAval10 = nota
+					break
+			}
+			
+			pos++
+			nota = null
+			
 		} else {
-			percorrer(fonteRegistroAval.lista(campos:"notaNumerica, notaDescritiva, modoAvaliacao, notaConceito.valorCalculo", criterio:"enturmacao.matricula.aluno.id = ${alus.matricula.aluno.id} and instrumentoAvaliacao.id = ${inst.id}")){
+			if(!(alus.matricula.avaliacaoDescritiva)){
+				imprimir "nota rec"
+				percorrer(fonteRegistroAval.lista(campos:"notaNumerica, modoAvaliacao, notaConceito.sigla", criterio:"enturmacao.id = ${alus.id} and instrumentoAvaliacao.id = ${inst.id} and itemAvaliacaoTurma.periodoAvaliativo.descricao = '${paramPeriodo}'")){recAval->
+					switch(recAval.modoAvaliacao){
+						case "DESCRITIVO":
+							notaRec = "Desc"
+							break
+						case "NUMERICO":
+							notaRec = recAval.notaNumerica
+							break
+						default:
+							notaRec = recAval.notaConceito.sigla
+					}
+				}
+			} else {
+				notaRec = "Desc"
 			}
 		}
 	}
+	
+	
+	if(!(alus.matricula.avaliacaoDescritiva)){
+		imprimir "media per"
+		percorrer(fonteRegistroAval.lista(campos:"notaNumerica, notaDescritiva, modoAvaliacao, notaConceito.sigla", criterio:"enturmacao.id = ${alus.id} and itemAvaliacaoTurma.tipoPeriodo = 'MEDIA_PERIODO' and itemAvaliacaoTurma.periodoAvaliativo.descricao = '${paramPeriodo}' ${critReg}")){recPer->
+			switch(recPer.modoAvaliacao){
+				case "DESCRITIVO":
+					mediaPer = "Desc"
+					break
+				case "NUMERICO":
+					mediaPer = recPer.notaNumerica
+					break
+				default:
+					mediaPer = recPer.notaConceito.sigla
+			}
+		}
+		
+		mediaParcial = soma / (pesos==0?1:pesos)
+		
+		imprimir "media calc"
+		percorrer(fonteRegistroAval.lista(campos:"notaNumerica, notaDescritiva, modoAvaliacao, notaConceito.sigla", criterio:"enturmacao.id = ${alus.id} and itemAvaliacaoTurma.tipoPeriodo = 'CALCULO_INSTRUMENTOS' and itemAvaliacaoTurma.periodoAvaliativo.descricao = '${paramPeriodo}' ${critReg}")){recCalc->
+			switch(recCalc.modoAvaliacao){
+				case "DESCRITIVO":
+					mediaCalc = "Desc"
+					break
+				case "NUMERICO":
+					mediaCalc = recCalc.notaNumerica
+					break
+				default:
+					mediaCalc = recCalc.notaConceito.sigla
+			}
+		}
+	
+	} else {
+		mediaCalc = "Desc"
+		mediaPer = "Desc"
+		mediaParcial = "Desc"
+	}
+	
+	fonte.inserirLinha(
+		estabelecimento: alus.estabelecimento.pessoa.nome,
+		matriz: alus.turma.etapaMatriz.matriz.descricao,
+		etapa: alus.turma.etapaMatriz.etapaInep.nome,
+		turma: alus.turma.descricao,
+		turno: alus.turma.turno,
+		disciplina: dispDescricao,
+		periodo: periodo,
+		anoLetivo: alus.anoLetivo.ano,
+		nomeAluno: alus.matricula.aluno.pessoa.nome,
+		situacao: alus.matricula.situacao,
+		mediaParcial: mediaCalc,
+		notasRec: notaRec,
+		mediaPer: mediaPer,
+		professor: professor,
+		professorMatricula: professorMatricula,
+		diretor: diretor,
+		diretorMatricula: diretorMatricula,
+		coordenador: coordenador,
+		coordenadorMatricula: coordenadorMatricula,
+		administrativo: administrativo,
+		administrativoMatricula: administrativoMatricula,
+		instrAval1: insAval1,
+		notaInstrAval1: notaAval1,
+		instrAval2: insAval2,
+		notaInstrAval2: notaAval2,
+		instrAval3: insAval3,
+		notaInstrAval3: notaAval3,
+		instrAval4: insAval4,
+		notaInstrAval4: notaAval4,
+		instrAval5: insAval5,
+		notaInstrAval5: notaAval5,
+		instrAval6: insAval6,
+		notaInstrAval6: notaAval6,
+		instrAval7: insAval7,
+		notaInstrAval7: notaAval7,
+		instrAval8: insAval8,
+		notaInstrAval8: notaAval8,
+		instrAval9: insAval9,
+		notaInstrAval9: notaAval9,
+		instrAval10: insAval10,
+		notaInstrAval10: notaAval10
+	)
+	
+//	imprimir alus.estabelecimento.pessoa.nome + " | " + alus.turma.etapaMatriz.matriz.descricao + " | " + alus.turma.etapaMatriz.etapaInep.nome + " | " + alus.turma.descricao + " | " + alus.turma.turno + " | " + dispDescricao + " | " + paramPeriodo + " | " + alus.anoLetivo.ano + " | " + alus.matricula.aluno.pessoa.nome + " | " + alus.matricula.situacao + " | " + mediaParcial + " | " + notaRec + " | " + mediaPer + " | " + professor + " | " + professorMatricula + " | " + diretor + " | " + diretorMatricula + " | " + coordenador + " | " + coordenadorMatricula + " | " + administrativo + " | " + administrativoMatricula + " | " + insAval1 + " | " + notaAval1 + " | " + insAval2 + " | " + notaAval2 + " | " + insAval3 + " | " + notaAval3 + " | " + insAval4 + " | " + notaAval4 + " | " + insAval5 + " | " + notaAval5 + " | " + insAval6 + " | " + notaAval6 + " | " + insAval7 + " | " + notaAval7 + " | " + insAval8 + " | " + notaAval8 + " | " + insAval9 + " | " + notaAval9 + " | " + insAval10 + " | " + notaAval10
+
+	imprimir "Periodo: " + paramPeriodo
+	
+	insAval1 = null
+	notaAval1 = null
+	insAval2 = null
+	notaAval2 = null
+	insAval3 = null
+	notaAval3 = null
+	insAval4 = null
+	notaAval4 = null
+	insAval5 = null
+	notaAval5 = null
+	insAval6 = null
+	notaAval6 = null
+	insAval7 = null
+	notaAval7 = null
+	insAval8 = null
+	notaAval8 = null
+	insAval9 = null
+	notaAval9 = null
+	insAval10 = null
+	notaAval10 = null
+	pos = 1
+	mediaPer = null
+	mediaParcial = null
+	notaRec = null
+	soma = 0
+	mediaCalc = null
+
 }
+
+retornar fonte

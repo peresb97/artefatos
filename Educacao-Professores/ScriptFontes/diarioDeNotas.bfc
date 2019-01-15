@@ -18,6 +18,7 @@ esquema = [
 	periodo: Esquema.caracter,
 	anoLetivo: Esquema.inteiro,
 	nomeAluno: Esquema.caracter,
+	aluID: Esquema.inteiro,
 	situacao: Esquema.caracter,
 	mediaParcial: Esquema.caracter,
 	notasRec: Esquema.caracter,
@@ -62,6 +63,7 @@ coordenador = ""
 coordenadorMatricula = ""
 administrativo = ""
 administrativoMatricula = ""
+eja = false
 
 // equipe diretiva
 
@@ -90,7 +92,7 @@ se(paramDisc != nulo){
 	percorrer(disciplinaFonte.lista(campos:"itemEducacional.descricao, itemEducacional.id", criterio:" id = " + paramDisc)){
 		dispDescricao=item.itemEducacional.descricao
 		dispID=item.itemEducacional.id
-		critReg = " and itemAvaliacaoTurma.itemEducacional.id = ${dispID}"
+		critReg = " and itemAvaliacaoTurma.periodoAvaliativo.descricao = '${paramPeriodo}' and itemAvaliacaoTurma.itemEducacional.id = ${dispID}"
 	}
 	
 } senao {
@@ -100,12 +102,14 @@ se(paramDisc != nulo){
 	percorrer(disciplinaFonte.lista(campos:"itemEducacional.descricao, itemEducacional.id", criterio:" id = " + paramDiscEJA)){
 		dispDescricao=item.itemEducacional.descricao
 		dispID=item.itemEducacional.id
-		critReg = " and itemAvaliacaoTurma.itemEducacional.pai.id = ${dispID}"
+		critReg = " and itemAvaliacaoTurma.itemEducacional.descricao = '${dispDescricao}'"
+		imprimir "Disp: " + dispDescricao + " | id: " + dispID
 	}
+	eja = true
 
 }
 
-fonteEnturmacao = Dados.profesores.v1.enturmacao.lista(campos:"id, estabelecimento.pessoa.nome, matricula.aluno.pessoa.nome, matricula.situacao, turma.descricao, turma.turno, turma.id, turma.etapaMatriz.etapaInep.nome, turma.etapaMatriz.matriz.descricao, anoLetivo.ano, matricula.avaliacaoDescritiva", criterio:"turma.id = ${paramTurma} and matricula.situacao != 'CANCELAMENTO' and (dataFim is null or matricula.situacao = 'TRANSFERIDO')", ordenacao: "matricula.aluno.pessoa.nome asc")
+fonteEnturmacao = Dados.profesores.v1.enturmacao.lista(campos:"id, estabelecimento.pessoa.nome, matricula.aluno.pessoa.nome, matricula.aluno.id, matricula.situacao, turma.descricao, turma.turno, turma.id, turma.etapaMatriz.etapaInep.nome, turma.etapaMatriz.matriz.descricao, anoLetivo.ano, matricula.avaliacaoDescritiva", criterio:"turma.id = ${paramTurma} and matricula.situacao != 'CANCELAMENTO' and (dataFim is null or matricula.situacao = 'TRANSFERIDO')", ordenacao: "matricula.aluno.pessoa.nome asc, matricula.aluno.id asc")
 fonteInstrumentoAval = Dados.profesores.v1.instrumentoAvaliacao.lista(campos:"id, descricao, sigla, tipoInstrumento, servidor.id, peso, viewPeriodoAvaliativo.descricao", criterio:"turma.id = " + paramTurma + " and viewTurmaDisciplina.itemEducacional.id = ${dispID} and viewPeriodoAvaliativo.descricao = '${paramPeriodo}'", ordenacao:"data asc, id asc, descricao asc")
 fonteRegistroAval = Dados.profesores.v1."registro-avaliacao"
 fonteFuncionario = Dados.profesores.v1.funcionario
@@ -123,6 +127,7 @@ imprimir "Pesos: " + pesos
 professor = ""
 professorMatricula = ""
 servidorID = 0
+periodo = ""
 
 percorrer(fonteInstrumentoAval){
 	mapaInstr << item
@@ -176,106 +181,132 @@ mediaCalc = null
 percorrer(mapaAlunos){alus->
 
 	imprimir "Aluno: " + alus.matricula.aluno.pessoa.nome
-
-	percorrer(mapaInstr){inst->
 	
-		professor = inst.servidor.pessoa.nome
+	if(eja){
 		
-		if(inst.tipoInstrumento == "INSTRUMENTO_AVALIACAO"){
-		
-			if(!(alus.matricula.avaliacaoDescritiva)){
-				imprimir "nota instrumento"
-				percorrer(fonteRegistroAval.lista(campos:"notaNumerica, modoAvaliacao, notaConceito.sigla", criterio:"enturmacao.id = ${alus.id} and instrumentoAvaliacao.id = ${inst.id}")){regAval->
-					
-					switch(regAval.modoAvaliacao){
-						case "DESCRITIVO":
-							nota = "Desc"
-							break
-						case "NUMERICO":
-							nota = regAval.notaNumerica
-							soma += ((regAval.instrumentoAvaliacao.peso==null)?nota:(inst.peso==0?1:inst.peso) * nota)
-							imprimir "Soma: " + soma + " | peso: " + regAval.instrumentoAvaliacao.peso
-							break
-						default:
-							nota = regAval.notaConceito.sigla
-					}
+		imprimir "Eja: " + eja
+		imprimir "enturmacao.matricula.aluno.id = ${alus.matricula.aluno.id} and enturmacao.turma.id = ${alus.turma.id} and itemAvaliacaoTurma.itemEducacional.pai.descricao = '${dispDescricao}' and itemAvaliacaoTurma.tipoPeriodo = 'MODULO'"
+		if(!(alus.matricula.avaliacaoDescritiva)){
+			percorrer(fonteRegistroAval.lista(campos:"notaNumerica, modoAvaliacao, notaConceito.sigla", criterio:"enturmacao.matricula.aluno.id = ${alus.matricula.aluno.id} and enturmacao.turma.id = ${alus.turma.id} and itemAvaliacaoTurma.itemEducacional.pai.descricao = '${dispDescricao}' and itemAvaliacaoTurma.tipoPeriodo = 'MODULO'")){regMod->
+				
+				switch(regMod.modoAvaliacao){
+					case "DESCRITIVO":
+						nota = "Desc"
+						break
+					case "NUMERICO":
+						nota = regMod.notaNumerica
+						break
+					default:
+						nota = regMod.notaConceito.sigla
 				}
-		
-			} else {
-				nota = "Desc"
+				imprimir "Aluno: " + alus.matricula.aluno.pessoa.nome + " | Nota: " + nota
 			}
-			
-			switch(pos){
-				case 1:
-					insAval1 = inst.descricao
-					notaAval1 = nota
-					break
-				case 2:
-					insAval2 = inst.descricao
-					notaAval2 = nota
-					break
-				case 3:
-					insAval3 = inst.descricao
-					notaAval3 = nota
-					break
-				case 4:
-					insAval4 = inst.descricao
-					notaAval4 = nota
-					break
-				case 5:
-					insAval5 = inst.descricao
-					notaAval5 = nota
-					break
-				case 6:
-					insAval6 = inst.descricao
-					notaAval6 = nota
-					break
-				case 7:
-					insAval7 = inst.descricao
-					notaAval7 = nota
-					break
-				case 8:
-					insAval8 = inst.descricao
-					notaAval8 = nota
-					break
-				case 9:
-					insAval9 = inst.descricao
-					notaAval9 = nota
-					break
-				case 10:
-					insAval10 = inst.descricao
-					notaAval10 = nota
-					break
-			}
-			
-			pos++
-			nota = null
-			
 		} else {
-			if(!(alus.matricula.avaliacaoDescritiva)){
-				imprimir "nota rec"
-				percorrer(fonteRegistroAval.lista(campos:"notaNumerica, modoAvaliacao, notaConceito.sigla", criterio:"enturmacao.id = ${alus.id} and instrumentoAvaliacao.id = ${inst.id} and itemAvaliacaoTurma.periodoAvaliativo.descricao = '${paramPeriodo}'")){recAval->
-					switch(recAval.modoAvaliacao){
-						case "DESCRITIVO":
-							notaRec = "Desc"
-							break
-						case "NUMERICO":
-							notaRec = recAval.notaNumerica
-							break
-						default:
-							notaRec = recAval.notaConceito.sigla
+			nota = "Desc"
+		}
+	
+		insAval1 = "Módulo"
+		notaAval1 = nota
+	
+	} else {
+		percorrer(mapaInstr){inst->
+			
+			if(inst.tipoInstrumento == "INSTRUMENTO_AVALIACAO"){
+			
+				if(!(alus.matricula.avaliacaoDescritiva)){
+					imprimir "nota instrumento | " + "enturmacao.id = ${alus.id} and instrumentoAvaliacao.id = ${inst.id}"
+					percorrer(fonteRegistroAval.lista(campos:"notaNumerica, modoAvaliacao, notaConceito.sigla", criterio:"enturmacao.id = ${alus.id} and instrumentoAvaliacao.id = ${inst.id}")){regAval->
+						
+						switch(regAval.modoAvaliacao){
+							case "DESCRITIVO":
+								nota = "Desc"
+								break
+							case "NUMERICO":
+								nota = regAval.notaNumerica
+								soma += ((regAval.instrumentoAvaliacao.peso==null)?nota:(inst.peso==0?1:inst.peso) * nota)
+								imprimir "Soma: " + soma + " | peso: " + regAval.instrumentoAvaliacao.peso
+								break
+							default:
+								nota = regAval.notaConceito.sigla
+						}
 					}
+			
+				} else {
+					nota = "Desc"
 				}
+				
+				switch(pos){
+					case 1:
+						insAval1 = inst.descricao
+						notaAval1 = nota
+						break
+					case 2:
+						insAval2 = inst.descricao
+						notaAval2 = nota
+						break
+					case 3:
+						insAval3 = inst.descricao
+						notaAval3 = nota
+						break
+					case 4:
+						insAval4 = inst.descricao
+						notaAval4 = nota
+						break
+					case 5:
+						insAval5 = inst.descricao
+						notaAval5 = nota
+						break
+					case 6:
+						insAval6 = inst.descricao
+						notaAval6 = nota
+						break
+					case 7:
+						insAval7 = inst.descricao
+						notaAval7 = nota
+						break
+					case 8:
+						insAval8 = inst.descricao
+						notaAval8 = nota
+						break
+					case 9:
+						insAval9 = inst.descricao
+						notaAval9 = nota
+						break
+					case 10:
+						insAval10 = inst.descricao
+						notaAval10 = nota
+						break
+				}
+				
+				pos++
+				nota = null
+				
 			} else {
-				notaRec = "Desc"
+				if(!(alus.matricula.avaliacaoDescritiva)){
+					imprimir "nota rec"
+					percorrer(fonteRegistroAval.lista(campos:"notaNumerica, modoAvaliacao, notaConceito.sigla", criterio:"enturmacao.id = ${alus.id} and instrumentoAvaliacao.id = ${inst.id} and itemAvaliacaoTurma.periodoAvaliativo.descricao = '${paramPeriodo}'")){recAval->
+						switch(recAval.modoAvaliacao){
+							case "DESCRITIVO":
+								notaRec = "Desc"
+								break
+							case "NUMERICO":
+								notaRec = recAval.notaNumerica
+								break
+							default:
+								notaRec = recAval.notaConceito.sigla
+						}
+					}
+				} else {
+					notaRec = "Desc"
+				}
 			}
 		}
 	}
 	
 	
 	if(!(alus.matricula.avaliacaoDescritiva)){
-		imprimir "media per"
-		percorrer(fonteRegistroAval.lista(campos:"notaNumerica, notaDescritiva, modoAvaliacao, notaConceito.sigla", criterio:"enturmacao.id = ${alus.id} and itemAvaliacaoTurma.tipoPeriodo = 'MEDIA_PERIODO' and itemAvaliacaoTurma.periodoAvaliativo.descricao = '${paramPeriodo}' ${critReg}")){recPer->
+		imprimir "media per | " + "enturmacao.id = ${alus.id} and itemAvaliacaoTurma.tipoPeriodo = 'MEDIA_PERIODO' ${critReg}"
+		percorrer(fonteRegistroAval.lista(campos:"notaNumerica, notaDescritiva, modoAvaliacao, notaConceito.sigla", criterio:"enturmacao.id = ${alus.id} and itemAvaliacaoTurma.tipoPeriodo = 'MEDIA_PERIODO' ${critReg}")){recPer->
 			switch(recPer.modoAvaliacao){
 				case "DESCRITIVO":
 					mediaPer = "Desc"
@@ -286,12 +317,19 @@ percorrer(mapaAlunos){alus->
 				default:
 					mediaPer = recPer.notaConceito.sigla
 			}
+			imprimir "MedPer: " + mediaPer
 		}
 		
-		mediaParcial = soma / (pesos==0?1:pesos)
+		//mediaParcial = soma / (pesos==0?1:pesos)
 		
-		imprimir "media calc"
-		percorrer(fonteRegistroAval.lista(campos:"notaNumerica, notaDescritiva, modoAvaliacao, notaConceito.sigla", criterio:"enturmacao.id = ${alus.id} and itemAvaliacaoTurma.tipoPeriodo = 'CALCULO_INSTRUMENTOS' and itemAvaliacaoTurma.periodoAvaliativo.descricao = '${paramPeriodo}' ${critReg}")){recCalc->
+		if(eja){
+			tipoPer = " and itemAvaliacaoTurma.tipoPeriodo = 'CALCULO_MEDIA'"
+		} else {
+			tipoPer = " and itemAvaliacaoTurma.tipoPeriodo = 'CALCULO_INSTRUMENTOS'"
+		}
+		
+		imprimir "media calc | " + "enturmacao.id = ${alus.id} ${tipoPer} ${critReg}"
+		percorrer(fonteRegistroAval.lista(campos:"notaNumerica, notaDescritiva, modoAvaliacao, notaConceito.sigla", criterio:"enturmacao.id = ${alus.id} ${tipoPer} ${critReg}")){recCalc->
 			switch(recCalc.modoAvaliacao){
 				case "DESCRITIVO":
 					mediaCalc = "Desc"
@@ -302,6 +340,7 @@ percorrer(mapaAlunos){alus->
 				default:
 					mediaCalc = recCalc.notaConceito.sigla
 			}
+			imprimir "MedCalc: " + mediaCalc
 		}
 	
 	} else {
@@ -317,9 +356,10 @@ percorrer(mapaAlunos){alus->
 		turma: alus.turma.descricao,
 		turno: alus.turma.turno,
 		disciplina: dispDescricao,
-		periodo: periodo,
+		periodo: "" + paramPeriodo,
 		anoLetivo: alus.anoLetivo.ano,
 		nomeAluno: alus.matricula.aluno.pessoa.nome,
+		aluID: alus.matricula.aluno.id,
 		situacao: alus.matricula.situacao,
 		mediaParcial: mediaCalc,
 		notasRec: notaRec,
@@ -384,6 +424,7 @@ percorrer(mapaAlunos){alus->
 	notaRec = null
 	soma = 0
 	mediaCalc = null
+	nota = null
 
 }
 

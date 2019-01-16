@@ -7,31 +7,31 @@ paramAdmin = parametros.admin.valor
 paramCoord = parametros.coord.valor
 
 esquema = [
-        turma                  : Esquema.caracter,
-        disciplina             : Esquema.caracter,
-        periodo                : Esquema.caracter,
-        nomeAluno              : Esquema.caracter,
-        dataAula               : Esquema.data,
-        numeroAula             : Esquema.inteiro,
-        dataENumero            : Esquema.caracter,
-        presenca               : Esquema.caracter,
-        estabelecimentoNome    : Esquema.caracter,
-        estabelecimentoTelefone: Esquema.caracter,
-        estabelecimentoSite    : Esquema.caracter,
-        professor              : Esquema.caracter,
-        professorMatricula     : Esquema.caracter,
-        aulaMes                : Esquema.caracter,
-        aulaDia                : Esquema.inteiro,
-        dataInicio             : Esquema.data,
-        dataFim                : Esquema.data,
-        turno                  : Esquema.caracter,
-        curso                  : Esquema.caracter,
-        diretor                : Esquema.caracter,
-        diretorMatricula       : Esquema.caracter,
-        coordenador            : Esquema.caracter,
-        coordenadorMatricula   : Esquema.caracter,
-        administrativo         : Esquema.caracter,
-        administrativoMatricula: Esquema.caracter
+		turma                  : Esquema.caracter,
+		disciplina             : Esquema.caracter,
+		periodo                : Esquema.caracter,
+		nomeAluno              : Esquema.caracter,
+		dataAula               : Esquema.data,
+		numeroAula             : Esquema.inteiro,
+		dataENumero            : Esquema.caracter,
+		presenca               : Esquema.caracter,
+		estabelecimentoNome    : Esquema.caracter,
+		estabelecimentoTelefone: Esquema.caracter,
+		estabelecimentoSite    : Esquema.caracter,
+		professor              : Esquema.caracter,
+		professorMatricula     : Esquema.caracter,
+		aulaMes                : Esquema.caracter,
+		aulaDia                : Esquema.inteiro,
+		dataInicio             : Esquema.data,
+		dataFim                : Esquema.data,
+		turno                  : Esquema.caracter,
+		curso                  : Esquema.caracter,
+		diretor                : Esquema.caracter,
+		diretorMatricula       : Esquema.caracter,
+		coordenador            : Esquema.caracter,
+		coordenadorMatricula   : Esquema.caracter,
+		administrativo         : Esquema.caracter,
+		administrativoMatricula: Esquema.caracter
 ]
 
 fonte = Dados.dinamico.v2.novo(esquema)
@@ -68,26 +68,26 @@ criterioFaltas = "alocacaoAula.servidor.id = ${servidorID} and estabelecimento.i
 crit = "servidor.id = ${servidorID} and estabelecimento.id = ${paramEstabelecimento} and anoLetivo.ano = ${paramAno}"
 
 se(paramPeriodo != nulo) {
-    crit += " and periodoAvaliativo.descricao like '${paramPeriodo}'" /*  and itemEducacional.id = ${paramDisciplina}*/
-    criterioFaltas += " and periodoAvaliativo.descricao like '${paramPeriodo}'"
-    /*  and itemEducacional.id = ${paramDisciplina}*/
+	crit += " and periodoAvaliativo.descricao like '${paramPeriodo}'" /*  and itemEducacional.id = ${paramDisciplina}*/
+	criterioFaltas += " and periodoAvaliativo.descricao like '${paramPeriodo}'"
+	/*  and itemEducacional.id = ${paramDisciplina}*/
 }
 
 se(paramTurma != nulo) {
-    fonteTurmaFuncionario = Dados.profesores.v1.turmasFuncionarios.lista(campos: "turma.id", criterio: "id = ${paramTurma}")
-    turID = fonteTurmaFuncionario[0].turma.id
-    critTurma += " and turma.id = ${turID}"
-    critFal +=  " and enturmacao.turma.id = ${turID}"
+	fonteTurmaFuncionario = Dados.profesores.v1.turmasFuncionarios.lista(campos: "turma.id", criterio: "id = ${paramTurma}")
+	turID = fonteTurmaFuncionario[0].turma.id
+	critTurma += " and turma.id = ${turID}"
+	critFal +=  " and enturmacao.turma.id = ${turID}"
 } senao {
-    critTurma += " and turma.id in ("
-    critFal += " and enturmacao.turma.id in ("
-    fonteTurmaFuncionario = Dados.profesores.v1.turmasFuncionarios.lista(campos: "turma.id", criterio: "funcionario.id = ${paramFuncionario}")
-    percorrer(fonteTurmaFuncionario) { turFunc ->
-        critTurma += turFunc.turma.id + ","
-        critFal += turFunc.turma.id + ","
-    }
-    critTurma += "0)"
-    critFal += "0)"
+	critTurma += " and turma.id in ("
+	critFal += " and enturmacao.turma.id in ("
+	fonteTurmaFuncionario = Dados.profesores.v1.turmasFuncionarios.lista(campos: "turma.id", criterio: "funcionario.id = ${paramFuncionario}")
+	percorrer(fonteTurmaFuncionario) { turFunc ->
+		critTurma += turFunc.turma.id + ","
+		critFal += turFunc.turma.id + ","
+	}
+	critTurma += "0)"
+	critFal += "0)"
 }
 
 //ajuste terrivel, melhorar se puder
@@ -108,42 +108,42 @@ imprimir 'criterioFaltas ' + criterioFaltas
 
 // equipe diretiva
 percorrer(fonteEquipeDir.lista(campos: "id,funcionario.servidor.pessoa.nome, funcionario.matricula, funcionario.cargo.descricao, funcionario.cargoComissionado.descricao",
-        criterio: "estabelecimento.id = ${paramEstabelecimento}")) { eqpDir ->
+		criterio: "estabelecimento.id = ${paramEstabelecimento}")) { eqpDir ->
 
-    se(eqpDir.funcionario.cargo.descricao == "DIRETOR ESCOLAR" || eqpDir.funcionario.cargoComissionado.descricao == "DIRETOR ESCOLAR") {
-        diretor = eqpDir.funcionario.servidor.pessoa.nome
-        diretorMatricula = eqpDir.funcionario.matricula
-    }
-    se(eqpDir.id == paramCoord) {
-        coordenador = eqpDir.funcionario.servidor.pessoa.nome
-        coordenadorMatricula = eqpDir.funcionario.matricula
-    }
-    se(eqpDir.id == paramAdmin) {
-        administrativo = eqpDir.funcionario.servidor.pessoa.nome
-        administrativoMatricula = eqpDir.funcionario.matricula
-    }
+	se(eqpDir.funcionario.cargo.descricao == "DIRETOR ESCOLAR" || eqpDir.funcionario.cargoComissionado.descricao == "DIRETOR ESCOLAR") {
+		diretor = eqpDir.funcionario.servidor.pessoa.nome
+		diretorMatricula = eqpDir.funcionario.matricula
+	}
+	se(eqpDir.id == paramCoord) {
+		coordenador = eqpDir.funcionario.servidor.pessoa.nome
+		coordenadorMatricula = eqpDir.funcionario.matricula
+	}
+	se(eqpDir.id == paramAdmin) {
+		administrativo = eqpDir.funcionario.servidor.pessoa.nome
+		administrativoMatricula = eqpDir.funcionario.matricula
+	}
 
 }
 
 imprimir 'fim equipes diretivas '+ Datas.hoje().formatar('yyyy-MM-dd HH:mm:ss.SSS')
 
 aulas = fonteAlocaAula.listar(campos: "id, data, numero, turma.descricao, itemEducacional.descricao, itemEducacional.pai.descricao, periodoAvaliativo.descricao, periodoAvaliativo.id," +
-        " estabelecimento.pessoa.nome, estabelecimento.pessoa.telefone, estabelecimento.pessoa.site, anoLetivo.ano, servidor.pessoa.nome, periodoAvaliativo.dataInicial, " +
-        "periodoAvaliativo.dataFinal, turma.turno, turma.etapaMatriz.matriz.curso.descricao, turma.id, itemEducacional.id",
-        criterio: crit,
-        ordenacao: "turma.id asc, itemEducacional.id asc, periodoAvaliativo.dataInicial asc, data asc")
+		" estabelecimento.pessoa.nome, estabelecimento.pessoa.telefone, estabelecimento.pessoa.site, anoLetivo.ano, servidor.pessoa.nome, periodoAvaliativo.dataInicial, " +
+		"periodoAvaliativo.dataFinal, turma.turno, turma.etapaMatriz.matriz.curso.descricao, turma.id, itemEducacional.id",
+		criterio: crit,
+		ordenacao: "turma.id asc, itemEducacional.id asc, periodoAvaliativo.dataInicial asc, data asc")
 
 imprimir 'fim alocaoes de aula '+ Datas.hoje().formatar('yyyy-MM-dd HH:mm:ss.SSS')
 
 //percorrer essa fonte para pegar todas as aulas da disciplina
 alunos = []
 enturmacoes = fonteEnturmacao.lista(campos: "matricula.aluno.id, matricula.aluno.pessoa.nome, dataInicio, dataFim, turma.id, matricula.situacao", criterio:
-        "estabelecimento.id = ${paramEstabelecimento} ${critTurma} and anoLetivo.ano = ${paramAno}", ordenacao: "turma.id asc, matricula.aluno.pessoa.nome asc")
+		"estabelecimento.id = ${paramEstabelecimento} ${critTurma} and anoLetivo.ano = ${paramAno}", ordenacao: "turma.id asc, matricula.aluno.pessoa.nome asc")
 
 percorrer(enturmacoes){ enturma ->
-    se(!(enturma.dataFim.ano() > 1900 && enturma.matricula.situacao == "CURSANDO") && enturma.matricula.situacao != "CANCELAMENTO"){
-        alunos << enturma
-    }
+	se(!(enturma.dataFim.ano() > 1900 && enturma.matricula.situacao == "CURSANDO") && enturma.matricula.situacao != "CANCELAMENTO"){
+		alunos << enturma
+	}
 }
 
 imprimir 'fim enturmacoes'+ Datas.hoje().formatar('yyyy-MM-dd HH:mm:ss.SSS')
@@ -154,8 +154,8 @@ imprimir 'fim enturmacoes'+ Datas.hoje().formatar('yyyy-MM-dd HH:mm:ss.SSS')
 imprimir 'fim filtro enturmacao'+ Datas.hoje().formatar('yyyy-MM-dd HH:mm:ss.SSS')
 
 faltas = fonteRegistroPresenca.lista(campos: "alocacaoAula.id, alocacaoAula.data , alocacaoAula.periodoAvaliativo.id, " +
-        "enturmacao.matricula.aluno.id, enturmacao.turma.id, " +
-        "itemEducacional.id", criterio: criterioFaltas, ordenacao: "alocacaoAula.id asc")
+		"enturmacao.matricula.aluno.id, enturmacao.turma.id, " +
+		"itemEducacional.id", criterio: criterioFaltas, ordenacao: "alocacaoAula.id asc")
 
 
 imprimir 'fim faltas'+ Datas.hoje().formatar('yyyy-MM-dd HH:mm:ss.SSS')
@@ -163,234 +163,234 @@ imprimir 'fim faltas'+ Datas.hoje().formatar('yyyy-MM-dd HH:mm:ss.SSS')
 
 percorrer(faltas) { regPres ->
 
-    existe = 0
-    //imprimir "" + regPres.enturmacao.dataFim + " | " + regPres.enturmacao.dataFim.ano()
-    se(regPres.enturmacao.dataFim.ano() == 1800) {
-        presencas << regPres
+	existe = 0
+	//imprimir "" + regPres.enturmacao.dataFim + " | " + regPres.enturmacao.dataFim.ano()
+	se(regPres.enturmacao.dataFim.ano() == 1800) {
+		presencas << regPres
 
-        percorrer(totalFaltas) { tf ->
-            se(tf.alunoId == regPres.enturmacao.matricula.aluno.id && tf.turmaId == regPres.enturmacao.turma.id && regPres.alocacaoAula.periodoAvaliativo.id == tf.periodoId && regPres.itemEducacional.id == tf.discId) {
-                totalFaltas[indice] = [
-                        alunoId  : tf.alunoId,
-                        turmaId  : tf.turmaId,
-                        periodoId: tf.periodoId,
-                        discId   : tf.discId,
-                        faltas   : (tf.faltas + 1)
-                ]
-                parar()
-                existe = 1
-            }
-        }
+		percorrer(totalFaltas) { tf ->
+			se(tf.alunoId == regPres.enturmacao.matricula.aluno.id && tf.turmaId == regPres.enturmacao.turma.id && regPres.alocacaoAula.periodoAvaliativo.id == tf.periodoId && regPres.itemEducacional.id == tf.discId) {
+				totalFaltas[indice] = [
+						alunoId  : tf.alunoId,
+						turmaId  : tf.turmaId,
+						periodoId: tf.periodoId,
+						discId   : tf.discId,
+						faltas   : (tf.faltas + 1)
+				]
+				parar()
+				existe = 1
+			}
+		}
 
-        se(existe == 0) {
-            totalFaltas << [
-                    alunoId  : regPres.enturmacao.matricula.aluno.id,
-                    turmaId  : regPres.enturmacao.turma.id,
-                    periodoId: regPres.alocacaoAula.periodoAvaliativo.id,
-                    discId   : regPres.itemEducacional.id,
-                    faltas   : 1
-            ]
-        }
+		se(existe == 0) {
+			totalFaltas << [
+					alunoId  : regPres.enturmacao.matricula.aluno.id,
+					turmaId  : regPres.enturmacao.turma.id,
+					periodoId: regPres.alocacaoAula.periodoAvaliativo.id,
+					discId   : regPres.itemEducacional.id,
+					faltas   : 1
+			]
+		}
 
-    }
+	}
 
-    existe = 0
+	existe = 0
 
 }
 
 
 percorrer(aulas) { aul ->
 
-    se(aul.data.mes() < 10) {
-        formatData = "0" + aul.data.mes()
-        mes = "0" + aul.data.mes() + aul.data.nomeMes()
-    } senao {
-        formatData = "" + aul.data.mes()
-        mes = "" + aul.data.mes() + aul.data.nomeMes()
-    }
-    se(aul.data.dia() < 10) {
-        formatData = formatData + "0" + aul.data.dia()
-    } senao {
-        formatData = formatData + aul.data.dia()
-    }
-    se(aul.numero == nulo) {
-        formatData = formatData + "1"
-    } senao {
-        formatData = formatData + aul.numero
-    }
+	se(aul.data.mes() < 10) {
+		formatData = "0" + aul.data.mes()
+		mes = "0" + aul.data.mes() + aul.data.nomeMes()
+	} senao {
+		formatData = "" + aul.data.mes()
+		mes = "" + aul.data.mes() + aul.data.nomeMes()
+	}
+	se(aul.data.dia() < 10) {
+		formatData = formatData + "0" + aul.data.dia()
+	} senao {
+		formatData = formatData + aul.data.dia()
+	}
+	se(aul.numero == nulo) {
+		formatData = formatData + "1"
+	} senao {
+		formatData = formatData + aul.numero
+	}
 
-    dia = aul.data.dia()
+	dia = aul.data.dia()
 
 	discp = aul.itemEducacional.descricao
-	if(discp.size < 2){
+	if(discp.size() < 2){
 		discp = aul.itemEducacional.pai.descricao
 	}
 
-    percorrer(alunos) { alus ->
+	percorrer(alunos) { alus ->
 
-        percorrer(totalFaltas) { tf ->
+		percorrer(totalFaltas) { tf ->
 
-            se(tf.alunoId == alus.matricula.aluno.id && tf.turmaId == alus.turma.id && aul.periodoAvaliativo.id == tf.periodoId && tf.discId == aul.itemEducacional.id) {
-                tFaltas = tf.faltas
-                parar()
-            }
-        }
+			se(tf.alunoId == alus.matricula.aluno.id && tf.turmaId == alus.turma.id && aul.periodoAvaliativo.id == tf.periodoId && tf.discId == aul.itemEducacional.id) {
+				tFaltas = tf.faltas
+				parar()
+			}
+		}
 
-        nomeEData = alus.matricula.aluno.pessoa.nome
+		nomeEData = alus.matricula.aluno.pessoa.nome
 
-        se(alus.dataFim.ano() <= 1900) {
-            nomeEData += "Mat:" + (Caracteres.direita("0" + alus.dataInicio.dia(), 2)) + "/" + (Caracteres.direita("0" + alus.dataInicio.mes(), 2)) + "/" + alus.dataInicio.ano()
-        } senao {
-            nomeEData += "Trn:" + (Caracteres.direita("0" + alus.dataFim.dia(), 2)) + "/" + (Caracteres.direita("0" + alus.dataFim.mes(), 2)) + "/" + alus.dataFim.ano()
-        }
+		se(alus.dataFim.ano() <= 1900) {
+			nomeEData += "Mat:" + (Caracteres.direita("0" + alus.dataInicio.dia(), 2)) + "/" + (Caracteres.direita("0" + alus.dataInicio.mes(), 2)) + "/" + alus.dataInicio.ano()
+		} senao {
+			nomeEData += "Trn:" + (Caracteres.direita("0" + alus.dataFim.dia(), 2)) + "/" + (Caracteres.direita("0" + alus.dataFim.mes(), 2)) + "/" + alus.dataFim.ano()
+		}
 
-        se(aul.data >= alus.dataInicio && (aul.data < alus.dataFim || alus.dataFim.ano() < 1900)) {
+		se(aul.data >= alus.dataInicio && (aul.data < alus.dataFim || alus.dataFim.ano() < 1900)) {
 //    se(aul.data >= alus.dataInicio){
 
-            percorrer(presencas) { pres ->
+			percorrer(presencas) { pres ->
 
-                se(alus.matricula.aluno.id == pres.enturmacao.matricula.aluno.id && aul.id == pres.alocacaoAula.id) {
+				se(alus.matricula.aluno.id == pres.enturmacao.matricula.aluno.id && aul.id == pres.alocacaoAula.id) {
 
-                    fonte.inserirLinha(
-                            turma: aul.turma.descricao,
-                            disciplina: discp,
-                            periodo: aul.periodoAvaliativo.descricao,
-                            nomeAluno: nomeEData,
-                            dataAula: aul.data,
-                            numeroAula: aul.numero,
-                            dataENumero: formatData,
-                            presenca: 'FALTA',
-                            estabelecimentoNome: aul.estabelecimento.pessoa.nome,
-                            estabelecimentoTelefone: "(${aul.estabelecimento.pessoa.telefone.esquerda(2)}) ${aul.estabelecimento.pessoa.telefone.direita(8)}",
-                            estabelecimentoSite: aul.estabelecimento.pessoa.site,
-                            professor: aul.servidor.pessoa.nome,
-                            professorMatricula: professorMatricula,
-                            aulaMes: mes,
-                            aulaDia: dia,
-                            dataInicio: aul.periodoAvaliativo.dataInicial,
-                            dataFim: aul.periodoAvaliativo.dataFinal,
-                            turno: aul.turma.turno,
-                            curso: aul.turma.etapaMatriz.matriz.curso.descricao,
-                            diretor: diretor,
-                            diretorMatricula: diretorMatricula,
-                            coordenador: coordenador,
-                            coordenadorMatricula: coordenadorMatricula,
-                            administrativo: administrativo,
-                            administrativoMatricula: administrativoMatricula
-                    )
-                    count = 1
-                    parar()
+					fonte.inserirLinha(
+							turma: aul.turma.descricao,
+							disciplina: discp,
+							periodo: aul.periodoAvaliativo.descricao,
+							nomeAluno: nomeEData,
+							dataAula: aul.data,
+							numeroAula: aul.numero,
+							dataENumero: formatData,
+							presenca: 'FALTA',
+							estabelecimentoNome: aul.estabelecimento.pessoa.nome,
+							estabelecimentoTelefone: "(${aul.estabelecimento.pessoa.telefone.esquerda(2)}) ${aul.estabelecimento.pessoa.telefone.direita(8)}",
+							estabelecimentoSite: aul.estabelecimento.pessoa.site,
+							professor: aul.servidor.pessoa.nome,
+							professorMatricula: professorMatricula,
+							aulaMes: mes,
+							aulaDia: dia,
+							dataInicio: aul.periodoAvaliativo.dataInicial,
+							dataFim: aul.periodoAvaliativo.dataFinal,
+							turno: aul.turma.turno,
+							curso: aul.turma.etapaMatriz.matriz.curso.descricao,
+							diretor: diretor,
+							diretorMatricula: diretorMatricula,
+							coordenador: coordenador,
+							coordenadorMatricula: coordenadorMatricula,
+							administrativo: administrativo,
+							administrativoMatricula: administrativoMatricula
+					)
+					count = 1
+					parar()
 
 //             imprimir "Turma IN: ${pres.enturmacao.turma.descricao} | Disciplina: ${turma: pres.itemEducacional.descricao} | Nome: ${pres.enturmacao.matricula.aluno.pessoa.nome} | Data: ${aul.data} | Numero: ${aul.numero} | Pres: ${pres.tipo} | Est: ${aul.estabelecimento.pessoa.nome} | Tel: ${aul.estabelecimento.pessoa.telefone} | Site: ${aul.estabelecimento.pessoa.site} | DN: ${formatData}"
 
 
-                }
+				}
 
 //          imprimir  "COMPARACAO ${alus.matricula.aluno.id} == ${pres.enturmacao.matricula.aluno.id}"
-            }
+			}
 
-            se(count == 0) {
-                fonte.inserirLinha(
-                        turma: aul.turma.descricao,
-                        disciplina: discp,
-                        periodo: aul.periodoAvaliativo.descricao,
-                        nomeAluno: nomeEData,
-                        dataAula: aul.data,
-                        numeroAula: aul.numero,
-                        dataENumero: formatData,
-                        presenca: "PRESENCA",
-                        estabelecimentoNome: aul.estabelecimento.pessoa.nome,
-                        estabelecimentoTelefone: "(${aul.estabelecimento.pessoa.telefone.esquerda(2)}) ${aul.estabelecimento.pessoa.telefone.direita(8)}",
-                        estabelecimentoSite: aul.estabelecimento.pessoa.site,
-                        professor: aul.servidor.pessoa.nome,
-                        professorMatricula: professorMatricula,
-                        aulaMes: mes,
-                        aulaDia: dia,
-                        dataInicio: aul.periodoAvaliativo.dataInicial,
-                        dataFim: aul.periodoAvaliativo.dataFinal,
-                        turno: aul.turma.turno,
-                        curso: aul.turma.etapaMatriz.matriz.curso.descricao,
-                        diretor: diretor,
-                        diretorMatricula: diretorMatricula,
-                        coordenador: coordenador,
-                        coordenadorMatricula: coordenadorMatricula,
-                        administrativo: administrativo,
-                        administrativoMatricula: administrativoMatricula
-                )
+			se(count == 0) {
+				fonte.inserirLinha(
+						turma: aul.turma.descricao,
+						disciplina: discp,
+						periodo: aul.periodoAvaliativo.descricao,
+						nomeAluno: nomeEData,
+						dataAula: aul.data,
+						numeroAula: aul.numero,
+						dataENumero: formatData,
+						presenca: "PRESENCA",
+						estabelecimentoNome: aul.estabelecimento.pessoa.nome,
+						estabelecimentoTelefone: "(${aul.estabelecimento.pessoa.telefone.esquerda(2)}) ${aul.estabelecimento.pessoa.telefone.direita(8)}",
+						estabelecimentoSite: aul.estabelecimento.pessoa.site,
+						professor: aul.servidor.pessoa.nome,
+						professorMatricula: professorMatricula,
+						aulaMes: mes,
+						aulaDia: dia,
+						dataInicio: aul.periodoAvaliativo.dataInicial,
+						dataFim: aul.periodoAvaliativo.dataFinal,
+						turno: aul.turma.turno,
+						curso: aul.turma.etapaMatriz.matriz.curso.descricao,
+						diretor: diretor,
+						diretorMatricula: diretorMatricula,
+						coordenador: coordenador,
+						coordenadorMatricula: coordenadorMatricula,
+						administrativo: administrativo,
+						administrativoMatricula: administrativoMatricula
+				)
 
 //          imprimir "Turma OUT: ${aul.turma.descricao} | Disciplina: ${aul.itemEducacional.descricao} | Nome: ${alus.matricula.aluno.pessoa.nome} | Data: ${aul.data} | Numero: ${aul.numero} | Pres: P | Est: ${aul.estabelecimento.pessoa.nome} | Tel: ${aul.estabelecimento.pessoa.telefone} | Site: ${aul.estabelecimento.pessoa.site} | DN: ${formatData} | DATAINICIO: ${alus.dataInicio}"
-            }
+			}
 
 
-            count = 0
+			count = 0
 
-        } senao {
+		} senao {
 
-            //imprimir "NOME: " + nomeEData + " | AULA: " + aul.data + " | INICIO: " + alus.dataInicio + " | FIM: " + alus.dataFim + " | SITUACAO: " + alus.matricula.situacao
+			//imprimir "NOME: " + nomeEData + " | AULA: " + aul.data + " | INICIO: " + alus.dataInicio + " | FIM: " + alus.dataFim + " | SITUACAO: " + alus.matricula.situacao
 
-            fonte.inserirLinha(
-                    turma: aul.turma.descricao,
-                    disciplina: discp,
-                    periodo: aul.periodoAvaliativo.descricao,
-                    nomeAluno: nomeEData,
-                    dataAula: aul.data,
-                    numeroAula: aul.numero,
-                    dataENumero: formatData,
-                    presenca: "N",
-                    estabelecimentoNome: aul.estabelecimento.pessoa.nome,
-                    estabelecimentoTelefone: "(${aul.estabelecimento.pessoa.telefone.esquerda(2)}) ${aul.estabelecimento.pessoa.telefone.direita(8)}",
-                    estabelecimentoSite: aul.estabelecimento.pessoa.site,
-                    professor: aul.servidor.pessoa.nome,
-                    professorMatricula: professorMatricula,
-                    aulaMes: mes,
-                    aulaDia: dia,
-                    dataInicio: aul.periodoAvaliativo.dataInicial,
-                    dataFim: aul.periodoAvaliativo.dataFinal,
-                    turno: aul.turma.turno,
-                    curso: aul.turma.etapaMatriz.matriz.curso.descricao,
-                    diretor: diretor,
-                    diretorMatricula: diretorMatricula,
-                    coordenador: coordenador,
-                    coordenadorMatricula: coordenadorMatricula,
-                    administrativo: administrativo,
-                    administrativoMatricula: administrativoMatricula
-            )
+			fonte.inserirLinha(
+					turma: aul.turma.descricao,
+					disciplina: discp,
+					periodo: aul.periodoAvaliativo.descricao,
+					nomeAluno: nomeEData,
+					dataAula: aul.data,
+					numeroAula: aul.numero,
+					dataENumero: formatData,
+					presenca: "N",
+					estabelecimentoNome: aul.estabelecimento.pessoa.nome,
+					estabelecimentoTelefone: "(${aul.estabelecimento.pessoa.telefone.esquerda(2)}) ${aul.estabelecimento.pessoa.telefone.direita(8)}",
+					estabelecimentoSite: aul.estabelecimento.pessoa.site,
+					professor: aul.servidor.pessoa.nome,
+					professorMatricula: professorMatricula,
+					aulaMes: mes,
+					aulaDia: dia,
+					dataInicio: aul.periodoAvaliativo.dataInicial,
+					dataFim: aul.periodoAvaliativo.dataFinal,
+					turno: aul.turma.turno,
+					curso: aul.turma.etapaMatriz.matriz.curso.descricao,
+					diretor: diretor,
+					diretorMatricula: diretorMatricula,
+					coordenador: coordenador,
+					coordenadorMatricula: coordenadorMatricula,
+					administrativo: administrativo,
+					administrativoMatricula: administrativoMatricula
+			)
 
 //       imprimir "Turma OUTER: ${aul.turma.descricao} | Disciplina: ${aul.itemEducacional.descricao} | Nome: ${alus.matricula.aluno.pessoa.nome} | Data: ${aul.data} | Numero: ${aul.numero} | Pres: - | Est: ${aul.estabelecimento.pessoa.nome} | Tel: ${aul.estabelecimento.pessoa.telefone} | Site: ${aul.estabelecimento.pessoa.site} | DN: ${formatData} | DATAINICIO: ${alus.dataInicio}"
 
-        }
+		}
 
 
-        fonte.inserirLinha(
-                turma: aul.turma.descricao,
-                disciplina: discp,
-                periodo: aul.periodoAvaliativo.descricao,
-                nomeAluno: nomeEData,
-                dataAula: aul.data,
-                numeroAula: 0,
-                dataENumero: formatData,
-                presenca: "" + tFaltas,
-                estabelecimentoNome: aul.estabelecimento.pessoa.nome,
-                estabelecimentoTelefone: "(${aul.estabelecimento.pessoa.telefone.esquerda(2)}) ${aul.estabelecimento.pessoa.telefone.direita(8)}",
-                estabelecimentoSite: aul.estabelecimento.pessoa.site,
-                professor: aul.servidor.pessoa.nome,
-                professorMatricula: professorMatricula,
-                aulaMes: "13Tot",
-                aulaDia: 0,
-                dataInicio: aul.periodoAvaliativo.dataInicial,
-                dataFim: aul.periodoAvaliativo.dataFinal,
-                turno: aul.turma.turno,
-                curso: aul.turma.etapaMatriz.matriz.curso.descricao,
-                diretor: diretor,
-                diretorMatricula: diretorMatricula,
-                coordenador: coordenador,
-                coordenadorMatricula: coordenadorMatricula,
-                administrativo: administrativo,
-                administrativoMatricula: administrativoMatricula
-        )
+		fonte.inserirLinha(
+				turma: aul.turma.descricao,
+				disciplina: discp,
+				periodo: aul.periodoAvaliativo.descricao,
+				nomeAluno: nomeEData,
+				dataAula: aul.data,
+				numeroAula: 0,
+				dataENumero: formatData,
+				presenca: "" + tFaltas,
+				estabelecimentoNome: aul.estabelecimento.pessoa.nome,
+				estabelecimentoTelefone: "(${aul.estabelecimento.pessoa.telefone.esquerda(2)}) ${aul.estabelecimento.pessoa.telefone.direita(8)}",
+				estabelecimentoSite: aul.estabelecimento.pessoa.site,
+				professor: aul.servidor.pessoa.nome,
+				professorMatricula: professorMatricula,
+				aulaMes: "13Tot",
+				aulaDia: 0,
+				dataInicio: aul.periodoAvaliativo.dataInicial,
+				dataFim: aul.periodoAvaliativo.dataFinal,
+				turno: aul.turma.turno,
+				curso: aul.turma.etapaMatriz.matriz.curso.descricao,
+				diretor: diretor,
+				diretorMatricula: diretorMatricula,
+				coordenador: coordenador,
+				coordenadorMatricula: coordenadorMatricula,
+				administrativo: administrativo,
+				administrativoMatricula: administrativoMatricula
+		)
 
-        tFaltas = 0
-    }
+		tFaltas = 0
+	}
 
 }
 

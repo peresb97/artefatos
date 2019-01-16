@@ -126,7 +126,7 @@ println crit
 
 disp = ""
 
-percorrer(fonteItemConteudoAula.lista(campos:"itemConteudo.conteudo.tema, itemConteudo.conteudo.dataInicio, itemConteudo.conteudo.dataFim, itemConteudo.conteudo.tipoConteudo, alocacaoAula.estabelecimento.pessoa.nome, alocacaoAula.estabelecimento.pessoa.telefone, alocacaoAula.estabelecimento.pessoa.site, alocacaoAula.servidor.pessoa.nome, alocacaoAula.itemEducacional.descricao, alocacaoAula.itemEducacional.pai.descricao, alocacaoAula.periodoAvaliativo.descricao, alocacaoAula.anoLetivo.ano, itemConteudo.turma.calendarioMatrizCurricular.matrizCurricular.curso.descricao, alocacaoAula.turma.descricao, itemConteudo.turma.etapaMatriz.matriz.descricao, itemConteudo.turma.turno, itemConteudo.turma.id, itemConteudo.conteudo.objetivosGerais, itemConteudo.conteudo.objetivosEspecificos, itemConteudo.conteudo.metodologiaUtilizada, itemConteudo.conteudo.praticasPedagogicas, itemConteudo.conteudo.recursosDidaticos, itemConteudo.conteudo.referenciasBibliograficas, alocacaoAula.periodoAvaliativo.id, alocacaoAula.itemEducacional.id, itemConteudo.id", criterio:crit, ordenacao:"alocacaoAula.turma.descricao asc, alocacaoAula.itemEducacional.descricao asc, alocacaoAula.periodoAvaliativo.descricao asc, alocacaoAula.data asc")){aulaCont->
+percorrer(fonteItemConteudoAula.lista(campos:"itemConteudo.conteudo.tema, itemConteudo.conteudo.dataInicio, itemConteudo.conteudo.dataFim, itemConteudo.conteudo.tipoConteudo, alocacaoAula.estabelecimento.pessoa.nome, alocacaoAula.estabelecimento.pessoa.telefone, alocacaoAula.estabelecimento.pessoa.site, alocacaoAula.servidor.pessoa.nome, alocacaoAula.itemEducacional.descricao, alocacaoAula.itemEducacional.pai.descricao, alocacaoAula.periodoAvaliativo.descricao, alocacaoAula.anoLetivo.ano, itemConteudo.turma.etapaMatriz.matriz.curso.descricao, alocacaoAula.turma.descricao, itemConteudo.turma.etapaMatriz.matriz.descricao, itemConteudo.turma.turno, itemConteudo.turma.id, itemConteudo.conteudo.objetivosGerais, itemConteudo.conteudo.objetivosEspecificos, itemConteudo.conteudo.metodologiaUtilizada, itemConteudo.conteudo.praticasPedagogicas, itemConteudo.conteudo.recursosDidaticos, itemConteudo.conteudo.referenciasBibliograficas, alocacaoAula.periodoAvaliativo.id, alocacaoAula.itemEducacional.id, itemConteudo.id", criterio:crit, ordenacao:"alocacaoAula.turma.descricao asc, alocacaoAula.itemEducacional.descricao asc, alocacaoAula.periodoAvaliativo.descricao asc, alocacaoAula.data asc")){aulaCont->
 
 	se(paramTurma != nulo){
 		professorAssinatura = aulaCont.alocacaoAula.servidor.pessoa.nome
@@ -163,7 +163,7 @@ percorrer(fonteItemConteudoAula.lista(campos:"itemConteudo.conteudo.tema, itemCo
 		tema: aulaCont.itemConteudo.conteudo.tema,
 		tipoConteudo: aulaCont.itemConteudo.conteudo.tipoConteudo,
 		ano: aulaCont.alocacaoAula.anoLetivo.ano,
-		curso: aulaCont.itemConteudo.turma.calendarioMatrizCurricular.matrizCurricular.curso.descricao,
+		curso: aulaCont.itemConteudo.turma.etapaMatriz.matriz.curso.descricao,
 		dataInicio: aulaCont.itemConteudo.conteudo.dataInicio,
 		dataFim: aulaCont.itemConteudo.conteudo.dataFim,
 		matriz: aulaCont.itemConteudo.turma.etapaMatriz.matriz.descricao,

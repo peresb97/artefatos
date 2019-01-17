@@ -60,17 +60,20 @@ nomeEData = ""
 turID = ""
 critTurma = ""
 critFal = ""
-
+periodo = ""
 
 imprimir "Inicio "+ Datas.hoje().formatar('yyyy-MM-dd HH:mm:ss.SSS')
 
 criterioFaltas = "alocacaoAula.servidor.id = ${servidorID} and estabelecimento.id = ${paramEstabelecimento} and anoLetivo.ano = ${paramAno}"
 crit = "servidor.id = ${servidorID} and estabelecimento.id = ${paramEstabelecimento} and anoLetivo.ano = ${paramAno}"
 
-se(paramPeriodo != nulo) {
+if(paramPeriodo != nulo && paramPeriodo != "anual") {
 	crit += " and periodoAvaliativo.descricao like '${paramPeriodo}'" /*  and itemEducacional.id = ${paramDisciplina}*/
 	criterioFaltas += " and periodoAvaliativo.descricao like '${paramPeriodo}'"
 	/*  and itemEducacional.id = ${paramDisciplina}*/
+} else if(paramPeriodo == "anual"){
+	crit += " and periodoAvaliativo.descricao is null" /*  and itemEducacional.id = ${paramDisciplina}*/
+	criterioFaltas += " and periodoAvaliativo.descricao is null"
 }
 
 se(paramTurma != nulo) {
@@ -200,6 +203,13 @@ percorrer(faltas) { regPres ->
 
 
 percorrer(aulas) { aul ->
+	
+	imprimir aul.data
+
+	periodo = aul.periodoAvaliativo.descricao
+	if(periodo == null || periodo == ""){
+		periodo = "Anual"
+	}
 
 	se(aul.data.mes() < 10) {
 		formatData = "0" + aul.data.mes()

@@ -72,6 +72,7 @@ coordenadorMatricula = ""
 administrativo = ""
 administrativoMatricula = ""
 cursando = "N"
+ultimo = 0
 
 
 se(paramNivel == 1){
@@ -91,6 +92,7 @@ fonteHistoricoMatricula = Dados.educacao.v1.itemHistoricoEscolarMatricula
 fonteFiliacao = Dados.educacao.v1.alunoFiliacao
 fonteEstabelecimento = Dados.educacao.v1.estabelecimento
 fonteResultadoFrequencia = Dados.educacao.v1."resultado-frequencia"
+fonteAlunos = Dados.educacao.v1.alunos
 fonteEnturmacao = Dados.educacao.v1.enturmacao
 fonteEnturmacaoItemEducacional = Dados.educacao.v1.enturmacaoItemEducacional
 fonteEquipeDir = Dados.educacao.v1.equipeDiretiva
@@ -128,40 +130,51 @@ percorrer(fonteEstabelecimento.endereco(campos:"estabEndereco.estabelecimento.pe
 
 //preparacao fontes
 
-crit = "id >= 1"
-se(paramAluno != nulo){
-	crit = crit + " and matricula.aluno.id = ${paramAluno}"
-}
-se(paramTurma != nulo){
-	crit = crit + " and turma.id = ${paramTurma}"
-}
+if(paramAluno != nulo){
+	percorrer(fonteAlunos.lista(campos:"pessoa.nome, id, pessoa.fisica.dataNascimento, pessoa.fisica.municipioNascimento.nome, pessoa.fisica.municipioNascimento.uf, pessoa.fisica.nacionalidade, pessoa.fisica.cpf, pessoa.fisica.rg", criterio:"id = ${paramAluno}", ordenacao:"id asc")){alunos->
 
-ultimo = 0
+		listaAlunos = listaAlunos + alunos.id + ","
+		arrayAlunos << alunos
+		imprimir "Aluno: " + alunos.pessoa.nome
 
-percorrer(fonteEnturmacao.lista(campos:"matricula.aluno.pessoa.nome, matricula.aluno.id, matricula.aluno.pessoa.fisica.dataNascimento, matricula.aluno.pessoa.fisica.municipioNascimento.nome, matricula.aluno.pessoa.fisica.municipioNascimento.uf, matricula.aluno.pessoa.fisica.nacionalidade, matricula.aluno.pessoa.fisica.cpf, matricula.aluno.pessoa.fisica.rg, matricula.situacao,id", criterio:crit, ordenacao:"matricula.aluno.id asc")){enturma->
-
-	se(enturma.matricula.aluno.id != ultimo){
-		listaAlunos = listaAlunos + enturma.matricula.aluno.id + ","
-		arrayAlunos << enturma
 	}
-	ultimo = enturma.matricula.aluno.id
+} else {
+	
+	crit = "estabelecimento.id = ${paramEscola}"
+	if(paramTurma != nulo){
+		crit = crit + " and turma.id = ${paramTurma}"
+	}
+	percorrer(fonteEnturmacao.lista(campos:"matricula.aluno.pessoa.nome, matricula.aluno.id, matricula.aluno.pessoa.fisica.dataNascimento, matricula.aluno.pessoa.fisica.municipioNascimento.nome, matricula.aluno.pessoa.fisica.municipioNascimento.uf, matricula.aluno.pessoa.fisica.nacionalidade, matricula.aluno.pessoa.fisica.cpf, matricula.aluno.pessoa.fisica.rg, matricula.situacao,id", criterio:crit, ordenacao:"matricula.aluno.id asc")){enturma->
 
+		se(enturma.matricula.aluno.id != ultimo){
+			listaAlunos = listaAlunos + enturma.matricula.aluno.id + ","
+			arrayAlunos << enturma.matricula.aluno
+		}
+		ultimo = enturma.matricula.aluno.id
+		
+		imprimir "Aluno: " + enturma.matricula.aluno.pessoa.nome
+
+	}
 }
 
 listaAlunos = listaAlunos + "0)"
 
+
+imprimir "CritItem: notaNumerica is not null and historicoEscolar.aluno.id in ${listaAlunos}"
 percorrer(fonteHistoricoItem.lista(campos:"historicoEscolar.aluno.id, historicoEscolar.anoLetivo, itemOrganizacaoCurricular.descricao, eixoTematico.descricao, notaNumerica, cargaHoraria, percentualFrequencia, situacao, historicoEscolar.situacao, historicoEscolar.nivelEscolar, historicoEscolar.observacao", criterio:"notaNumerica is not null and historicoEscolar.aluno.id in ${listaAlunos}", ordenacao:"historicoEscolar.aluno.pessoa.nome asc, historicoEscolar.anoLetivo asc")){
 
 	historico << item
 
 }
 
+imprimir "CritMat: matricula.aluno.id in ${listaAlunos} and notaNumerica is not null"
 percorrer(fonteHistoricoMatricula.lista(campos:"matricula.aluno.id, matricula.anoLetivo.ano, etapa.disciplina.descricao, notaNumerica, cargaHoraria, resultadoFrequencia.percentualTotal, matricula.situacaoMatricula, matricula.etapaMatriz.matriz.curso.nivelEscolar, matricula.observacao", criterio:"matricula.aluno.id in ${listaAlunos} and notaNumerica is not null", ordenacao:"matricula.aluno.pessoa.nome asc, matricula.anoLetivo.ano asc")){
 
 	matricula << item
 
 }
 
+imprimir "CritReg: enturmacao.matricula.aluno.id in ${listaAlunos}"
 percorrer(fonteRegAval.lista(campos:"enturmacao.matricula.aluno.id, enturmacao.matricula.situacao, enturmacao.turma.id, notaNumerica, itemAvaliacaoTurma.itemEducacional.descricao, itemAvaliacaoTurma.tipoPeriodo, itemAvaliacaoTurma.itemEducacional.pai.descricao, enturmacao.turma.etapaMatriz.matriz.curso.nivelEscolar, anoLetivo.ano, enturmacao.matricula.observacao, itemAvaliacaoTurma.itemEducacional.id", criterio: "enturmacao.matricula.aluno.id in ${listaAlunos}", ordenacao: "enturmacao.matricula.aluno.pessoa.nome asc, anoLetivo.ano asc, enturmacao.turma.etapaMatriz.matriz.descricao desc, enturmacao.turma.descricao asc, itemAvaliacaoTurma.itemEducacional.descricao asc")){
 
 	registroAval << item
@@ -179,23 +192,23 @@ percorrer(fonteFiliacao.lista(campos:"aluno.id, filiacao.pessoa.nome, tipo", cri
 percorrer(arrayAlunos){alu->
 
 	/* -- Dados aluno -- */
-	aluNome = alu.matricula.aluno.pessoa.nome
-	aluDataNasc = alu.matricula.aluno.pessoa.fisica.dataNascimento
-	aluCidNasc = alu.matricula.aluno.pessoa.fisica.municipioNascimento.nome
-	aluUFNasc = alu.matricula.aluno.pessoa.fisica.municipioNascimento.uf
-	aluPaisNasc = alu.matricula.aluno.pessoa.fisica.nacionalidade
-	aluId = alu.matricula.aluno.id
+	aluNome = alu.pessoa.nome
+	aluDataNasc = alu.pessoa.fisica.dataNascimento
+	aluCidNasc = alu.pessoa.fisica.municipioNascimento.nome
+	aluUFNasc = alu.pessoa.fisica.municipioNascimento.uf
+	aluPaisNasc = alu.pessoa.fisica.nacionalidade
+	aluId = alu.id
 	
-	imprimir alu.matricula.aluno.pessoa.fisica.cpf + " | " + alu.matricula.aluno.pessoa.fisica.rg
+	imprimir alu.pessoa.fisica.cpf + " | " + alu.pessoa.fisica.rg
 	
 	
 	alunoDocumento = ""
 	
-	se(!(alu.matricula.aluno.pessoa.fisica.cpf == nulo || alu.matricula.aluno.pessoa.fisica.cpf == "")){ 
-		alunoDocumento = ", portador do CPF: " + (utils.formataCpfCnpj("FISICA",alu.matricula.aluno.pessoa.fisica.cpf))
+	se(!(alu.pessoa.fisica.cpf == nulo || alu.pessoa.fisica.cpf == "")){ 
+		alunoDocumento = ", portador do CPF: " + (utils.formataCpfCnpj("FISICA",alu.pessoa.fisica.cpf))
 	} senao {
-		se(!(alu.matricula.aluno.pessoa.fisica.rg == nulo || alu.matricula.aluno.pessoa.fisica.rg == "")){
-			alunoDocumento = ", portador do RG: " + alu.matricula.aluno.pessoa.fisica.rg
+		se(!(alu.pessoa.fisica.rg == nulo || alu.pessoa.fisica.rg == "")){
+			alunoDocumento = ", portador do RG: " + alu.pessoa.fisica.rg
 		}
 	}
 	
@@ -203,7 +216,7 @@ percorrer(arrayAlunos){alu->
 
 	percorrer(filiacao){fili->
 	
-		se(fili.aluno.id == alu.matricula.aluno.id){
+		se(fili.aluno.id == alu.id){
 		
 			imprimir fili.filiacao.pessoa.nome + " | " + fili.tipo
 			
@@ -232,13 +245,13 @@ percorrer(arrayAlunos){alu->
 
 		//imprimir "ITEM-> DisciplinaOC: " + itemHist.itemOrganizacaoCurricular.descricao + " | DisciplinaET: " + itemHist.eixoTematico.descricao + " | Ano: " + itemHist.historicoEscolar.anoLetivo + " | CH: " + (itemHist.cargaHoraria/3600) + " | Nota: " + itemHist.notaNumerica * 10 + " | %Fre: " + itemHist.percentualFrequencia + " | Situacao: " + itemHist.historicoEscolar.situacao + " | Tipo: " + itemHist.tipoItemOrganizacaoCurricular + " | Naturalidade: " + aluCidNasc + ", " + aluUFNasc + ", " + aluPaisNasc + " | Nivel: " + itemHist.historicoEscolar.nivelEscolar
 
-		se(itemHist.historicoEscolar.aluno.id == alu.matricula.aluno.id && itemHist.historicoEscolar.nivelEscolar == nivelEsc){
+		se(itemHist.historicoEscolar.aluno.id == alu.id && itemHist.historicoEscolar.nivelEscolar == nivelEsc){
 		
 		
 			discPadrao = utils.padronizaMatriculaSJS(itemHist.itemOrganizacaoCurricular.descricao)
 			
 			sit = itemHist.historicoEscolar.situacao
-			se(itemHist.historicoEscolar.situacao == nulo){
+			se(sit == nulo){
 				sit = itemHist.situacao
 			}
 	
@@ -313,7 +326,7 @@ percorrer(arrayAlunos){alu->
 
 	percorrer(matricula){matHist->
 	
-		se(matHist.matricula.aluno.id == alu.matricula.aluno.id && matHist.matricula.etapaMatriz.matriz.curso.nivelEscolar == nivelEsc){
+		se(matHist.matricula.aluno.id == alu.id && matHist.matricula.etapaMatriz.matriz.curso.nivelEscolar == nivelEsc){
 
 			//imprimir "MATR-> Disciplina: " + matHist.etapa.disciplina.descricao + " | DisciplinaInep: " + matHist.etapa.disciplina.disciplinaInep.descricao + " | Ano: " + matHist.matricula.anoLetivo.ano + " | CH: " + (matHist.cargaHoraria/3600) + " | Nota: " + matHist.notaNumerica * 10 + " | %Fre: " + matHist.resultadoFrequencia.percentualTotal + " | Situacao: " + matHist.matricula.situacaoMatricula + " | Naturalidade: " + aluCidNasc + ", " + aluUFNasc + ", " + aluPaisNasc + " | Nivel:" + matHist.matricula.etapaMatriz.matriz.curso.nivelEscolar
 			
@@ -389,7 +402,7 @@ percorrer(arrayAlunos){alu->
 
 	percorrer(registroAval){regAval->
 
-		se(regAval.enturmacao.turma.etapaMatriz.matriz.curso.nivelEscolar == nivelEsc && regAval.enturmacao.matricula.aluno.id == alu.matricula.aluno.id && regAval.enturmacao.matricula.situacao != "CANCELAMENTO"){
+		se(regAval.enturmacao.turma.etapaMatriz.matriz.curso.nivelEscolar == nivelEsc && regAval.enturmacao.matricula.aluno.id == alu.id && regAval.enturmacao.matricula.situacao != "CANCELAMENTO"){
 
 			se(regAval.itemAvaliacaoTurma.tipoPeriodo == "Média final" || regAval.itemAvaliacaoTurma.tipoPeriodo == "Módulo" || regAval.itemAvaliacaoTurma.tipoPeriodo == "Conselho de classe"){
 			

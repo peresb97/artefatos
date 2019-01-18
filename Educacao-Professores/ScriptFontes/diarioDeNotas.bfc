@@ -210,9 +210,13 @@ situacao = null
 percorrer(mapaAlunos){alus->
 
 	imprimir "Aluno: " + alus.matricula.aluno.pessoa.nome
-	
-	percorrer(fonteSitItemEducacional.lista(campos:"situacao", criterio:"viewEnturmacao.id = ${alus.id} and viewItemEducacional.id = ${dispID} ")){sit->
+
+	imprimir "CritSit: viewEnturmacao.id = ${alus.id} and viewItemEducacional.id = ${dispID}"
+	percorrer(fonteSitItemEducacional.lista(campos:"situacao", criterio:"viewEnturmacao.id = ${alus.id} and viewItemEducacional.id = ${dispID}")){sit->
 		situacao = sit.situacao
+	}
+	if(situacao == null){
+		situacao = alus.matricula.situacao
 	}
 
 	if(eja){
@@ -522,6 +526,7 @@ percorrer(mapaAlunos){alus->
 	mediaCalc = null
 	nota = null
 	semNotas = true
+	situacao = null
 
 }
 

@@ -198,6 +198,7 @@ notaRec = null
 soma = 0
 mediaPer = null
 mediaCalc = null
+semNotas = true
 
 percorrer(mapaAlunos){alus->
 
@@ -221,6 +222,7 @@ percorrer(mapaAlunos){alus->
 							nota = "0,0"
 						}
 						break
+						soma += regMod.notaNumerica
 					default:
 						nota = regMod.notaConceito.sigla
 				}
@@ -228,6 +230,7 @@ percorrer(mapaAlunos){alus->
 				insAval1 = "Módulo"
 				notaAval1 = nota
 				pos++
+				semNotas = false
 			}
 		}
 	}
@@ -255,12 +258,13 @@ percorrer(mapaAlunos){alus->
 							} senao {
 								nota = "0,0"
 							}
-							//soma += ((regAval.instrumentoAvaliacao.peso==null)?regAval.notaNumerica:(inst.peso==0?1:inst.peso) * regAval.notaNumerica)
+							soma += ((regAval.instrumentoAvaliacao.peso==null)?regAval.notaNumerica:(inst.peso==0?1:inst.peso) * regAval.notaNumerica)
 							imprimir "Soma: " + soma + " | peso: " + regAval.instrumentoAvaliacao.peso
 							break
 						default:
 							nota = regAval.notaConceito.sigla
 					}
+					semNotas = false
 					imprimir "Aluno: " + alus.matricula.aluno.pessoa.nome + " | inst nota: " + nota
 				}
 		
@@ -317,9 +321,9 @@ percorrer(mapaAlunos){alus->
 		} else {
 			if(!(alus.matricula.avaliacaoDescritiva)){
 				imprimir "nota rec"
-				critRec = "enturmacao.id = ${alus.id} and instrumentoAvaliacao.id = ${inst.id} and itemAvaliacaoTurma.periodoAvaliativo.descricao = '${paramPeriodo}'"
+				critRec = "enturmacao.id = ${alus.id} and instrumentoAvaliacao.id = ${inst.id}"
 				if(eja){
-					critRec = "enturmacao.matricula.aluno.id = ${alus.matricula.aluno.id} and enturmacao.turma.id = ${alus.turma.id} and instrumentoAvaliacao.id = ${inst.id} and itemAvaliacaoTurma.periodoAvaliativo.descricao = '${paramPeriodo}'"
+					critRec = "enturmacao.matricula.aluno.id = ${alus.matricula.aluno.id} and enturmacao.turma.id = ${alus.turma.id} and instrumentoAvaliacao.id = ${inst.id}"
 				}
 				imprimir "nota rec | " + critRec
 				percorrer(fonteRegistroAval.lista(campos:"notaNumerica, modoAvaliacao, notaConceito.sigla", criterio:critRec)){recAval->
@@ -338,6 +342,7 @@ percorrer(mapaAlunos){alus->
 						default:
 							notaRec = recAval.notaConceito.sigla
 					}
+					semNotas = false
 					imprimir "Aluno: " + alus.matricula.aluno.pessoa.nome + " | rec nota: " + notaRec
 				}
 			} else {
@@ -372,8 +377,27 @@ percorrer(mapaAlunos){alus->
 			imprimir "Aluno: " + alus.matricula.aluno.pessoa.nome + " | per nota: " + mediaPer
 		}
 		
-		//mediaParcial = soma / (pesos==0?1:pesos)
+		if(!semNotas){
+			sobra = 0
+			decimal = 0
+			mediaParcial = soma / (pesos==0?1:pesos)
+			se(mediaParcial > 0){
+				sobra = Numeros.resto((mediaParcial * 100),100)
+				if(sobra > 75){
+					decimal = 10
+				} else if (sobra > 25){
+					decimal = 5
+				}
+				mediaParcial = "" + ((Numeros.trunca(mediaParcial,0) * 10) + decimal)
+				mediaParcial = mediaParcial.esquerda(mediaParcial.tamanho() - 1) + "," + mediaParcial.direita(1)
+			} senao {
+				mediaParcial = "0,0"
+			}
+		} else {
+			mediaParcial = null
+		}
 		
+		/*
 		critMed = "enturmacao.id = ${alus.id} and itemAvaliacaoTurma.tipoPeriodo = 'CALCULO_INSTRUMENTOS' ${critReg}"
 		if(eja){
 			critMed = "enturmacao.id = ${alus.id} and itemAvaliacaoTurma.tipoPeriodo = 'CALCULO_MEDIA' ${critReg}"
@@ -397,6 +421,7 @@ percorrer(mapaAlunos){alus->
 			}
 			imprimir "Aluno: " + alus.matricula.aluno.pessoa.nome + " | calc nota: " + mediaCalc
 		}
+		*/
 	
 	} else {
 		mediaCalc = "Desc"
@@ -407,6 +432,7 @@ percorrer(mapaAlunos){alus->
 	if(periodo == null){
 		periodo = "Anual"
 	}
+	
 	
 	fonte.inserirLinha(
 		estabelecimento: alus.estabelecimento.pessoa.nome,
@@ -419,8 +445,8 @@ percorrer(mapaAlunos){alus->
 		anoLetivo: alus.anoLetivo.ano,
 		nomeAluno: alus.matricula.aluno.pessoa.nome,
 		aluID: alus.matricula.aluno.id,
-		situacao: alus.matricula.situacao,
-		mediaParcial: mediaCalc,
+		situacao: (alus.matricula.situacao).replace('_',' '),
+		mediaParcial: mediaParcial,
 		notasRec: notaRec,
 		mediaPer: mediaPer,
 		professor: professor,
@@ -484,6 +510,7 @@ percorrer(mapaAlunos){alus->
 	soma = 0
 	mediaCalc = null
 	nota = null
+	semNotas = true
 
 }
 

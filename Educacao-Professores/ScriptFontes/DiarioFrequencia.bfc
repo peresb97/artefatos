@@ -203,8 +203,6 @@ percorrer(faltas) { regPres ->
 
 
 percorrer(aulas) { aul ->
-	
-	imprimir aul.data
 
 	periodo = aul.periodoAvaliativo.descricao
 	if(periodo == null || periodo == ""){
@@ -237,7 +235,7 @@ percorrer(aulas) { aul ->
 	}
 
 	percorrer(alunos) { alus ->
-
+	
 		percorrer(totalFaltas) { tf ->
 
 			se(tf.alunoId == alus.matricula.aluno.id && tf.turmaId == alus.turma.id && aul.periodoAvaliativo.id == tf.periodoId && tf.discId == aul.itemEducacional.id) {
@@ -264,7 +262,7 @@ percorrer(aulas) { aul ->
 					fonte.inserirLinha(
 							turma: aul.turma.descricao,
 							disciplina: discp,
-							periodo: aul.periodoAvaliativo.descricao,
+							periodo: periodo,
 							nomeAluno: nomeEData,
 							dataAula: aul.data,
 							numeroAula: aul.numero,
@@ -303,7 +301,7 @@ percorrer(aulas) { aul ->
 				fonte.inserirLinha(
 						turma: aul.turma.descricao,
 						disciplina: discp,
-						periodo: aul.periodoAvaliativo.descricao,
+						periodo: periodo,
 						nomeAluno: nomeEData,
 						dataAula: aul.data,
 						numeroAula: aul.numero,
@@ -341,7 +339,7 @@ percorrer(aulas) { aul ->
 			fonte.inserirLinha(
 					turma: aul.turma.descricao,
 					disciplina: discp,
-					periodo: aul.periodoAvaliativo.descricao,
+					periodo: periodo,
 					nomeAluno: nomeEData,
 					dataAula: aul.data,
 					numeroAula: aul.numero,
@@ -369,12 +367,11 @@ percorrer(aulas) { aul ->
 //       imprimir "Turma OUTER: ${aul.turma.descricao} | Disciplina: ${aul.itemEducacional.descricao} | Nome: ${alus.matricula.aluno.pessoa.nome} | Data: ${aul.data} | Numero: ${aul.numero} | Pres: - | Est: ${aul.estabelecimento.pessoa.nome} | Tel: ${aul.estabelecimento.pessoa.telefone} | Site: ${aul.estabelecimento.pessoa.site} | DN: ${formatData} | DATAINICIO: ${alus.dataInicio}"
 
 		}
-
-
+	
 		fonte.inserirLinha(
 				turma: aul.turma.descricao,
 				disciplina: discp,
-				periodo: aul.periodoAvaliativo.descricao,
+				periodo: periodo,
 				nomeAluno: nomeEData,
 				dataAula: aul.data,
 				numeroAula: 0,

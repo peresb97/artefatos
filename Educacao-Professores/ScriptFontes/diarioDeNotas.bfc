@@ -128,6 +128,7 @@ fonteEnturmacao = Dados.profesores.v1.enturmacao.lista(campos:"id, estabelecimen
 fonteInstrumentoAval = Dados.profesores.v1.instrumentoAvaliacao.lista(campos:"id, descricao, sigla, tipoInstrumento, servidor.id, peso, viewPeriodoAvaliativo.descricao", criterio:"turma.id = " + paramTurma + " and viewTurmaDisciplina.itemEducacional.id = ${dispID} and viewPeriodoAvaliativo.descricao = '${paramPeriodo}'", ordenacao:"data asc, id asc, descricao asc")
 fonteRegistroAval = Dados.profesores.v1."registro-avaliacao"
 fonteFuncionario = Dados.profesores.v1.funcionario
+fonteSitItemEducacional = Dados.profesores.v1.enturmacaoSituacaoItemEducacional
 
 mapaAlunos = []
 mapaInstr = []
@@ -204,16 +205,21 @@ soma = 0
 mediaPer = null
 mediaCalc = null
 semNotas = true
+situacao = null
 
 percorrer(mapaAlunos){alus->
 
 	imprimir "Aluno: " + alus.matricula.aluno.pessoa.nome
+	
+	percorrer(fonteSitItemEducacional.lista(campos:"situacao", criterio:"viewEnturmacao.id = ${alus.id} and viewItemEducacional.id = ${dispID} ")){sit->
+		situacao = sit.situacao
+	}
 
 	if(eja){
 		imprimir "Eja: " + eja
 		imprimir "enturmacao.matricula.aluno.id = ${alus.matricula.aluno.id} and enturmacao.turma.id = ${alus.turma.id} and itemAvaliacaoTurma.itemEducacional.pai.descricao = '${dispDescricao}' and itemAvaliacaoTurma.tipoPeriodo = 'MODULO'"
 		if(!(alus.matricula.avaliacaoDescritiva)){
-			percorrer(fonteRegistroAval.lista(campos:"notaNumerica, modoAvaliacao, notaConceito.sigla", criterio:"enturmacao.matricula.aluno.id = ${alus.matricula.aluno.id} and enturmacao.turma.id = ${alus.turma.id} and itemAvaliacaoTurma.itemEducacional.pai.descricao = '${dispDescricao}' and itemAvaliacaoTurma.tipoPeriodo = 'MODULO'")){regMod->
+			percorrer(fonteRegistroAval.lista(campos:"notaNumerica, modoAvaliacao, notaConceito.sigla, enturmacao.matriculaAtividade.situacao", criterio:"enturmacao.matricula.aluno.id = ${alus.matricula.aluno.id} and enturmacao.turma.id = ${alus.turma.id} and itemAvaliacaoTurma.itemEducacional.pai.descricao = '${dispDescricao}' and itemAvaliacaoTurma.tipoPeriodo = 'MODULO'")){regMod->
 				
 				switch(regMod.modoAvaliacao){
 					case "DESCRITIVO":
@@ -226,8 +232,8 @@ percorrer(mapaAlunos){alus->
 						} senao {
 							nota = "0,0"
 						}
-						break
 						soma += regMod.notaNumerica
+						break
 					default:
 						nota = regMod.notaConceito.sigla
 				}
@@ -250,7 +256,7 @@ percorrer(mapaAlunos){alus->
 					critInst = "enturmacao.matricula.aluno.id = ${alus.matricula.aluno.id} and enturmacao.turma.id = ${alus.turma.id} and instrumentoAvaliacao.id = ${inst.id}"
 				}
 				imprimir "nota instrumento | " + critInst
-				percorrer(fonteRegistroAval.lista(campos:"notaNumerica, modoAvaliacao, notaConceito.sigla", criterio:critInst)){regAval->
+				percorrer(fonteRegistroAval.lista(campos:"notaNumerica, modoAvaliacao, notaConceito.sigla, enturmacao.matriculaAtividade.situacao", criterio:critInst)){regAval->
 					
 					switch(regAval.modoAvaliacao){
 						case "DESCRITIVO":
@@ -331,7 +337,7 @@ percorrer(mapaAlunos){alus->
 					critRec = "enturmacao.matricula.aluno.id = ${alus.matricula.aluno.id} and enturmacao.turma.id = ${alus.turma.id} and instrumentoAvaliacao.id = ${inst.id}"
 				}
 				imprimir "nota rec | " + critRec
-				percorrer(fonteRegistroAval.lista(campos:"notaNumerica, modoAvaliacao, notaConceito.sigla", criterio:critRec)){recAval->
+				percorrer(fonteRegistroAval.lista(campos:"notaNumerica, modoAvaliacao, notaConceito.sigla, enturmacao.matriculaAtividade.situacao", criterio:critRec)){recAval->
 					switch(recAval.modoAvaliacao){
 						case "DESCRITIVO":
 							notaRec = "Desc"
@@ -363,7 +369,7 @@ percorrer(mapaAlunos){alus->
 			critPer = "enturmacao.matricula.aluno.id = ${alus.matricula.aluno.id} and enturmacao.turma.id = ${alus.turma.id} and itemAvaliacaoTurma.tipoPeriodo = 'MEDIA_PERIODO' ${critReg}"
 		}
 		imprimir "media per | " + critPer
-		percorrer(fonteRegistroAval.lista(campos:"notaNumerica, notaDescritiva, modoAvaliacao, notaConceito.sigla", criterio:critPer)){recPer->
+		percorrer(fonteRegistroAval.lista(campos:"notaNumerica, notaDescritiva, modoAvaliacao, notaConceito.sigla, enturmacao.matriculaAtividade.situacao", criterio:critPer)){recPer->
 			switch(recPer.modoAvaliacao){
 				case "DESCRITIVO":
 					mediaPer = "Desc"
@@ -450,7 +456,7 @@ percorrer(mapaAlunos){alus->
 		anoLetivo: alus.anoLetivo.ano,
 		nomeAluno: alus.matricula.aluno.pessoa.nome,
 		aluID: alus.matricula.aluno.id,
-		situacao: (alus.matricula.situacao).replace('_',' '),
+		situacao: (situacao).replace('_',' '),
 		mediaParcial: mediaParcial,
 		notasRec: notaRec,
 		mediaPer: mediaPer,

@@ -122,6 +122,8 @@ if(eja){
 	entCrit = "id in ${listaEnt} and matricula.situacao != 'CANCELAMENTO' and (dataFim is null or matricula.situacao = 'TRANSFERIDO')"
 }
 
+imprimir "EntCrit: " + entCrit
+
 fonteEnturmacao = Dados.profesores.v1.enturmacao.lista(campos:"id, estabelecimento.pessoa.nome, matricula.aluno.pessoa.nome, matricula.aluno.id, matricula.situacao, turma.descricao, turma.turno, turma.id, turma.etapaMatriz.etapaInep.nome, turma.etapaMatriz.matriz.descricao, anoLetivo.ano, matricula.avaliacaoDescritiva", criterio:entCrit, ordenacao: "matricula.aluno.pessoa.nome asc, matricula.aluno.id asc")
 fonteInstrumentoAval = Dados.profesores.v1.instrumentoAvaliacao.lista(campos:"id, descricao, sigla, tipoInstrumento, servidor.id, peso, viewPeriodoAvaliativo.descricao", criterio:"turma.id = " + paramTurma + " and viewTurmaDisciplina.itemEducacional.id = ${dispID} and viewPeriodoAvaliativo.descricao = '${paramPeriodo}'", ordenacao:"data asc, id asc, descricao asc")
 fonteRegistroAval = Dados.profesores.v1."registro-avaliacao"
@@ -130,9 +132,13 @@ fonteFuncionario = Dados.profesores.v1.funcionario
 mapaAlunos = []
 mapaInstr = []
 pesos = 0
+ultimoId = 0
 
 percorrer(fonteEnturmacao){
-	mapaAlunos << item
+	se(item.matricula.aluno.id != ultimoId){
+		mapaAlunos << item
+	}
+	ultimoId = item.matricula.aluno.id
 }
 
 imprimir "Pesos: " + pesos
@@ -150,7 +156,6 @@ percorrer(fonteInstrumentoAval){
 	if(item.tipoInstrumento == "INSTRUMENTO_AVALIACAO"){
 		pesos += (item.peso==null)?1:(item.peso == 0?1:item.peso)
 	}
-	
 }
 
 imprimir "ServID: " + servidorID

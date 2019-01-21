@@ -155,7 +155,8 @@ percorrer(fonteInstrumentoAval){
 	
 	if(item.tipoInstrumento == "INSTRUMENTO_AVALIACAO"){
 		imprimir "Tipo: " + item.descricao + " | Sig: " + item.sigla + " | " + item.peso + " | " + item.servidor.pessoa.nome
-		pesos += (item.peso==null)?1:(item.peso == 0?1:item.peso)
+		//pesos += (item.peso==null)?1:(item.peso == 0?1:item.peso)
+		pesos++
 	}
 }
 
@@ -283,7 +284,8 @@ percorrer(mapaAlunos){alus->
 							} senao {
 								nota = "0,0"
 							}
-							soma += ((regAval.instrumentoAvaliacao.peso==null)?regAval.notaNumerica:((inst.peso==0?1:inst.peso) * regAval.notaNumerica))
+							soma += regAval.notaNumerica
+							//soma += ((regAval.instrumentoAvaliacao.peso==null)?regAval.notaNumerica:((inst.peso==0?1:inst.peso) * regAval.notaNumerica))
 							imprimir "Soma: " + soma + " | peso: " + regAval.instrumentoAvaliacao.peso
 							break
 						default:

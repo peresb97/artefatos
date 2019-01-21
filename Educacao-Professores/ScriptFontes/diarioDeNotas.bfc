@@ -4,9 +4,10 @@ paramEstabelecimento = parametros.estabelecimento.valor
 paramTurma = parametros.turma.valor
 paramDisc = parametros.disciplina.valor
 paramDiscEJA = parametros.disciplinaEJA.valor
-paramPeriodo = "" + parametros.periodo
+paramPeriodo = (parametros.periodo == "1%An%")? null : "" + parametros.periodo
 paramAdmin = parametros.admin.valor
 paramCoord = parametros.coord.valor
+
 
 esquema = [
 	estabelecimento: Esquema.caracter,
@@ -92,7 +93,7 @@ se(paramDisc != nulo){
 	percorrer(disciplinaFonte.lista(campos:"itemEducacional.descricao, itemEducacional.id", criterio:" id = " + paramDisc)){
 		dispDescricao=item.itemEducacional.descricao
 		dispID=item.itemEducacional.id
-		critReg = " and itemAvaliacaoTurma.periodoAvaliativo.descricao = '${paramPeriodo}' and itemAvaliacaoTurma.itemEducacional.id = ${dispID}"
+		critReg = " and itemAvaliacaoTurma.periodoAvaliativo.descricao like '${paramPeriodo}' and itemAvaliacaoTurma.itemEducacional.id = ${dispID}"
 	}
 	
 } senao {
@@ -125,7 +126,7 @@ if(eja){
 imprimir "EntCrit: " + entCrit
 
 fonteEnturmacao = Dados.profesores.v1.enturmacao.lista(campos:"id, estabelecimento.pessoa.nome, matricula.aluno.pessoa.nome, matricula.aluno.id, matricula.situacao, turma.descricao, turma.turno, turma.id, turma.etapaMatriz.etapaInep.nome, turma.etapaMatriz.matriz.descricao, anoLetivo.ano, matricula.avaliacaoDescritiva", criterio:entCrit, ordenacao: "matricula.aluno.pessoa.nome asc, matricula.aluno.id asc")
-fonteInstrumentoAval = Dados.profesores.v1.instrumentoAvaliacao.lista(campos:"id, descricao, sigla, tipoInstrumento, servidor.id, peso, viewPeriodoAvaliativo.descricao", criterio:"turma.id = " + paramTurma + " and viewTurmaDisciplina.itemEducacional.id = ${dispID} and viewPeriodoAvaliativo.descricao = '${paramPeriodo}'", ordenacao:"data asc, id asc, descricao asc")
+fonteInstrumentoAval = Dados.profesores.v1.instrumentoAvaliacao.lista(campos:"id, descricao, sigla, tipoInstrumento, servidor.id, peso, viewPeriodoAvaliativo.descricao", criterio:"turma.id = " + paramTurma + " and viewTurmaDisciplina.itemEducacional.id = ${dispID} and viewPeriodoAvaliativo.descricao like '${paramPeriodo}'", ordenacao:"data asc, id asc, descricao asc")
 fonteRegistroAval = Dados.profesores.v1."registro-avaliacao"
 fonteFuncionario = Dados.profesores.v1.funcionario
 fonteSitItemEducacional = Dados.profesores.v1.enturmacaoSituacaoItemEducacional
@@ -144,7 +145,7 @@ percorrer(fonteEnturmacao){
 
 imprimir "Pesos: " + pesos
 
-professor = ""
+professor = null
 professorMatricula = ""
 servidorID = 0
 periodo = null
@@ -169,6 +170,7 @@ percorrer(fonteFuncionario.lista(campos: "servidor.pessoa.nome, matricula", crit
 }
 
 if(servidorID == 0){
+	imprimir "CritFunc: id = ${dispID}"
 	fonteTurmaFunc = Dados.profesores.v1.turmasFuncionarios.lista(campos:"funcionario.servidor.id, funcionario.matricula, funcionario.servidor.pessoa.nome", criterio:"id = ${dispID}", ordenacao:"funcionario.id asc")
 	percorrer(fonteTurmaFunc){
 		professor = item.funcionario.servidor.pessoa.nome
@@ -176,7 +178,7 @@ if(servidorID == 0){
 	}
 }
 
-imprimir "Profe: " + professor + " | " + professorMatricula
+//imprimir "Profe: " + professor + " | " + professorMatricula
 
 insAval1 = null
 notaAval1 = null
@@ -206,6 +208,7 @@ mediaPer = null
 mediaCalc = null
 semNotas = true
 situacao = null
+periodo = null
 
 percorrer(mapaAlunos){alus->
 
@@ -223,7 +226,7 @@ percorrer(mapaAlunos){alus->
 		imprimir "Eja: " + eja
 		imprimir "enturmacao.matricula.aluno.id = ${alus.matricula.aluno.id} and enturmacao.turma.id = ${alus.turma.id} and itemAvaliacaoTurma.itemEducacional.pai.descricao = '${dispDescricao}' and itemAvaliacaoTurma.tipoPeriodo = 'MODULO'"
 		if(!(alus.matricula.avaliacaoDescritiva)){
-			percorrer(fonteRegistroAval.lista(campos:"notaNumerica, modoAvaliacao, notaConceito.sigla, enturmacao.matriculaAtividade.situacao", criterio:"enturmacao.matricula.aluno.id = ${alus.matricula.aluno.id} and enturmacao.turma.id = ${alus.turma.id} and itemAvaliacaoTurma.itemEducacional.pai.descricao = '${dispDescricao}' and itemAvaliacaoTurma.tipoPeriodo = 'MODULO'")){regMod->
+			percorrer(fonteRegistroAval.lista(campos:"notaNumerica, modoAvaliacao, notaConceito.sigla, enturmacao.matriculaAtividade.situacao, instrumentoAvaliacao.servidor.pessoa.nome", criterio:"enturmacao.matricula.aluno.id = ${alus.matricula.aluno.id} and enturmacao.turma.id = ${alus.turma.id} and itemAvaliacaoTurma.itemEducacional.pai.descricao = '${dispDescricao}' and itemAvaliacaoTurma.tipoPeriodo = 'MODULO'")){regMod->
 				
 				switch(regMod.modoAvaliacao){
 					case "DESCRITIVO":
@@ -246,11 +249,17 @@ percorrer(mapaAlunos){alus->
 				notaAval1 = nota
 				pos++
 				semNotas = false
+				
+				if(professor == null){
+					professor = regMod.instrumentoAvaliacao.servidor.pessoa.nome
+				}
 			}
 		}
 	}
 
 	percorrer(mapaInstr){inst->
+	
+		periodo = inst.viewPeriodoAvaliativo.descricao
 		
 		if(inst.tipoInstrumento == "INSTRUMENTO_AVALIACAO"){
 		
@@ -370,10 +379,10 @@ percorrer(mapaAlunos){alus->
 	if(!(alus.matricula.avaliacaoDescritiva)){
 		critPer = "enturmacao.id = ${alus.id} and itemAvaliacaoTurma.tipoPeriodo = 'MEDIA_PERIODO' ${critReg}"
 		if(eja){
-			critPer = "enturmacao.matricula.aluno.id = ${alus.matricula.aluno.id} and enturmacao.turma.id = ${alus.turma.id} and itemAvaliacaoTurma.tipoPeriodo = 'MEDIA_PERIODO' ${critReg}"
+			critPer = "enturmacao.matricula.aluno.id = ${alus.matricula.aluno.id} and enturmacao.turma.id = ${alus.turma.id} and itemAvaliacaoTurma.tipoPeriodo = 'MEDIA_FINAL' ${critReg}"
 		}
 		imprimir "media per | " + critPer
-		percorrer(fonteRegistroAval.lista(campos:"notaNumerica, notaDescritiva, modoAvaliacao, notaConceito.sigla, enturmacao.matriculaAtividade.situacao", criterio:critPer)){recPer->
+		percorrer(fonteRegistroAval.lista(campos:"notaNumerica, notaDescritiva, modoAvaliacao, notaConceito.sigla, enturmacao.matriculaAtividade.situacao, instrumentoAvaliacao.servidor.pessoa.nome", criterio:critPer)){recPer->
 			switch(recPer.modoAvaliacao){
 				case "DESCRITIVO":
 					mediaPer = "Desc"
@@ -390,6 +399,9 @@ percorrer(mapaAlunos){alus->
 					mediaPer = recPer.notaConceito.sigla
 			}
 			imprimir "Aluno: " + alus.matricula.aluno.pessoa.nome + " | per nota: " + mediaPer
+			if(professor == null){
+				professor = recPer.instrumentoAvaliacao.servidor.pessoa.nome
+			}
 		}
 		
 		if(!semNotas){
@@ -456,7 +468,7 @@ percorrer(mapaAlunos){alus->
 		turma: alus.turma.descricao,
 		turno: alus.turma.turno,
 		disciplina: dispDescricao,
-		periodo: paramPeriodo,
+		periodo: periodo,
 		anoLetivo: alus.anoLetivo.ano,
 		nomeAluno: alus.matricula.aluno.pessoa.nome,
 		aluID: alus.matricula.aluno.id,
@@ -527,6 +539,7 @@ percorrer(mapaAlunos){alus->
 	nota = null
 	semNotas = true
 	situacao = null
+	periodo = null
 
 }
 

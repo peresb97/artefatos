@@ -36,7 +36,10 @@ esquema = [
 	coordenadorMatricula: Esquema.caracter,
 	administrativo: Esquema.caracter,
 	administrativoMatricula: Esquema.caracter,
-	cursando: Esquema.caracter
+	cursando: Esquema.caracter,
+	livro: Esquema.caracter,
+	folha: Esquema.caracter,
+	regist: Esquema.caracter
 ]
 
 
@@ -73,7 +76,9 @@ administrativo = ""
 administrativoMatricula = ""
 cursando = "N"
 ultimo = 0
-
+livro = ""
+folha = ""
+regist = ""
 
 se(paramNivel == 1){
 	nivelEsc = "ENSINO_MEDIO"
@@ -131,11 +136,11 @@ percorrer(fonteEstabelecimento.endereco(campos:"estabEndereco.estabelecimento.pe
 //preparacao fontes
 
 if(paramAluno != nulo){
-	percorrer(fonteAlunos.lista(campos:"pessoa.nome, id, pessoa.fisica.dataNascimento, pessoa.fisica.municipioNascimento.nome, pessoa.fisica.municipioNascimento.uf, pessoa.fisica.nacionalidade, pessoa.fisica.cpf, pessoa.fisica.rg", criterio:"id = ${paramAluno}", ordenacao:"id asc")){alunos->
+	percorrer(fonteAlunos.lista(campos:"pessoa.nome, id, pessoa.fisica.dataNascimento, pessoa.fisica.municipioNascimento.nome, pessoa.fisica.municipioNascimento.uf, pessoa.fisica.nacionalidade, pessoa.fisica.cpf, pessoa.fisica.rg, paisOrigem.nome", criterio:"id = ${paramAluno}", ordenacao:"id asc")){alunos->
 
 		listaAlunos = listaAlunos + alunos.id + ","
 		arrayAlunos << alunos
-		imprimir "Aluno: " + alunos.pessoa.nome
+		imprimir "Aluno: " + alunos
 
 	}
 } else {
@@ -144,7 +149,7 @@ if(paramAluno != nulo){
 	if(paramTurma != nulo){
 		crit = crit + " and turma.id = ${paramTurma}"
 	}
-	percorrer(fonteEnturmacao.lista(campos:"matricula.aluno.pessoa.nome, matricula.aluno.id, matricula.aluno.pessoa.fisica.dataNascimento, matricula.aluno.pessoa.fisica.municipioNascimento.nome, matricula.aluno.pessoa.fisica.municipioNascimento.uf, matricula.aluno.pessoa.fisica.nacionalidade, matricula.aluno.pessoa.fisica.cpf, matricula.aluno.pessoa.fisica.rg, matricula.situacao,id", criterio:crit, ordenacao:"matricula.aluno.id asc")){enturma->
+	percorrer(fonteEnturmacao.lista(campos:"matricula.aluno.pessoa.nome, matricula.aluno.id, matricula.aluno.pessoa.fisica.dataNascimento, matricula.aluno.pessoa.fisica.municipioNascimento.nome, matricula.aluno.pessoa.fisica.municipioNascimento.uf, matricula.aluno.pessoa.fisica.nacionalidade, matricula.aluno.pessoa.fisica.cpf, matricula.aluno.pessoa.fisica.rg, matricula.situacao,id, matricula.aluno.paisOrigem.nome", criterio:crit, ordenacao:"matricula.aluno.id asc")){enturma->
 
 		se(enturma.matricula.aluno.id != ultimo){
 			listaAlunos = listaAlunos + enturma.matricula.aluno.id + ","
@@ -152,7 +157,7 @@ if(paramAluno != nulo){
 		}
 		ultimo = enturma.matricula.aluno.id
 		
-		imprimir "Aluno: " + enturma.matricula.aluno.pessoa.nome
+		imprimir "Aluno: " + enturma.matricula.aluno
 
 	}
 }
@@ -196,10 +201,10 @@ percorrer(arrayAlunos){alu->
 	aluDataNasc = alu.pessoa.fisica.dataNascimento
 	aluCidNasc = alu.pessoa.fisica.municipioNascimento.nome
 	aluUFNasc = alu.pessoa.fisica.municipioNascimento.uf
-	aluPaisNasc = alu.pessoa.fisica.nacionalidade
+	aluPaisNasc = alu.paisOrigem.nome
 	aluId = alu.id
 	
-	imprimir alu.pessoa.fisica.cpf + " | " + alu.pessoa.fisica.rg
+	imprimir alu.pessoa.fisica.cpf + " | " + alu.pessoa.fisica.rg + " | NAC: " + aluPaisNasc
 	
 	
 	alunoDocumento = ""
@@ -556,6 +561,21 @@ percorrer(arrayAlunos){alu->
 	/*	insercao na fonte  */
 	
 	nota = 0
+	
+	//Registro aluno
+	percorrer(fonteAlunos.lista(campos:"camposAdicionais.padrao.livro, camposAdicionais.padrao.livrom, camposAdicionais.padrao.folha, camposAdicionais.padrao.folham, camposAdicionais.padrao.registro, camposAdicionais.padrao.registrom", criterio:"id = ${alu.id}")){regAlu->
+	
+		se(paramNivel == 0){
+			livro = regAlu.camposAdicionais.padrao.livro
+			folha = regAlu.camposAdicionais.padrao.folha
+			regist = regAlu.camposAdicionais.padrao.registro
+		} senao {
+			livro = regAlu.camposAdicionais.padrao.livrom
+			folha = regAlu.camposAdicionais.padrao.folham
+			regist = regAlu.camposAdicionais.padrao.registrom
+		}
+		
+	}
 
 	percorrer(registro){reg->
 
@@ -616,11 +636,18 @@ percorrer(arrayAlunos){alu->
 			coordenadorMatricula: coordenadorMatricula,
 			administrativo: administrativo,
 			administrativoMatricula: administrativoMatricula,
-			cursando: cursando
+			cursando: cursando,
+			livro: livro,
+			folha: folha,
+			regist: regist
 		)
+		
 		
 	}
 	
+	livro = ""
+	folha = ""
+	registro = ""
 	cursando = "N"
 	obs = ""
 

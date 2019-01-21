@@ -100,7 +100,7 @@ se(paramDisc != nulo){
 
 	disciplinaFonte = Dados.profesores.v1.turmaDisciplinaEjaModular
 
-	percorrer(disciplinaFonte.lista(campos:"itemEducacional.descricao, itemEducacional.id", criterio:" id = " + paramDiscEJA)){
+	percorrer(disciplinaFonte.lista(campos:"itemEducacional.descricao, itemEducacional.id, ", criterio:" id = " + paramDiscEJA)){
 		dispDescricao=item.itemEducacional.descricao
 		dispID=item.itemEducacional.id
 		critReg = " and itemAvaliacaoTurma.itemEducacional.descricao = '${dispDescricao}'"
@@ -126,7 +126,7 @@ if(eja){
 imprimir "EntCrit: " + entCrit
 
 fonteEnturmacao = Dados.profesores.v1.enturmacao.lista(campos:"id, estabelecimento.pessoa.nome, matricula.aluno.pessoa.nome, matricula.aluno.id, matricula.situacao, turma.descricao, turma.turno, turma.id, turma.etapaMatriz.etapaInep.nome, turma.etapaMatriz.matriz.descricao, anoLetivo.ano, matricula.avaliacaoDescritiva", criterio:entCrit, ordenacao: "matricula.aluno.pessoa.nome asc, matricula.aluno.id asc")
-fonteInstrumentoAval = Dados.profesores.v1.instrumentoAvaliacao.lista(campos:"id, descricao, sigla, tipoInstrumento, servidor.id, peso, viewPeriodoAvaliativo.descricao", criterio:"turma.id = " + paramTurma + " and viewTurmaDisciplina.itemEducacional.id = ${dispID} and viewPeriodoAvaliativo.descricao like '${paramPeriodo}'", ordenacao:"data asc, id asc, descricao asc")
+fonteInstrumentoAval = Dados.profesores.v1.instrumentoAvaliacao.lista(campos:"id, descricao, sigla, tipoInstrumento, servidor.id, servidor.pessoa.nome, peso, viewPeriodoAvaliativo.descricao", criterio:"turma.id = " + paramTurma + " and viewTurmaDisciplina.itemEducacional.id = ${dispID} and viewPeriodoAvaliativo.descricao like '${paramPeriodo}'", ordenacao:"data asc, id asc, descricao asc")
 fonteRegistroAval = Dados.profesores.v1."registro-avaliacao"
 fonteFuncionario = Dados.profesores.v1.funcionario
 fonteSitItemEducacional = Dados.profesores.v1.enturmacaoSituacaoItemEducacional
@@ -143,8 +143,6 @@ percorrer(fonteEnturmacao){
 	ultimoId = item.matricula.aluno.id
 }
 
-imprimir "Pesos: " + pesos
-
 professor = null
 professorMatricula = ""
 servidorID = 0
@@ -156,9 +154,12 @@ percorrer(fonteInstrumentoAval){
 	periodo = item.viewPeriodoAvaliativo.descricao
 	
 	if(item.tipoInstrumento == "INSTRUMENTO_AVALIACAO"){
+		imprimir "Tipo: " + item.descricao + " | Sig: " + item.sigla + " | " + item.peso + " | " + item.servidor.pessoa.nome
 		pesos += (item.peso==null)?1:(item.peso == 0?1:item.peso)
 	}
 }
+
+imprimir "Pesos: " + pesos
 
 imprimir "ServID: " + servidorID
 
@@ -171,7 +172,7 @@ percorrer(fonteFuncionario.lista(campos: "servidor.pessoa.nome, matricula", crit
 
 if(servidorID == 0){
 	imprimir "CritFunc: id = ${dispID}"
-	fonteTurmaFunc = Dados.profesores.v1.turmasFuncionarios.lista(campos:"funcionario.servidor.id, funcionario.matricula, funcionario.servidor.pessoa.nome", criterio:"id = ${dispID}", ordenacao:"funcionario.id asc")
+	fonteTurmaFunc = Dados.profesores.v1.turmasFuncionarios.lista(campos:"funcionario.servidor.id, funcionario.matricula, funcionario.servidor.pessoa.nome", criterio:"id = ${dispID} or turma.itemEducacional.id = ${dispID}", ordenacao:"funcionario.id asc")
 	percorrer(fonteTurmaFunc){
 		professor = item.funcionario.servidor.pessoa.nome
 		professorMatricula = item.funcionario.matricula
@@ -282,7 +283,7 @@ percorrer(mapaAlunos){alus->
 							} senao {
 								nota = "0,0"
 							}
-							soma += ((regAval.instrumentoAvaliacao.peso==null)?regAval.notaNumerica:(inst.peso==0?1:inst.peso) * regAval.notaNumerica)
+							soma += ((regAval.instrumentoAvaliacao.peso==null)?regAval.notaNumerica:((inst.peso==0?1:inst.peso) * regAval.notaNumerica))
 							imprimir "Soma: " + soma + " | peso: " + regAval.instrumentoAvaliacao.peso
 							break
 						default:
@@ -410,9 +411,10 @@ percorrer(mapaAlunos){alus->
 			mediaParcial = soma / (pesos==0?1:pesos)
 			se(mediaParcial > 0){
 				sobra = Numeros.resto((mediaParcial * 100),100)
-				if(sobra > 75){
+				imprimir "Media: " + mediaParcial + " = " + soma + " / " + pesos + " | Sobra: " + sobra
+				if(sobra >= 75){
 					decimal = 10
-				} else if (sobra > 25){
+				} else if (sobra >= 25){
 					decimal = 5
 				}
 				mediaParcial = "" + ((Numeros.trunca(mediaParcial,0) * 10) + decimal)

@@ -65,7 +65,8 @@ periodo = ""
 imprimir "Inicio "+ Datas.hoje().formatar('yyyy-MM-dd HH:mm:ss.SSS')
 
 criterioFaltas = "alocacaoAula.servidor.id = ${servidorID} and estabelecimento.id = ${paramEstabelecimento} and anoLetivo.ano = ${paramAno}"
-crit = "servidor.id = ${servidorID} and estabelecimento.id = ${paramEstabelecimento} and anoLetivo.ano = ${paramAno}"
+crit = "estabelecimento.id = ${paramEstabelecimento} and anoLetivo.ano = ${paramAno}"
+//servidor.id = ${servidorID} and 
 
 if(paramPeriodo != nulo && paramPeriodo != "anual") {
 	crit += " and periodoAvaliativo.descricao like '${paramPeriodo}'" /*  and itemEducacional.id = ${paramDisciplina}*/

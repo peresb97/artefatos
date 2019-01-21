@@ -39,11 +39,11 @@ if(paramObjeto != "(null)"){
 }
 */
 if(paramDataIni != null){
-	dataIni = paramDataIni.ano() + "-" + paramDataIni.mes() + "-" + paramDataIni.dia
+	dataIni = paramDataIni.format("yyyy-MM-dd")
 	crit += " and dataAssinatura >= ${dataIni}"
 }
 if(paramDataFim != null){
-	dataFim = paramDataFim.ano() + "-" + paramDataFim.mes() + "-" + paramDataFim.dia
+	dataFim = paramDataFim.format("yyyy-MM-dd")
 	crit += " and dataAssinatura <= ${dataFim}"
 }
 

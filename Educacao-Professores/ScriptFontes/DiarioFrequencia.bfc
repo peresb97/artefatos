@@ -90,7 +90,7 @@ se(paramTurma != nulo) {
 	crit += " and servidor.id = ${servidorID}"
 	critTurma += " and turma.id in ("
 	critFal += " and alocacaoAula.servidor.id = ${servidorID} and enturmacao.turma.id in ("
-	fonteTurmaFuncionario = Dados.profesores.v1.turmasFuncionarios.lista(campos: "turma.id", criterio: "funcionario.id = ${paramFuncionario}")
+	fonteTurmaFuncionario = Dados.profesores.v1.EnturmacaoFuncionario.lista(campos: "turma.id", criterio: "professor.id = ${paramFuncionario} and anoLetivo.ano = ${paramAno} and estabelecimento.id = ${paramEstabelecimento}")
 	percorrer(fonteTurmaFuncionario) { turFunc ->
 		critTurma += turFunc.turma.id + ","
 		critFal += turFunc.turma.id + ","
@@ -210,7 +210,7 @@ percorrer(faltas) { regPres ->
 
 percorrer(aulas) { aul ->
 
-	imprimir aul
+//	imprimir aul
 
 	periodo = aul.periodoAvaliativo.descricao
 	if(periodo == null || periodo == ""){

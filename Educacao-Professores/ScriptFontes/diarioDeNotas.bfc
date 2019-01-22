@@ -100,7 +100,7 @@ se(paramDisc != nulo){
 
 	disciplinaFonte = Dados.profesores.v1.turmaDisciplinaEjaModular
 
-	percorrer(disciplinaFonte.lista(campos:"itemEducacional.descricao, itemEducacional.id, ", criterio:" id = " + paramDiscEJA)){
+	percorrer(disciplinaFonte.lista(campos:"itemEducacional.descricao, itemEducacional.id", criterio:" id = " + paramDiscEJA)){
 		dispDescricao=item.itemEducacional.descricao
 		dispID=item.itemEducacional.id
 		critReg = " and itemAvaliacaoTurma.itemEducacional.descricao = '${dispDescricao}'"

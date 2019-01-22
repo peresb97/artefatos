@@ -48,6 +48,7 @@ totalFaltas = []
 count = 0
 servidorID = fonteFuncionario[0].servidor.id
 professorMatricula = fonteFuncionario[0].matricula
+professor = fonteFuncionario[0].servidor.pessoa.nome
 formatData = ""
 tFaltas = 0
 diretor = ""
@@ -64,27 +65,31 @@ periodo = ""
 
 imprimir "Inicio "+ Datas.hoje().formatar('yyyy-MM-dd HH:mm:ss.SSS')
 
-criterioFaltas = "alocacaoAula.servidor.id = ${servidorID} and estabelecimento.id = ${paramEstabelecimento} and anoLetivo.ano = ${paramAno}"
+criterioFaltas = "estabelecimento.id = ${paramEstabelecimento} and anoLetivo.ano = ${paramAno}"
 crit = "estabelecimento.id = ${paramEstabelecimento} and anoLetivo.ano = ${paramAno}"
 //servidor.id = ${servidorID} and 
 
-if(paramPeriodo != nulo && paramPeriodo != "anual") {
-	crit += " and periodoAvaliativo.descricao like '${paramPeriodo}'" /*  and itemEducacional.id = ${paramDisciplina}*/
+if(paramPeriodo != nulo && paramPeriodo != "1%An%") {
+	crit += " and periodoAvaliativo.descricao like '${paramPeriodo}'" /* and itemEducacional.id = ${paramDisciplina}*/
 	criterioFaltas += " and periodoAvaliativo.descricao like '${paramPeriodo}'"
 	/*  and itemEducacional.id = ${paramDisciplina}*/
-} else if(paramPeriodo == "anual"){
+} else if(paramPeriodo == "1%An%"){
 	crit += " and periodoAvaliativo.descricao is null" /*  and itemEducacional.id = ${paramDisciplina}*/
 	criterioFaltas += " and periodoAvaliativo.descricao is null"
 }
 
 se(paramTurma != nulo) {
-	fonteTurmaFuncionario = Dados.profesores.v1.turmasFuncionarios.lista(campos: "turma.id", criterio: "id = ${paramTurma}")
+	fonteTurmaFuncionario = Dados.profesores.v1.turmasFuncionarios.lista(campos: "turma.id, turma.modalidadeTurma", criterio: "id = ${paramTurma}")
 	turID = fonteTurmaFuncionario[0].turma.id
 	critTurma += " and turma.id = ${turID}"
-	critFal +=  " and enturmacao.turma.id = ${turID}"
+	critFal += " and enturmacao.turma.id = ${turID}"
+	if(fonteTurmaFuncionario[0].turma.modalidadeTurma == "EJA"){
+		crit += " and servidor.id = ${servidorID}"
+	}
 } senao {
+	crit += " and servidor.id = ${servidorID}"
 	critTurma += " and turma.id in ("
-	critFal += " and enturmacao.turma.id in ("
+	critFal += " and alocacaoAula.servidor.id = ${servidorID} and enturmacao.turma.id in ("
 	fonteTurmaFuncionario = Dados.profesores.v1.turmasFuncionarios.lista(campos: "turma.id", criterio: "funcionario.id = ${paramFuncionario}")
 	percorrer(fonteTurmaFuncionario) { turFunc ->
 		critTurma += turFunc.turma.id + ","
@@ -95,12 +100,14 @@ se(paramTurma != nulo) {
 }
 
 //ajuste terrivel, melhorar se puder
+/*
 if(critTurma == " and turma.id in (0)"){
 	critTurma = ""
 }
 if(critFal == " and enturmacao.turma.id in (0)"){
 	critFal = ""
 }
+*/
 // --
 
 criterioFaltas += critFal
@@ -135,7 +142,7 @@ aulas = fonteAlocaAula.listar(campos: "id, data, numero, turma.descricao, itemEd
 		" estabelecimento.pessoa.nome, estabelecimento.pessoa.telefone, estabelecimento.pessoa.site, anoLetivo.ano, servidor.pessoa.nome, periodoAvaliativo.dataInicial, " +
 		"periodoAvaliativo.dataFinal, turma.turno, turma.etapaMatriz.matriz.curso.descricao, turma.id, itemEducacional.id",
 		criterio: crit,
-		ordenacao: "turma.id asc, itemEducacional.id asc, periodoAvaliativo.dataInicial asc, data asc")
+		ordenacao: "turma.id asc, itemEducacional.id asc, servidor.pessoa.nome, periodoAvaliativo.dataInicial asc, data asc")
 
 imprimir 'fim alocaoes de aula '+ Datas.hoje().formatar('yyyy-MM-dd HH:mm:ss.SSS')
 
@@ -157,12 +164,10 @@ imprimir 'fim enturmacoes'+ Datas.hoje().formatar('yyyy-MM-dd HH:mm:ss.SSS')
 
 imprimir 'fim filtro enturmacao'+ Datas.hoje().formatar('yyyy-MM-dd HH:mm:ss.SSS')
 
-faltas = fonteRegistroPresenca.lista(campos: "alocacaoAula.id, alocacaoAula.data , alocacaoAula.periodoAvaliativo.id, " +
-		"enturmacao.matricula.aluno.id, enturmacao.turma.id, " +
-		"itemEducacional.id", criterio: criterioFaltas, ordenacao: "alocacaoAula.id asc")
+faltas = fonteRegistroPresenca.lista(campos: "alocacaoAula.id, alocacaoAula.data , alocacaoAula.periodoAvaliativo.id, enturmacao.matricula.aluno.id, enturmacao.turma.id, itemEducacional.id", criterio: criterioFaltas, ordenacao: "alocacaoAula.id asc")
 
 
-imprimir 'fim faltas'+ Datas.hoje().formatar('yyyy-MM-dd HH:mm:ss.SSS')
+imprimir 'fim faltas '+ Datas.hoje().formatar('yyyy-MM-dd HH:mm:ss.SSS')
 
 
 percorrer(faltas) { regPres ->
@@ -204,6 +209,8 @@ percorrer(faltas) { regPres ->
 
 
 percorrer(aulas) { aul ->
+
+	imprimir aul
 
 	periodo = aul.periodoAvaliativo.descricao
 	if(periodo == null || periodo == ""){
@@ -272,7 +279,7 @@ percorrer(aulas) { aul ->
 							estabelecimentoNome: aul.estabelecimento.pessoa.nome,
 							estabelecimentoTelefone: "(${aul.estabelecimento.pessoa.telefone.esquerda(2)}) ${aul.estabelecimento.pessoa.telefone.direita(8)}",
 							estabelecimentoSite: aul.estabelecimento.pessoa.site,
-							professor: aul.servidor.pessoa.nome,
+							professor: professor,
 							professorMatricula: professorMatricula,
 							aulaMes: mes,
 							aulaDia: dia,
@@ -311,7 +318,7 @@ percorrer(aulas) { aul ->
 						estabelecimentoNome: aul.estabelecimento.pessoa.nome,
 						estabelecimentoTelefone: "(${aul.estabelecimento.pessoa.telefone.esquerda(2)}) ${aul.estabelecimento.pessoa.telefone.direita(8)}",
 						estabelecimentoSite: aul.estabelecimento.pessoa.site,
-						professor: aul.servidor.pessoa.nome,
+						professor: professor,
 						professorMatricula: professorMatricula,
 						aulaMes: mes,
 						aulaDia: dia,
@@ -349,7 +356,7 @@ percorrer(aulas) { aul ->
 					estabelecimentoNome: aul.estabelecimento.pessoa.nome,
 					estabelecimentoTelefone: "(${aul.estabelecimento.pessoa.telefone.esquerda(2)}) ${aul.estabelecimento.pessoa.telefone.direita(8)}",
 					estabelecimentoSite: aul.estabelecimento.pessoa.site,
-					professor: aul.servidor.pessoa.nome,
+					professor: professor,
 					professorMatricula: professorMatricula,
 					aulaMes: mes,
 					aulaDia: dia,
@@ -381,7 +388,7 @@ percorrer(aulas) { aul ->
 				estabelecimentoNome: aul.estabelecimento.pessoa.nome,
 				estabelecimentoTelefone: "(${aul.estabelecimento.pessoa.telefone.esquerda(2)}) ${aul.estabelecimento.pessoa.telefone.direita(8)}",
 				estabelecimentoSite: aul.estabelecimento.pessoa.site,
-				professor: aul.servidor.pessoa.nome,
+				professor: professor,
 				professorMatricula: professorMatricula,
 				aulaMes: "13Tot",
 				aulaDia: 0,

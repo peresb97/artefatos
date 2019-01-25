@@ -162,22 +162,23 @@ percorrer(fonteInstrumentoAval){
 }
 
 imprimir "Pesos: " + pesos
-
 imprimir "ServID: " + servidorID
 
 percorrer(fonteFuncionario.lista(campos: "servidor.pessoa.nome, matricula", criterio: "servidor.id = ${servidorID}")){func->
 
 	professor = func.servidor.pessoa.nome
 	professorMatricula = func.matricula
+	imprimir "Prof: " + professor + " | " + professorMatricula
 
 }
 
-if(servidorID == 0){
+if(professor == null){
 	imprimir "CritFunc: id = ${dispID}"
 	fonteTurmaFunc = Dados.profesores.v1.turmasFuncionarios.lista(campos:"funcionario.servidor.id, funcionario.matricula, funcionario.servidor.pessoa.nome", criterio:"id = ${dispID} or turma.itemEducacional.id = ${dispID}", ordenacao:"funcionario.id asc")
 	percorrer(fonteTurmaFunc){
 		professor = item.funcionario.servidor.pessoa.nome
 		professorMatricula = item.funcionario.matricula
+		imprimir "Prof: " + professor + " | " + professorMatricula
 	}
 }
 
@@ -212,6 +213,8 @@ mediaCalc = null
 semNotas = true
 situacao = null
 periodo = null
+
+if(professor != null){
 
 percorrer(mapaAlunos){alus->
 
@@ -457,7 +460,7 @@ percorrer(mapaAlunos){alus->
 		*/
 	
 	} else {
-		mediaCalc = "Desc"
+//		mediaCalc = "Desc"
 		mediaPer = "Desc"
 		mediaParcial = "Desc"
 	}
@@ -466,6 +469,11 @@ percorrer(mapaAlunos){alus->
 		periodo = "Anual"
 	}
 	
+	if(pos == 1){
+//		mediaCalc = mediaCalc=="Desc"?null:mediaCalc
+		mediaPer = mediaPer=="Desc"?null:mediaPer
+		mediaParcial = mediaParcial=="Desc"?null:mediaParcial
+	}
 	
 	fonte.inserirLinha(
 		estabelecimento: alus.estabelecimento.pessoa.nome,
@@ -546,6 +554,8 @@ percorrer(mapaAlunos){alus->
 	semNotas = true
 	situacao = null
 	periodo = null
+
+}
 
 }
 

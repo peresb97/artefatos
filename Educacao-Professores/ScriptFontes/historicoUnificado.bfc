@@ -11,6 +11,9 @@
 -- Alterado em     : 16/01/2019
 -- Alterado por    : Jorge Valladão
 -- Motivo          : Inclusão do histórico de matrícula.
+-- Alterado em     : 28/01/2019
+-- Alterado por    : Felipe Duarte
+-- Motivo          : Inclusão da observação do histórico e assinaturas da equipe diretiva.
 ----------------------------------------------------------------------------------------------------------------------------
 */
 
@@ -35,48 +38,53 @@ Esquema.lista		java.util.List									Esquema da lista
 
 // Cria o esquema.
 esquema = [
-  noData: Esquema.caracter,
-  nomeEntidade: Esquema.caracter,
-  enderecoEntidade: Esquema.caracter,
-  telefoneEntidade: Esquema.caracter,
-  emailEntidade: Esquema.caracter,
-  idAluno: Esquema.inteiro,
-  nomeAluno: Esquema.caracter,
-  dataNascimentoAluno: Esquema.caracter,
-  municipioNascimentoAluno: Esquema.objeto([
-    nome: Esquema.caracter,
-    uf: Esquema.caracter,
-    unificado: Esquema.caracter
-  ]),
-  nacionalidadeAluno: Esquema.caracter,
-  maeAluno: Esquema.caracter,
-  paiAluno: Esquema.caracter,
-  filiacao: Esquema.caracter,
-  historicoEscolarAnoConclusao: Esquema.numero,
-  historicoEscolarEstabelecimentoEnsino: Esquema.caracter,
-  historicoEscolarNivelModalidade: Esquema.caracter,
-  historicoEscolarNivelEscolar: Esquema.caracter,
-  historicoEscolarNivelEscolarNivelModalidade: Esquema.caracter,
-  historicoEscolarEtapaEnsino: Esquema.caracter,
-  historicoEscolarEquivalencia: Esquema.caracter,
-  historicoEscolarDescricaoCurso: Esquema.caracter,
-  historicoEscolarMunicipio: Esquema.objeto([
-    nome: Esquema.caracter,
-    uf: Esquema.caracter,
-    unificado: Esquema.caracter
-  ]),
-  historicoEscolarDiasLetivos: Esquema.inteiro,
-  historicoEscolarTotalFaltas: Esquema.inteiro,
-  historicoEscolarCargaHorariaTotal: Esquema.caracter,
-  historicoEscolarPercentualFrequencia: Esquema.numero,
-  historicoEscolarSituacaoFinal: Esquema.caracter,
-  historicoEscolarItensOrientacaoCurricular: Esquema.caracter,
-  historicoEscolarItensAvaliacaoDescricao: Esquema.caracter,
-  historicoEscolarItensTipoAvaliacao: Esquema.caracter,
-  historicoEscolarItensNotaNumerica: Esquema.numero,
-  historicoEscolarItensNotaDescritiva: Esquema.caracter,
-  historicoEscolarItensNotaConceito: Esquema.caracter,
-  historicoEscolarItensNotaInformada: Esquema.caracter
+	noData: Esquema.caracter,
+	nomeEntidade: Esquema.caracter,
+	enderecoEntidade: Esquema.caracter,
+	telefoneEntidade: Esquema.caracter,
+	emailEntidade: Esquema.caracter,
+	idAluno: Esquema.inteiro,
+	nomeAluno: Esquema.caracter,
+	dataNascimentoAluno: Esquema.caracter,
+	municipioNascimentoAluno: Esquema.objeto([
+		nome: Esquema.caracter,
+		uf: Esquema.caracter,
+		unificado: Esquema.caracter
+	]),
+	nacionalidadeAluno: Esquema.caracter,
+	maeAluno: Esquema.caracter,
+	paiAluno: Esquema.caracter,
+	filiacao: Esquema.caracter,
+	observacao: Esquema.caracter,
+	historicoEscolarAnoConclusao: Esquema.numero,
+	historicoEscolarEstabelecimentoEnsino: Esquema.caracter,
+	historicoEscolarNivelModalidade: Esquema.caracter,
+	historicoEscolarNivelEscolar: Esquema.caracter,
+	historicoEscolarNivelEscolarNivelModalidade: Esquema.caracter,
+	historicoEscolarEtapaEnsino: Esquema.caracter,
+	historicoEscolarEquivalencia: Esquema.caracter,
+	historicoEscolarDescricaoCurso: Esquema.caracter,
+	historicoEscolarMunicipio: Esquema.objeto([
+		nome: Esquema.caracter,
+		uf: Esquema.caracter,
+		unificado: Esquema.caracter
+	]),
+	historicoEscolarDiasLetivos: Esquema.inteiro,
+	historicoEscolarTotalFaltas: Esquema.inteiro,
+	historicoEscolarCargaHorariaTotal: Esquema.caracter,
+	historicoEscolarPercentualFrequencia: Esquema.numero,
+	historicoEscolarSituacaoFinal: Esquema.caracter,
+	historicoEscolarItensOrientacaoCurricular: Esquema.caracter,
+	historicoEscolarItensAvaliacaoDescricao: Esquema.caracter,
+	historicoEscolarItensTipoAvaliacao: Esquema.caracter,
+	historicoEscolarItensNotaNumerica: Esquema.numero,
+	historicoEscolarItensNotaDescritiva: Esquema.caracter,
+	historicoEscolarItensNotaConceito: Esquema.caracter,
+	historicoEscolarItensNotaInformada: Esquema.caracter,
+	administrativo: Esquema.caracter,
+	administrativoMatricula: Esquema.caracter,
+	diretor: Esquema.caracter,
+	diretorMatricula: Esquema.caracter
 ];
 
 // Cria a fonte dinâmica.
@@ -87,6 +95,32 @@ idAluno = parametros.idAluno.selecionado?.valor;
 imprimir "Parâmetro Id Aluno: $idAluno";
 idTurma = parametros.idTurma.selecionado?.valor;
 imprimir "Parâmetro Id Turma: $idTurma";
+paramAdmin = parametros.admin.valor
+paramEscola = parametros.escola.valor
+
+diretor = ""
+diretorMatricula = ""
+administrativo = ""
+administrativoMatricula = ""
+
+/* -- Equipe diretiva -- */
+
+fonteEquipeDir = Dados.profesores.v1.equipeDiretiva
+
+percorrer(fonteEquipeDir.lista(campos:"id,funcionario.servidor.pessoa.nome, funcionario.matricula, funcionario.cargo.descricao, funcionario.cargoComissionado.descricao", criterio:"estabelecimento.id = ${paramEscola}")){eqpDir->
+
+	se(eqpDir.funcionario.cargo.descricao == "DIRETOR ESCOLAR" || eqpDir.funcionario.cargoComissionado.descricao == "DIRETOR ESCOLAR"){
+		diretor = eqpDir.funcionario.servidor.pessoa.nome
+		diretorMatricula = eqpDir.funcionario.matricula
+	}
+	se(eqpDir.id == paramAdmin){
+		administrativo = eqpDir.funcionario.servidor.pessoa.nome
+		administrativoMatricula = eqpDir.funcionario.matricula
+	}
+
+}
+
+/* -- Fim Equipe diretiva -- */
 
 noData = 'N';
 if (idAluno == null && idTurma == null) {
@@ -159,20 +193,21 @@ if (noData == 'N') {
 }
 
 // Seta as variáveis.
-nomeEntidade = '';
-enderecoEntidade = '';
-telefoneEntidade = '';
-emailEntidade = '';
+nomeEntidade = ''
+enderecoEntidade = ''
+telefoneEntidade = ''
+emailEntidade = ''
 idAluno = 0
-nomeAluno = '';
-dataNascimentoAluno = '';
-nomeMunicipioNascimentoAluno = '';
-ufMunicipioNascimentoAluno = '';
-nomeUfMunicipioNascimentoAluno = '';
-nacionalidadeAluno = '';
-maeAluno = '';
-paiAluno = '';
-filiacao = '';
+nomeAluno = ''
+dataNascimentoAluno = ''
+nomeMunicipioNascimentoAluno = ''
+ufMunicipioNascimentoAluno = ''
+nomeUfMunicipioNascimentoAluno = ''
+nacionalidadeAluno = ''
+maeAluno = ''
+paiAluno = ''
+filiacao = ''
+observacao = ""
 
 percorrer(listaAlunos) { itemlistaAlunos ->
   imprimir "itemlistaAlunos: $itemlistaAlunos";
@@ -215,6 +250,13 @@ percorrer(listaAlunos) { itemlistaAlunos ->
     }
   }
   //========== FIM ALUNO ==========//
+  
+  //========== OBSERVACAO ALUNO ===//
+  
+  fonteAluno = Dados.educacao.v1.alunos.lista(campos:"camposAdicionais.padrao.observacao", criterio:"id = ${idAluno}")
+  observacao = fonteAluno[0].camposAdicionais.padrao.observacao?:null
+  
+  //========== FIM OBSERVACAO =====//
   
   //========== INÍCIO HISTÓRICO ESCOLAR ==========//
   imprimir '--> Processando histórico escolar.';
@@ -754,6 +796,7 @@ percorrer(listaAlunos) { itemlistaAlunos ->
 		maeAluno: maeAluno,
 		paiAluno: paiAluno,
 		filiacao: filiacao,
+		observacao: observacao,
 		historicoEscolarAnoConclusao: item.anoLetivo,
 		historicoEscolarEstabelecimentoEnsino: item.estabelecimentoEnsino,
 		historicoEscolarNivelModalidade: item.nivelModalidade,
@@ -778,7 +821,11 @@ percorrer(listaAlunos) { itemlistaAlunos ->
 		historicoEscolarItensNotaNumerica: item.notaNumerica,
 		historicoEscolarItensNotaDescritiva: item.notaDescritiva,
 		historicoEscolarItensNotaConceito: item.notaConceito,
-		historicoEscolarItensNotaInformada: item.notaInformada
+		historicoEscolarItensNotaInformada: item.notaInformada,
+		diretor: diretor,
+		diretorMatricula: diretorMatricula,
+		administrativo: administrativo,
+		administrativoMatricula: administrativoMatricula
 	  ]);
 	}
 

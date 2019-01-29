@@ -633,7 +633,7 @@ percorrer(listaAlunos) { itemlistaAlunos ->
         situacaoFinal = 'Em exame';
         break;
       case 'APROVADO':
-        situacaoFinal = 'Aprovado';
+        situacaoFinal = 'Aprovado(a)';
         break;
       case 'APROVADO_DEPENDENCIA':
         situacaoFinal = 'Aprovado(a) parcialmente';
@@ -642,7 +642,7 @@ percorrer(listaAlunos) { itemlistaAlunos ->
         situacaoFinal = 'Reprovado';
         break;
       case 'REPROVADO_FREQUENCIA':
-        situacaoFinal = 'Reprovado por frequência';
+        situacaoFinal = 'Reprovado(a) por frequência';
         break;
       case 'RECLASSIFICADO_AVANCO':
         situacaoFinal = 'Reclassificado(a) - Avanço';

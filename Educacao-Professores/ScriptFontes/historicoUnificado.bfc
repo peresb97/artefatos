@@ -782,7 +782,7 @@ percorrer(listaAlunos) { itemlistaAlunos ->
 	  ]);
 	}
 
-listaHistoricoEscolar = [];
+	listaHistoricoEscolar = [];
 
 }
 

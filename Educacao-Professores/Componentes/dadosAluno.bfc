@@ -1,0 +1,53 @@
+def listar = { idAluno ->
+  // Componente de utilitários.
+  utilitarios = Scripts.utilitarios.importar();
+  // Cria o mapa;
+  mapaAluno = [:];
+  
+  // Consulta o aluno.
+  fonteAluno = Dados.educacao.v1.alunos;
+  camposAluno = "id, entidade, pessoa.nome, pessoa.fisica.dataNascimento, pessoa.fisica.municipioNascimento.nome, pessoa.fisica.municipioNascimento.uf, paisOrigem.nome";
+  criterioAluno = "id=$idAluno";
+  percorrer(fonteAluno.lista(campos: camposAluno, criterio: criterioAluno, ordenacao:"pessoa.nome asc")) { aluno ->
+    nome = aluno.pessoa?.nome;
+    dataNascimento = aluno.pessoa?.fisica?.dataNascimento;
+    if (dataNascimento != null) {
+      dataNascimento = dataNascimento.formatar("dd/MM/yyyy");
+    }
+    nomeMunicipioNascimento = aluno.pessoa?.fisica?.municipioNascimento?.nome?:null;
+    ufMunicipioNascimento = aluno.pessoa?.fisica?.municipioNascimento?.uf?:null;
+    nacionalidade = aluno.paisOrigem?.nome;
+    
+    // Consulta a filiação do aluno.
+    fonteAlunoFiliacao = Dados.educacao.v1.alunoFiliacao;
+    camposAlunoFiliacao = "tipo, natureza, filiacao.pessoa.nome";
+    criterioAlunoFiliacao = "aluno.id=" + idAluno;
+    mae = "";
+    pai = "";
+    percorrer(fonteAlunoFiliacao.lista(campos: camposAlunoFiliacao, criterio: criterioAlunoFiliacao)) { alunoFiliacao ->
+      if (alunoFiliacao.tipo == "MAE") {
+        mae = alunoFiliacao.filiacao?.pessoa?.nome?:null;
+      }
+      else if (alunoFiliacao.tipo == "PAI") {
+        pai = alunoFiliacao.filiacao?.pessoa?.nome?:null;
+      }
+    }
+    
+    mapaAluno["aluno"] = [
+      id: aluno.id,
+      nome: nome,
+      dataNascimento: dataNascimento,
+      municipioNascimento: [
+        nome: nomeMunicipioNascimento,
+        uf: ufMunicipioNascimento
+      ],
+      nacionalidade: nacionalidade,
+      mae: mae,
+      pai: pai
+    ];
+  }
+  imprimir "Mapa Aluno: " + mapaAluno?:null;
+  return mapaAluno;
+}
+
+Scripts.exportar(listar: listar);

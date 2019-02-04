@@ -158,14 +158,37 @@ formataTelefone = {num ->
 
 formataCEP = {cep ->
 
-	retornar = "${cep.esqueda(5)}-${cep.direita(3)}"
+	retornar = "${cep.esquerda(5)}-${cep.direita(3)}"
 	
 }
 
+def formataCargaHoraria = {cargaHoraria ->
+  int x_cargaHoraria = cargaHoraria.intValue();
+  if (x_cargaHoraria > 0) {
+    int horas = 0;
+    int minutos = 0;
+    
+    if (x_cargaHoraria >= 3600) {
+      horas = x_cargaHoraria / 3600;
+      minutos = (x_cargaHoraria - (horas * 3600)) / 60;
+    }
+    else {
+      minutos = x_cargaHoraria / 60;
+    }
+    
+    //return preencheZero(horas) + ":" + preencheZero(minutos);
+    return String.format("%02d", horas) + ":" + String.format("%02d", minutos);
+  }
+  else {
+    return "00:00";
+  }
+}
+
 Scripts.exportar(
-  				formataCpfCnpj:formataCpfCnpj,
-				formataTelefone:formataTelefone,
-				formataCEP:formataCEP,
-				limpaTexto:limpaTexto,
-				padronizaMatriculaSJS:padronizaMatriculaSJS
-                )
+                  formataCpfCnpj:formataCpfCnpj,
+                  formataTelefone:formataTelefone,
+                  formataCEP:formataCEP,
+                  limpaTexto:limpaTexto,
+                  padronizaMatriculaSJS:padronizaMatriculaSJS,
+                  formataCargaHoraria: formataCargaHoraria
+);

@@ -1,0 +1,74 @@
+def listar = {
+  // Componente de utilitários.
+  utilitarios = Scripts.utilitarios.importar();
+  // Cria o mapa;
+  mapaEntidade = [:];
+  
+  // Consulta a entidade.
+  fonteEntidade = Dados.educacao.v1.entidade;
+  camposEntidade = "nomeFantasia, sigla, logradouro, numero, bairro, orgaoRegionalInep.municipioInep.nome, orgaoRegionalInep.municipioInep.uf.sigla, cep, telefone, email";
+  percorrer(fonteEntidade.lista(campos: camposEntidade)) { entidade ->
+    enderecoEntidade = entidade.logradouro;
+    separador = "";
+    if (entidade.logradouro != null && !entidade.logradouro.vazio) {
+      enderecoEntidade = entidade.logradouro;
+      separador = ", ";
+    }
+    if (entidade.numero != null && !entidade.numero.vazio) {
+      enderecoEntidade = enderecoEntidade + separador + entidade.numero;
+    }
+    if (entidade.bairro != null && !entidade.bairro.vazio) {
+      if (enderecoEntidade != null && !enderecoEntidade.vazio) {
+        separador = " - ";
+      }
+      enderecoEntidade = enderecoEntidade + separador + entidade.bairro;
+    }
+    if (entidade.cep != null && !entidade.cep.vazio) {
+      if (enderecoEntidade != null && !enderecoEntidade.vazio) {
+        separador = " CEP: ";
+      }
+      enderecoEntidade = enderecoEntidade + separador + utilitarios.formataCEP(entidade.cep);
+    }
+    if (entidade.orgaoRegionalInep?.municipioInep?.nome != null && !entidade.orgaoRegionalInep?.municipioInep?.nome.vazio) {
+      if (enderecoEntidade != null && !enderecoEntidade.vazio) {
+        separador = " - ";
+      }
+      enderecoEntidade = enderecoEntidade + separador + entidade.orgaoRegionalInep.municipioInep.nome;
+      cidade = entidade.orgaoRegionalInep.municipioInep.nome
+    }
+    if (entidade.orgaoRegionalInep?.municipioInep?.uf?.sigla != null && !entidade.orgaoRegionalInep?.municipioInep?.uf?.sigla.vazio) {
+      if (enderecoEntidade != null && !enderecoEntidade.vazio) {
+        separador = " / ";
+      }
+      enderecoEntidade = enderecoEntidade + separador + entidade.orgaoRegionalInep.municipioInep.uf.sigla;
+      uf = entidade.orgaoRegionalInep.municipioInep.uf.sigla
+    }
+    telefone = entidade.telefone;
+    if (telefone != null && !telefone.vazio) {
+      telefone = utilitarios.formataTelefone(telefone);
+    }
+    
+    imprimir "--> Nome: " + entidade.nomeFantasia?:null;
+    imprimir "--> Sigla: " + entidade.sigla?:null;
+    imprimir "--> Endereço: " + enderecoEntidade?:null;
+    imprimir "--> Telefone: " + telefone?:null;
+    imprimir "--> E-mail: " + entidade.email?:null;
+    imprimir "--> Cidade: " + cidade
+    imprimir "--> UF: " + uf
+    
+    mapaEntidade["entidade"] = [
+      nome: entidade.nomeFantasia?:null,
+      sigla: entidade.sigla?:null,
+      endereco: enderecoEntidade?:null,
+      telefone: telefone?:null,
+      email: entidade.email?:null,
+      cidade : cidade?:null,
+      uf : uf?:null
+    ];
+  }
+  
+  imprimir "Lista Entidade: " + mapaEntidade?:null;
+  return mapaEntidade;
+}
+
+Scripts.exportar(listar: listar);

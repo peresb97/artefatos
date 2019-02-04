@@ -14,6 +14,9 @@
 -- Alterado em     : 28/01/2019
 -- Alterado por    : Felipe Duarte
 -- Motivo          : Inclusão da observação do histórico e assinaturas da equipe diretiva.
+-- Alterado em     : 04/02/2019
+-- Alterado por    : Felipe Duarte
+-- Motivo          : Inclusão dos dados cidade e uf da entidade para visualização nas assinaturas.
 ----------------------------------------------------------------------------------------------------------------------------
 */
 
@@ -43,6 +46,8 @@ esquema = [
 	enderecoEntidade: Esquema.caracter,
 	telefoneEntidade: Esquema.caracter,
 	emailEntidade: Esquema.caracter,
+	cidadeEntidade: Esquema.caracter,
+	ufEntidade: Esquema.caracter,
 	idAluno: Esquema.inteiro,
 	nomeAluno: Esquema.caracter,
 	dataNascimentoAluno: Esquema.caracter,
@@ -219,6 +224,8 @@ percorrer(listaAlunos) { itemlistaAlunos ->
     enderecoEntidade = v.endereco?:null;
     telefoneEntidade = v.telefone?:null;
     emailEntidade = v.email?:null;
+	cidadeEntidade = v.cidade?:null;
+	ufEntidade = v.uf?:null;
   }
   //========== FIM ENTIDADE ==========//
   
@@ -784,6 +791,8 @@ percorrer(listaAlunos) { itemlistaAlunos ->
 		enderecoEntidade: enderecoEntidade,
 		telefoneEntidade: telefoneEntidade,
 		emailEntidade: emailEntidade,
+		cidadeEntidade: cidadeEntidade,
+		ufEntidade: ufEntidade,
 		idAluno: idAluno,
 		nomeAluno: nomeAluno,
 		dataNascimentoAluno: dataNascimentoAluno,

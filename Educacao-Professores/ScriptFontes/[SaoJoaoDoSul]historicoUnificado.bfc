@@ -134,7 +134,7 @@ escolaEndereco = null
 escolaEmail = null
 escolaTelefone = null
 
-percorrer(Dados.educacao.v1.estabelecimento.endereco(campos:"estabEndereco.estabelecimento.pessoa.nome, estabEndereco.estabelecimento.pessoa.email, estabEndereco.estabelecimento.pessoa.telefone, estabEndereco.endereco.logradouro, estabEndereco.endereco.numero, estabEndereco.endereco.complemento, estabEndereco.endereco.bairro, estabEndereco.endereco.municipio.nome, estabEndereco.endereco.municipio.uf", criterio:"id = ${paramEscola} and estabEndereco.endereco.principal = true")){estEnd->
+percorrer(Dados.educacao.v1.estabelecimento.endereco(campos:"estabEndereco.estabelecimento.pessoa.nome, estabEndereco.estabelecimento.pessoa.email, estabEndereco.estabelecimento.pessoa.telefone, estabEndereco.endereco.logradouro, estabEndereco.endereco.numero, estabEndereco.endereco.complemento, estabEndereco.endereco.bairro, estabEndereco.endereco.municipio.nome, estabEndereco.endereco.municipio.uf", criterio:"estabEndereco.estabelecimento.id = ${paramEscola} and estabEndereco.endereco.principal = true")){estEnd->
 
 	escolaNome = estEnd.estabEndereco.estabelecimento.pessoa.nome
 	escolaEndereco = (estEnd.estabEndereco.endereco.logradouro?:"") + (estEnd.estabEndereco.endereco.numero?", " + estEnd.estabEndereco.endereco.numero:", SN") + (estEnd.estabEndereco.endereco.complemento?"" + estEnd.estabEndereco.endereco.complemento:"") + (estEnd.estabEndereco.endereco.bairro?", " + estEnd.estabEndereco.endereco.bairro:"") + (estEnd.estabEndereco.endereco.municipio.nome?", " + estEnd.estabEndereco.endereco.municipio.nome:"") + (estEnd.estabEndereco.endereco.municipio.uf?", " + estEnd.estabEndereco.endereco.municipio.uf:"")
@@ -234,6 +234,7 @@ registro = null
 livro = null
 folha = null
 observacao = ""
+equivalencia = ""
 
 percorrer(listaAlunos) { itemlistaAlunos ->
   imprimir "itemlistaAlunos: $itemlistaAlunos";

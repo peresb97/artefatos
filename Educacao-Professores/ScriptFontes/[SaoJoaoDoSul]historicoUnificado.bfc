@@ -140,6 +140,8 @@ percorrer(Dados.educacao.v1.estabelecimento.endereco(campos:"estabEndereco.estab
 	escolaEndereco = (estEnd.estabEndereco.endereco.logradouro?:"") + (estEnd.estabEndereco.endereco.numero?", " + estEnd.estabEndereco.endereco.numero:", SN") + (estEnd.estabEndereco.endereco.complemento?"" + estEnd.estabEndereco.endereco.complemento:"") + (estEnd.estabEndereco.endereco.bairro?", " + estEnd.estabEndereco.endereco.bairro:"") + (estEnd.estabEndereco.endereco.municipio.nome?", " + estEnd.estabEndereco.endereco.municipio.nome:"") + (estEnd.estabEndereco.endereco.municipio.uf?", " + estEnd.estabEndereco.endereco.municipio.uf:"")
 	escolaEmail = estEnd.estabEndereco.estabelecimento.pessoa.email
 	escolaTelefone = estEnd.estabEndereco.estabelecimento.pessoa.telefone
+	cidadeEntidade = estEnd.estabEndereco.endereco.municipio.nome
+	ufEntidade = estEnd.estabEndereco.endereco.municipio.uf
 
 }
 
@@ -246,8 +248,6 @@ percorrer(listaAlunos) { itemlistaAlunos ->
     enderecoEntidade = v.endereco?:null;
     telefoneEntidade = v.telefone?:null;
     emailEntidade = v.email?:null;
-	cidadeEntidade = v.cidade?:null;
-	ufEntidade = v.uf?:null;
   }
   //========== FIM ENTIDADE ==========//
   
@@ -284,9 +284,9 @@ percorrer(listaAlunos) { itemlistaAlunos ->
   
   percorrer(Dados.educacao.v1.alunos.lista(campos:"camposAdicionais.padrao.registro, camposAdicionais.padrao.livro, camposAdicionais.padrao.folha", criterio:"id = ${idAluno}")){regs->
 	
-	registro = regs.camposAdicionais.padrao.registro
-	livro = regs.camposAdicionais.padrao.livro
-	folha = regs.camposAdicionais.padrao.folha
+	registro = regs.camposAdicionais.padrao.registro?:""
+	livro = regs.camposAdicionais.padrao.livro?:""
+	folha = regs.camposAdicionais.padrao.folha?:""
 	
   }
   

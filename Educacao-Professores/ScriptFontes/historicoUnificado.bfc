@@ -29,16 +29,6 @@ aluno = Scripts.dados_aluno.importar();
 listaHistoricoEscolar = [];
 listaAlunos = [];
 
-/*
-Nome				Tipo do dado no JRXML							Parâmetros obrigatório
-Esquema.caracter	java.lang.String								Nenhum
-Esquema.inteiro		java.lang.Long									Nenhum
-Esquema.numero		java.math.BigDecimal							Nenhum
-Esquema.data		java.util.Date									Nenhum
-Esquema.objeto		Utilização do "_" para acessar a propriedade	Lista de propriedades do objeto
-Esquema.lista		java.util.List									Esquema da lista
-*/
-
 // Cria o esquema.
 esquema = [
 	noData: Esquema.caracter,
@@ -61,6 +51,10 @@ esquema = [
 	paiAluno: Esquema.caracter,
 	filiacao: Esquema.caracter,
 	observacao: Esquema.caracter,
+	escolaNome: Esquema.caracter,
+	escolaEndereco: Esquema.caracter,
+	escolaEmail: Esquema.caracter,
+	escolaTelefone: Esquema.caracter,
 	historicoEscolarAnoConclusao: Esquema.numero,
 	historicoEscolarEstabelecimentoEnsino: Esquema.caracter,
 	historicoEscolarNivelModalidade: Esquema.caracter,
@@ -126,6 +120,26 @@ percorrer(fonteEquipeDir.lista(campos:"id,funcionario.servidor.pessoa.nome, func
 }
 
 /* -- Fim Equipe diretiva -- */
+
+/* -- Estabelecimento -- */
+
+escolaNome = null
+escolaEndereco = null
+escolaEmail = null
+escolaTelefone = null
+
+percorrer(Dados.educacao.v1.estabelecimento.endereco(campos:"estabEndereco.estabelecimento.pessoa.nome, estabEndereco.estabelecimento.pessoa.email, estabEndereco.estabelecimento.pessoa.telefone, estabEndereco.endereco.logradouro, estabEndereco.endereco.numero, estabEndereco.endereco.complemento, estabEndereco.endereco.bairro, estabEndereco.endereco.municipio.nome, estabEndereco.endereco.municipio.uf", criterio:"estabEndereco.estabelecimento.id = ${paramEscola} and estabEndereco.endereco.principal = true")){estEnd->
+
+	escolaNome = estEnd.estabEndereco.estabelecimento.pessoa.nome
+	escolaEndereco = (estEnd.estabEndereco.endereco.logradouro?:"") + (estEnd.estabEndereco.endereco.numero?", " + estEnd.estabEndereco.endereco.numero:", SN") + (estEnd.estabEndereco.endereco.complemento?"" + estEnd.estabEndereco.endereco.complemento:"") + (estEnd.estabEndereco.endereco.bairro?", " + estEnd.estabEndereco.endereco.bairro:"") + (estEnd.estabEndereco.endereco.municipio.nome?", " + estEnd.estabEndereco.endereco.municipio.nome:"") + (estEnd.estabEndereco.endereco.municipio.uf?", " + estEnd.estabEndereco.endereco.municipio.uf:"")
+	escolaEmail = estEnd.estabEndereco.estabelecimento.pessoa.email
+	escolaTelefone = estEnd.estabEndereco.estabelecimento.pessoa.telefone
+	cidadeEntidade = estEnd.estabEndereco.endereco.municipio.nome
+	ufEntidade = estEnd.estabEndereco.endereco.municipio.uf
+
+}
+
+/* -- Fim Estabelecimento -- */
 
 noData = 'N';
 if (idAluno == null && idTurma == null) {
@@ -224,8 +238,6 @@ percorrer(listaAlunos) { itemlistaAlunos ->
     enderecoEntidade = v.endereco?:null;
     telefoneEntidade = v.telefone?:null;
     emailEntidade = v.email?:null;
-	cidadeEntidade = v.cidade?:null;
-	ufEntidade = v.uf?:null;
   }
   //========== FIM ENTIDADE ==========//
   
@@ -806,6 +818,10 @@ percorrer(listaAlunos) { itemlistaAlunos ->
 		paiAluno: paiAluno,
 		filiacao: filiacao,
 		observacao: observacao,
+		escolaNome: escolaNome,
+		escolaEndereco: escolaEndereco,
+		escolaEmail: escolaEmail,
+		escolaTelefone: escolaTelefone,
 		historicoEscolarAnoConclusao: item.anoLetivo,
 		historicoEscolarEstabelecimentoEnsino: item.estabelecimentoEnsino,
 		historicoEscolarNivelModalidade: item.nivelModalidade,

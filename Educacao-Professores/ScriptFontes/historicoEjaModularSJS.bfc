@@ -566,13 +566,13 @@ percorrer(arrayAlunos){alu->
 	percorrer(fonteAlunos.lista(campos:"camposAdicionais.padrao.livro, camposAdicionais.padrao.livrom, camposAdicionais.padrao.folha, camposAdicionais.padrao.folham, camposAdicionais.padrao.registro, camposAdicionais.padrao.registrom", criterio:"id = ${alu.id}")){regAlu->
 	
 		se(paramNivel == 0){
-			livro = regAlu.camposAdicionais.padrao.livro
-			folha = regAlu.camposAdicionais.padrao.folha
-			regist = regAlu.camposAdicionais.padrao.registro
+			livro = regAlu.camposAdicionais.padrao.livro?:""
+			folha = regAlu.camposAdicionais.padrao.folha?:""
+			regist = regAlu.camposAdicionais.padrao.registro?:""
 		} senao {
-			livro = regAlu.camposAdicionais.padrao.livrom
-			folha = regAlu.camposAdicionais.padrao.folham
-			regist = regAlu.camposAdicionais.padrao.registrom
+			livro = regAlu.camposAdicionais.padrao.livrom?:""
+			folha = regAlu.camposAdicionais.padrao.folham?:""
+			regist = regAlu.camposAdicionais.padrao.registrom?:""
 		}
 		
 	}
@@ -647,7 +647,7 @@ percorrer(arrayAlunos){alu->
 	
 	livro = ""
 	folha = ""
-	registro = ""
+	regist = ""
 	cursando = "N"
 	obs = ""
 

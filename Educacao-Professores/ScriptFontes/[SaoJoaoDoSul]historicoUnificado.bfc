@@ -57,6 +57,10 @@ esquema = [
 	registro: Esquema.caracter,
 	livro: Esquema.caracter,
 	folha: Esquema.caracter,
+	escolaNome: Esquema.caracter,
+	escolaEndereco: Esquema.caracter,
+	escolaEmail: Esquema.caracter,
+	escolaTelefone: Esquema.caracter,
 	historicoEscolarAnoConclusao: Esquema.numero,
 	historicoEscolarEstabelecimentoEnsino: Esquema.caracter,
 	historicoEscolarNivelModalidade: Esquema.caracter,
@@ -125,7 +129,18 @@ percorrer(fonteEquipeDir.lista(campos:"id,funcionario.servidor.pessoa.nome, func
 
 /* -- Estabelecimento -- */
 
-percorrer(Dados.educacao.v1.estabelecimento(campos:"", criterio:"id = ${paramEscola}")){
+escolaNome = null
+escolaEndereco = null
+escolaEmail = null
+escolaTelefone = null
+
+percorrer(Dados.educacao.v1.estabelecimento.endereco(campos:"estabEndereco.estabelecimento.pessoa.nome, estabEndereco.estabelecimento.pessoa.email, estabEndereco.estabelecimento.pessoa.telefone, estabEndereco.endereco.logradouro, estabEndereco.endereco.numero, estabEndereco.endereco.complemento, estabEndereco.endereco.bairro, estabEndereco.endereco.municipio.nome, estabEndereco.endereco.municipio.uf", criterio:"id = ${paramEscola} and estabEndereco.endereco.principal = true")){estEnd->
+
+	escolaNome = estEnd.estabEndereco.estabelecimento.pessoa.nome
+	escolaEndereco = (estEnd.estabEndereco.endereco.logradouro?:"") + (estEnd.estabEndereco.endereco.numero?", " + estEnd.estabEndereco.endereco.numero:", SN") + (estEnd.estabEndereco.endereco.complemento?"" + estEnd.estabEndereco.endereco.complemento:"") + (estEnd.estabEndereco.endereco.bairro?", " + estEnd.estabEndereco.endereco.bairro:"") + (estEnd.estabEndereco.endereco.municipio.nome?", " + estEnd.estabEndereco.endereco.municipio.nome:"") + (estEnd.estabEndereco.endereco.municipio.uf?", " + estEnd.estabEndereco.endereco.municipio.uf:"")
+	escolaEmail = estEnd.estabEndereco.estabelecimento.pessoa.email
+	escolaTelefone = estEnd.estabEndereco.estabelecimento.pessoa.telefone
+
 }
 
 /* -- Fim Estabelecimento -- */
@@ -827,6 +842,10 @@ percorrer(listaAlunos) { itemlistaAlunos ->
 		registro: registro,
 		livro: livro,
 		folha: folha,
+		escolaNome: escolaNome,
+		escolaEndereco: escolaEndereco,
+		escolaEmail: escolaEmail,
+		escolaTelefone: escolaTelefone,
 		historicoEscolarAnoConclusao: item.anoLetivo,
 		historicoEscolarEstabelecimentoEnsino: item.estabelecimentoEnsino,
 		historicoEscolarNivelModalidade: item.nivelModalidade,

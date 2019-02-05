@@ -17,6 +17,9 @@
 -- Alterado em     : 04/02/2019
 -- Alterado por    : Felipe Duarte
 -- Motivo          : Inclusão dos dados cidade e uf da entidade para visualização nas assinaturas.
+-- Alterado em     : 05/02/2019
+-- Alterado por    : Felipe Duarte
+-- Motivo          : Especialização para São João do Sul.
 ----------------------------------------------------------------------------------------------------------------------------
 */
 
@@ -28,16 +31,6 @@ aluno = Scripts.dados_aluno.importar();
 // Cria as listas.
 listaHistoricoEscolar = [];
 listaAlunos = [];
-
-/*
-Nome				Tipo do dado no JRXML							Parâmetros obrigatório
-Esquema.caracter	java.lang.String								Nenhum
-Esquema.inteiro		java.lang.Long									Nenhum
-Esquema.numero		java.math.BigDecimal							Nenhum
-Esquema.data		java.util.Date									Nenhum
-Esquema.objeto		Utilização do "_" para acessar a propriedade	Lista de propriedades do objeto
-Esquema.lista		java.util.List									Esquema da lista
-*/
 
 // Cria o esquema.
 esquema = [
@@ -61,6 +54,9 @@ esquema = [
 	paiAluno: Esquema.caracter,
 	filiacao: Esquema.caracter,
 	observacao: Esquema.caracter,
+	registro: Esquema.caracter,
+	livro: Esquema.caracter,
+	folha: Esquema.caracter,
 	historicoEscolarAnoConclusao: Esquema.numero,
 	historicoEscolarEstabelecimentoEnsino: Esquema.caracter,
 	historicoEscolarNivelModalidade: Esquema.caracter,
@@ -110,7 +106,7 @@ administrativoMatricula = ""
 
 /* -- Equipe diretiva -- */
 
-fonteEquipeDir = Dados.profesores.v1.equipeDiretiva
+fonteEquipeDir = Dados.educacao.v1.equipeDiretiva
 
 percorrer(fonteEquipeDir.lista(campos:"id,funcionario.servidor.pessoa.nome, funcionario.matricula, funcionario.cargo.descricao, funcionario.cargoComissionado.descricao", criterio:"estabelecimento.id = ${paramEscola}")){eqpDir->
 
@@ -126,6 +122,13 @@ percorrer(fonteEquipeDir.lista(campos:"id,funcionario.servidor.pessoa.nome, func
 }
 
 /* -- Fim Equipe diretiva -- */
+
+/* -- Estabelecimento -- */
+
+percorrer(Dados.educacao.v1.estabelecimento(campos:"", criterio:"id = ${paramEscola}")){
+}
+
+/* -- Fim Estabelecimento -- */
 
 noData = 'N';
 if (idAluno == null && idTurma == null) {
@@ -212,6 +215,9 @@ nacionalidadeAluno = ''
 maeAluno = ''
 paiAluno = ''
 filiacao = ''
+registro = null
+livro = null
+folha = null
 observacao = ""
 
 percorrer(listaAlunos) { itemlistaAlunos ->
@@ -257,6 +263,18 @@ percorrer(listaAlunos) { itemlistaAlunos ->
     }
   }
   //========== FIM ALUNO ==========//
+  
+  //========== REGISTRO ALUNO =====//
+  
+  percorrer(Dados.educacao.v1.alunos.lista(campos:"camposAdicionais.padrao.registro, camposAdicionais.padrao.livro, camposAdicionais.padrao.folha", criterio:"id = ${idAluno}")){regs->
+	
+	registro = regs.camposAdicionais.padrao.registro
+	livro = regs.camposAdicionais.padrao.livro
+	folha = regs.camposAdicionais.padrao.folha
+	
+  }
+  
+  //========== FIM REGISTRO ALUNO =//
   
   //========== OBSERVACAO ALUNO ===//
   
@@ -806,6 +824,9 @@ percorrer(listaAlunos) { itemlistaAlunos ->
 		paiAluno: paiAluno,
 		filiacao: filiacao,
 		observacao: observacao,
+		registro: registro,
+		livro: livro,
+		folha: folha,
 		historicoEscolarAnoConclusao: item.anoLetivo,
 		historicoEscolarEstabelecimentoEnsino: item.estabelecimentoEnsino,
 		historicoEscolarNivelModalidade: item.nivelModalidade,
@@ -839,6 +860,9 @@ percorrer(listaAlunos) { itemlistaAlunos ->
 	}
 
 	listaHistoricoEscolar = [];
+	registro = null
+	livro = null
+	folha = null
 
 }
 

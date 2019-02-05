@@ -1,0 +1,845 @@
+/*
+----------------------------------------------------------------------------------------------------------------------------
+-- Desenvolvido por: Jorge Valladão
+-- Alterado em     : 10/01/2019
+-- Alterado por    : Jorge Valladão
+-- Atendimento     : FPSC-51800
+-- Motivo          : Para o histórico do EJA modular alem do index de ano, é necessário index de etapa da matriz curricular.
+-- Alterado em     : 15/01/2019
+-- Alterado por    : Jorge Valladão
+-- Motivo          : Solicitada a alteração da regra da nota para quando for nota descritiva aparecer o texto "DESC.".
+-- Alterado em     : 16/01/2019
+-- Alterado por    : Jorge Valladão
+-- Motivo          : Inclusão do histórico de matrícula.
+-- Alterado em     : 28/01/2019
+-- Alterado por    : Felipe Duarte
+-- Motivo          : Inclusão da observação do histórico e assinaturas da equipe diretiva.
+-- Alterado em     : 04/02/2019
+-- Alterado por    : Felipe Duarte
+-- Motivo          : Inclusão dos dados cidade e uf da entidade para visualização nas assinaturas.
+----------------------------------------------------------------------------------------------------------------------------
+*/
+
+// Componentes.
+utilitarios = Scripts.utilitarios.importar();
+entidade = Scripts.dados_entidade.importar();
+aluno = Scripts.dados_aluno.importar();
+
+// Cria as listas.
+listaHistoricoEscolar = [];
+listaAlunos = [];
+
+/*
+Nome				Tipo do dado no JRXML							Parâmetros obrigatório
+Esquema.caracter	java.lang.String								Nenhum
+Esquema.inteiro		java.lang.Long									Nenhum
+Esquema.numero		java.math.BigDecimal							Nenhum
+Esquema.data		java.util.Date									Nenhum
+Esquema.objeto		Utilização do "_" para acessar a propriedade	Lista de propriedades do objeto
+Esquema.lista		java.util.List									Esquema da lista
+*/
+
+// Cria o esquema.
+esquema = [
+	noData: Esquema.caracter,
+	nomeEntidade: Esquema.caracter,
+	enderecoEntidade: Esquema.caracter,
+	telefoneEntidade: Esquema.caracter,
+	emailEntidade: Esquema.caracter,
+	cidadeEntidade: Esquema.caracter,
+	ufEntidade: Esquema.caracter,
+	idAluno: Esquema.inteiro,
+	nomeAluno: Esquema.caracter,
+	dataNascimentoAluno: Esquema.caracter,
+	municipioNascimentoAluno: Esquema.objeto([
+		nome: Esquema.caracter,
+		uf: Esquema.caracter,
+		unificado: Esquema.caracter
+	]),
+	nacionalidadeAluno: Esquema.caracter,
+	maeAluno: Esquema.caracter,
+	paiAluno: Esquema.caracter,
+	filiacao: Esquema.caracter,
+	observacao: Esquema.caracter,
+	historicoEscolarAnoConclusao: Esquema.numero,
+	historicoEscolarEstabelecimentoEnsino: Esquema.caracter,
+	historicoEscolarNivelModalidade: Esquema.caracter,
+	historicoEscolarNivelEscolar: Esquema.caracter,
+	historicoEscolarNivelEscolarNivelModalidade: Esquema.caracter,
+	historicoEscolarEtapaEnsino: Esquema.caracter,
+	historicoEscolarEquivalencia: Esquema.caracter,
+	historicoEscolarDescricaoCurso: Esquema.caracter,
+	historicoEscolarMunicipio: Esquema.objeto([
+		nome: Esquema.caracter,
+		uf: Esquema.caracter,
+		unificado: Esquema.caracter
+	]),
+	historicoEscolarDiasLetivos: Esquema.inteiro,
+	historicoEscolarTotalFaltas: Esquema.inteiro,
+	historicoEscolarCargaHorariaTotal: Esquema.caracter,
+	historicoEscolarPercentualFrequencia: Esquema.numero,
+	historicoEscolarSituacaoFinal: Esquema.caracter,
+	historicoEscolarItensOrientacaoCurricular: Esquema.caracter,
+	historicoEscolarItensAvaliacaoDescricao: Esquema.caracter,
+	historicoEscolarItensTipoAvaliacao: Esquema.caracter,
+	historicoEscolarItensNotaNumerica: Esquema.numero,
+	historicoEscolarItensNotaDescritiva: Esquema.caracter,
+	historicoEscolarItensNotaConceito: Esquema.caracter,
+	historicoEscolarItensNotaInformada: Esquema.caracter,
+	administrativo: Esquema.caracter,
+	administrativoMatricula: Esquema.caracter,
+	diretor: Esquema.caracter,
+	diretorMatricula: Esquema.caracter
+];
+
+// Cria a fonte dinâmica.
+fonte = Dados.dinamico.v2.novo(esquema);
+
+// Obtém os parâmetros.
+idAluno = parametros.idAluno.selecionado?.valor;
+imprimir "Parâmetro Id Aluno: $idAluno";
+idTurma = parametros.idTurma.selecionado?.valor;
+imprimir "Parâmetro Id Turma: $idTurma";
+paramAdmin = parametros.admin.valor
+paramEscola = parametros.escola.valor
+
+diretor = ""
+diretorMatricula = ""
+administrativo = ""
+administrativoMatricula = ""
+
+/* -- Equipe diretiva -- */
+
+fonteEquipeDir = Dados.profesores.v1.equipeDiretiva
+
+percorrer(fonteEquipeDir.lista(campos:"id,funcionario.servidor.pessoa.nome, funcionario.matricula, funcionario.cargo.descricao, funcionario.cargoComissionado.descricao", criterio:"estabelecimento.id = ${paramEscola}")){eqpDir->
+
+	se(eqpDir.funcionario.cargo.descricao == "DIRETOR ESCOLAR" || eqpDir.funcionario.cargoComissionado.descricao == "DIRETOR ESCOLAR"){
+		diretor = eqpDir.funcionario.servidor.pessoa.nome
+		diretorMatricula = eqpDir.funcionario.matricula
+	}
+	se(eqpDir.id == paramAdmin){
+		administrativo = eqpDir.funcionario.servidor.pessoa.nome
+		administrativoMatricula = eqpDir.funcionario.matricula
+	}
+
+}
+
+/* -- Fim Equipe diretiva -- */
+
+noData = 'N';
+if (idAluno == null && idTurma == null) {
+  noData = 'S';
+  fonte.inserirLinha([
+    noData: noData,
+    nomeEntidade: null,
+    enderecoEntidade: null,
+    telefoneEntidade: null,
+    emailEntidade: null,
+    nomeAluno: null,
+    dataNascimentoAluno: null,
+    municipioNascimentoAluno: [
+      nome: null,
+      uf: null,
+      unificado: null
+    ],
+    nacionalidadeAluno: null,
+    maeAluno: null,
+    paiAluno: null,
+    filiacao: null,
+    historicoEscolarAnoConclusao: null,
+    historicoEscolarEstabelecimentoEnsino: null,
+    historicoEscolarNivelModalidade: null,
+    historicoEscolarNivelEscolar: null,
+    historicoEscolarNivelEscolarNivelModalidade: null,
+    historicoEscolarEtapaEnsino: null,
+    historicoEscolarEquivalencia: null,
+    historicoEscolarDescricaoCurso: null,
+    historicoEscolarMunicipio: [
+      nome: null,
+      uf: null,
+      unificado: null
+    ],
+    historicoEscolarDiasLetivos: null,
+    historicoEscolarTotalFaltas: null,
+    historicoEscolarCargaHorariaTotal: null,
+    historicoEscolarPercentualFrequencia: null,
+    historicoEscolarSituacaoFinal: null,
+    historicoEscolarItensOrientacaoCurricular: null,
+    historicoEscolarItensAvaliacaoDescricao: null,
+    historicoEscolarItensTipoAvaliacao: null,
+    historicoEscolarItensNotaNumerica: null,
+    historicoEscolarItensNotaDescritiva: null,
+    historicoEscolarItensNotaConceito: null,
+    historicoEscolarItensNotaInformada: null
+  ]);
+}
+
+if (noData == 'N') {
+  // Monta a lista de alunos.
+  if (idTurma != null) {
+    // Consulta a enturmação.
+    fonteEnturmacao = Dados.educacao.v1.enturmacao;
+    camposEnturmacao = 'matricula.aluno.id';
+    if (idAluno != null) {
+      criterioEnturmacao = "turma.id=$idTurma and matricula.aluno.id=$idAluno and dataFim is null";
+    }
+    else {
+      criterioEnturmacao = "turma.id=$idTurma and dataFim is null";
+    }
+    ordenacaoEnturmacao = 'turma.id, matricula.aluno.id';
+    percorrer(fonteEnturmacao.lista(campos: camposEnturmacao, criterio: criterioEnturmacao, ordenacao: ordenacaoEnturmacao)) { enturmacao ->
+      listaAlunos << enturmacao.matricula.aluno.id;
+    }
+  }
+  else {
+    listaAlunos << idAluno;
+  }
+}
+
+// Seta as variáveis.
+nomeEntidade = ''
+enderecoEntidade = ''
+telefoneEntidade = ''
+emailEntidade = ''
+idAluno = 0
+nomeAluno = ''
+dataNascimentoAluno = ''
+nomeMunicipioNascimentoAluno = ''
+ufMunicipioNascimentoAluno = ''
+nomeUfMunicipioNascimentoAluno = ''
+nacionalidadeAluno = ''
+maeAluno = ''
+paiAluno = ''
+filiacao = ''
+observacao = ""
+
+percorrer(listaAlunos) { itemlistaAlunos ->
+  imprimir "itemlistaAlunos: $itemlistaAlunos";
+  //========== INÍCIO ENTIDADE ==========//
+  imprimir '--> Processando entidade.';
+  mapaDadosEntidade = entidade.listar();
+  mapaDadosEntidade.each { k, v ->
+    nomeEntidade = v.nome?:null;
+    enderecoEntidade = v.endereco?:null;
+    telefoneEntidade = v.telefone?:null;
+    emailEntidade = v.email?:null;
+	cidadeEntidade = v.cidade?:null;
+	ufEntidade = v.uf?:null;
+  }
+  //========== FIM ENTIDADE ==========//
+  
+  //========== INÍCIO ALUNO ==========//
+  imprimir '--> Processando aluno.';
+  mapaDadosAluno = aluno.listar(itemlistaAlunos);
+  mapaDadosAluno.each { k, v ->
+	idAluno = v.id
+    nomeAluno = v.nome?:null;
+    dataNascimentoAluno = v.dataNascimento?:null;
+    nomeMunicipioNascimentoAluno = v.municipioNascimento?.nome?:null;
+    ufMunicipioNascimentoAluno = v.municipioNascimento?.uf?:null;
+    nomeUfMunicipioNascimentoAluno = nomeMunicipioNascimentoAluno;
+    if (nomeMunicipioNascimentoAluno != null && !nomeMunicipioNascimentoAluno.vazio) {
+      nomeUfMunicipioNascimentoAluno = nomeMunicipioNascimentoAluno + " - " + ufMunicipioNascimentoAluno;
+    }
+    nacionalidadeAluno = v.nacionalidade?:null;
+    maeAluno = v.mae?:null;
+    paiAluno = v.pai?:null;
+    filiacao = maeAluno;
+    if (maeAluno != null && !maeAluno.vazio && paiAluno != null && !paiAluno.vazio) {
+      filiacao = maeAluno + ' e ' + paiAluno;
+    }
+    else if (maeAluno != null && !maeAluno.vazio) {
+      filiacao = maeAluno;
+    }
+    else if (paiAluno != null && !paiAluno.vazio) {
+      filiacao = paiAluno;
+    }
+  }
+  //========== FIM ALUNO ==========//
+  
+  //========== OBSERVACAO ALUNO ===//
+  
+  fonteAluno = Dados.educacao.v1.alunos.lista(campos:"camposAdicionais.padrao.observacao", criterio:"id = ${idAluno}")
+  observacao = fonteAluno[0].camposAdicionais.padrao.observacao?:null
+  
+  //========== FIM OBSERVACAO =====//
+  
+  //========== INÍCIO HISTÓRICO ESCOLAR ==========//
+  imprimir '--> Processando histórico escolar.';
+  
+  // Consulta o histórico escolar (Histórico).
+  fonteHistoricoEscolar = Dados.educacao.v1.historicoEscolar;
+  camposHistoricoEscolar = 'id, anoLetivo, conclusaoOrigem, estabelecimento.pessoa.nome, nomeEstabelecimento, nivelEscolar, nivelModalidade, etapaEnsino, descricaoCurso, municipio.nome, municipio.uf, cargaHorariaTotal, diasLetivos, percentualFrequencia, totalFaltas, situacao, situacaoEspecifica';
+  criterioHistoricoEscolar = "aluno.id=$itemlistaAlunos";
+  ordenacaoHistoricoEscolar = 'etapaEnsino, anoLetivo, descricaoCurso, nomeEstabelecimento, estabelecimento.id';
+  percorrer(fonteHistoricoEscolar.lista(campos: camposHistoricoEscolar, criterio: criterioHistoricoEscolar, ordenacao: ordenacaoHistoricoEscolar)) { historicoEscolar ->
+    imprimir 'Ano conclusão: ' + historicoEscolar.anoLetivo;
+    historicoEscolarId = historicoEscolar.id;
+    estabelecimentoEnsino = historicoEscolar.estabelecimento?.pessoa?.nome;
+    if (historicoEscolar.conclusaoOrigem == 'REDE_MUNICIPAL') {
+      estabelecimentoEnsino = historicoEscolar.estabelecimento?.pessoa?.nome;
+    }
+    else {
+      estabelecimentoEnsino = historicoEscolar.nomeEstabelecimento;
+    }
+    imprimir 'Estabelecimento de ensino: ' + estabelecimentoEnsino;
+    municipioHistoricoEscolar = historicoEscolar.municipio?.nome;
+    if (municipioHistoricoEscolar != null && !municipioHistoricoEscolar.vazio) {
+      municipioHistoricoEscolar = historicoEscolar.municipio?.nome + " - " + historicoEscolar.municipio?.uf;
+    }
+    imprimir 'Município: ' + municipioHistoricoEscolar;
+    nivelModalidade = historicoEscolar.nivelModalidade;
+    switch (nivelModalidade) {
+      case 'EDUCACAO_BASICA':
+        nivelModalidade = 'Educação Básica';
+        break;
+      case 'COMPLEMENTAR':
+        nivelModalidade = 'Complementar';
+        break;
+      case 'EJA':
+        nivelModalidade = 'EJA';
+        break;
+      case 'ACELERACAO':
+        nivelModalidade = 'Aceleração (Educação Básica)';
+        break;
+    }
+    imprimir 'Nível modalidade: ' + nivelModalidade;
+    nivelEscolar = historicoEscolar.nivelEscolar;
+    if (nivelEscolar == 'EDUCACAO_INFANTIL') {
+      nivelEscolar = 'Educação infantil';
+    }
+    else if (nivelEscolar == 'ENSINO_FUNDAMENTAL') {
+      nivelEscolar = 'Ensino fundamental';
+    }
+    else {
+      nivelEscolar = 'Ensino médio';
+    }
+    imprimir 'Nível escolar: ' + nivelEscolar;
+    imprimir 'Etapa de ensino: ' + historicoEscolar.etapaEnsino;
+    imprimir 'Curso: ' + historicoEscolar.descricaoCurso;
+    
+    // Consulta a equivalência da etapa de ensino do histórico escolar.
+    fonteEquivalenciaHistoricoEscolar = Dados.educacao.v1.equivalenciaHistoricoEscolar;
+    camposEquivalenciaHistoricoEscolar = 'equivalenciaEtapa';
+    criterioEquivalenciaHistoricoEscolar = "id=$historicoEscolarId";
+    percorrer(fonteEquivalenciaHistoricoEscolar.lista(campos: camposEquivalenciaHistoricoEscolar, criterio: criterioEquivalenciaHistoricoEscolar)) { equivalenciaHistoricoEscolar ->
+      equivalencia = equivalenciaHistoricoEscolar.equivalenciaEtapa;
+      switch (equivalencia) {
+        case 'ETAPA_1':
+          equivalencia = '1° ano';
+          break;
+        case 'ETAPA_2':
+          equivalencia = '2° ano';
+          break;
+        case 'ETAPA_3':
+          equivalencia = '3° ano';
+          break;
+        case 'ETAPA_4':
+          equivalencia = '4° ano';
+          break;
+        case 'ETAPA_5':
+          equivalencia = '5° ano';
+          break;
+        case 'ETAPA_6':
+          equivalencia = '6° ano';
+          break;
+        case 'ETAPA_7':
+          equivalencia = '7° ano';
+          break;
+        case 'ETAPA_8':
+          equivalencia = '8° ano';
+          break;
+        case 'ETAPA_9':
+          equivalencia = '9° ano';
+          break;
+      }
+    }
+    imprimir 'Equivalência: ' + equivalencia;
+    
+    nivelEscolarNivelModalidade = nivelModalidade + ' - '  + nivelEscolar;
+    imprimir 'Nível escolar - nível modalidade: ' + nivelEscolarNivelModalidade;
+    l_cargaHorariaTotal = historicoEscolar.cargaHorariaTotal;
+    if (l_cargaHorariaTotal != null) {
+      cargaHorariaTotal = utilitarios.formataCargaHoraria(l_cargaHorariaTotal);
+    }
+    else {
+      cargaHorariaTotal = Long.toString(l_cargaHorariaTotal);
+    }
+    imprimir 'Carga horária total: ' + cargaHorariaTotal;
+    imprimir 'Dias letivos: ' + historicoEscolar.diasLetivos;
+    imprimir '% frequência: ' + historicoEscolar.percentualFrequencia;
+    imprimir 'Total faltas: ' + historicoEscolar.totalFaltas;
+    situacaoFinal = historicoEscolar.situacao;
+    switch (situacaoFinal) {
+      case 'APROVADO':
+        situacaoFinal = 'Aprovado(a)';
+        break;
+      case 'APROVADO_PARCIAL':
+        situacaoFinal = 'Aprovado(a) parcialmente';
+        break;
+      case 'REPROVADO':
+        situacaoFinal = 'Reprovado(a)';
+        break;
+      case 'REPROVADO_FREQUENCIA':
+        situacaoFinal = 'Reprovado(a) por frequência';
+        break;
+      case 'OUTRA':
+        situacaoFinal = historicoEscolar.situacaoEspecifica?:null;
+        break;
+    }
+    imprimir 'Situação final: ' + situacaoFinal;
+    
+    // Consulta os itens do histórico escolar.
+    fonteHistoricoEscolarItem = Dados.educacao.v1.itemHistoricoEscolar;
+    camposHistoricoEscolarItem = 'itemOrganizacaoCurricular.descricao, itemOrganizacaoCurricular.tipo, eixoTematico.descricao, eixoTematico.tipo, tipoItemOrganizacaoCurricular, orientacaoCurricular, tipoAvaliacao, notaNumerica, notaDescritiva, notaConceito';
+    criterioHistoricoEscolarItem = "historicoEscolar.id=$historicoEscolarId";
+    ordenacaoHistoricoEscolarItem = 'id';
+    percorrer(fonteHistoricoEscolarItem.lista(campos: camposHistoricoEscolarItem, criterio: criterioHistoricoEscolarItem, ordenacao: ordenacaoHistoricoEscolarItem)) { itemHistoricoEscolar ->
+      if (itemHistoricoEscolar.tipoItemOrganizacaoCurricular == 'EIXO_TEMATICO') {
+        avaliacaoDescricao = itemHistoricoEscolar.eixoTematico?.descricao;
+      }
+      else {
+        avaliacaoDescricao = itemHistoricoEscolar.itemOrganizacaoCurricular?.descricao;
+      }
+      imprimir 'Descrição avaliação: ' + avaliacaoDescricao;
+      orientacaoCurricular = itemHistoricoEscolar.orientacaoCurricular;
+      if (orientacaoCurricular == 'BASE_NACIONAL_COMUM') {
+        orientacaoCurricular = 'Base nacional comum';
+      }
+      else {
+        orientacaoCurricular = 'Parte diversificada';
+      }
+      imprimir 'Orientação curricular: ' + orientacaoCurricular;
+      switch (itemHistoricoEscolar.tipoAvaliacao) {
+        case ['NUMERICO_INTEIRO', 'NUMERICO_UMA_CASA_DECIMAL', 'NUMERICO_DUAS_CASAS_DECIMAIS']:
+          notaInformada = "" + itemHistoricoEscolar.notaNumerica;
+          break;
+        case 'DESCRITIVA':
+          notaInformada = 'DESC.';
+          break;
+        case 'CONCEITUAL':
+          notaInformada = itemHistoricoEscolar.notaConceito;
+          break;
+      }
+      imprimir 'Tipo avaliação: ' + itemHistoricoEscolar.tipoAvaliacao;
+      imprimir 'Nota informada: ' + notaInformada;
+      
+      listaHistoricoEscolar << [
+        anoLetivo: historicoEscolar.anoLetivo?:null,
+        estabelecimentoEnsino: estabelecimentoEnsino?:null,
+        nivelModalidade: nivelModalidade?:null,
+        nivelEscolar: nivelEscolar?:null,
+        nivelEscolarNivelModalidade: nivelEscolarNivelModalidade,
+        etapaEnsino: historicoEscolar.etapaEnsino?:null,
+        equivalencia: equivalencia?:null,
+        descricaoCurso: historicoEscolar.descricaoCurso?:null,
+        municipio: [
+          nome: historicoEscolar.municipio?.nome?:null,
+          uf: historicoEscolar.municipio?.uf?:null,
+          unificado: municipioHistoricoEscolar
+        ],
+        diasLetivos: historicoEscolar.diasLetivos?:null,
+        totalFaltas: historicoEscolar.totalFaltas?:null,
+        cargaHorariaTotal: cargaHorariaTotal?:null,
+        percentualFrequencia: historicoEscolar.percentualFrequencia?:null,
+        situacaoFinal: situacaoFinal?:null,
+        orientacaoCurricular: orientacaoCurricular?:null,
+        avaliacaoDescricao: avaliacaoDescricao?:null,
+        tipoAvaliacao: itemHistoricoEscolar.tipoAvaliacao?:null,
+        notaNumerica: itemHistoricoEscolar.notaNumerica?:null,
+        notaDescritiva: itemHistoricoEscolar.notaDescritiva?:null,
+        notaConceito: itemHistoricoEscolar.notaConceito?:null,
+        notaInformada: notaInformada
+      ];    
+    }
+  }
+  
+  imprimir '--> Processando histórico matrícula.';
+  // Consulta o histórico escolar (Matrículas).
+  fonteEnturmacao = Dados.educacao.v1.enturmacao;
+  camposEnturmacao = 'anoLetivo.id, anoLetivo.ano, estabelecimento.id, estabelecimento.pessoa.nome, matricula.id, turma.etapaMatriz.id, turma.etapaMatriz.matriz.curso.nivelEscolar, turma.itemEducacional.id, turma.id, turma.etapaMatriz.matriz.curso.nivelModalidade, turma.etapaMatriz.identificacao, turma.etapaMatriz.matriz.tipoOrganizacao, turma.etapaMatriz.matriz.curso.descricao, turma.etapaMatriz.matriz.diasLetivos, matriculaVagaEtapa.situacao, turma.etapaMatriz.matriz.modular';
+  criterioEnturmacao = "matricula.aluno.id=$itemlistaAlunos and dataFim is null";
+  ordenacaoEnturmacao = 'matriculaVagaEtapa.vaga.etapaMatriz.identificacao, anoLetivo.ano, estabelecimento.pessoa.nome, estabelecimento.id';
+  percorrer(fonteEnturmacao.lista(campos: camposEnturmacao, criterio: criterioEnturmacao, ordenacao: ordenacaoEnturmacao)) { enturmacao ->
+    idAnoLetivo = enturmacao.anoLetivo?.id;
+    imprimir 'Ano conclusão: ' + enturmacao.anoLetivo?.ano;
+    idEstabelecimento = enturmacao.estabelecimento?.id;
+    estabelecimentoEnsino = enturmacao.estabelecimento?.pessoa?.nome;
+    imprimir 'Estabelecimento de ensino: ' + estabelecimentoEnsino;
+    // Obtém o município do estabelecimento de ensino.
+    municipioEstabelecimentoNome = '';
+    municipioEstabelecimentoUf = '';
+    municipioEstabelecimento = '';
+    fonteEstabelecimento = Dados.educacao.v1.estabelecimento;
+    camposEstabelecimentoEndereco = 'estabEndereco.endereco.municipio.nome, estabEndereco.endereco.municipio.uf';
+    criterioEstabelecimentoEndereco = "estabEndereco.estabelecimento.id=$idEstabelecimento and estabEndereco.endereco.principal=true";
+    percorrer(fonteEstabelecimento.endereco(campos: camposEstabelecimentoEndereco, criterio: criterioEstabelecimentoEndereco)) { estabelecimentoEndereco ->
+      municipioEstabelecimentoNome = estabelecimentoEndereco.estabEndereco?.endereco?.municipio?.nome;
+      municipioEstabelecimentoUf = estabelecimentoEndereco.estabEndereco?.endereco?.municipio?.uf;
+      municipioEstabelecimento = estabelecimentoEndereco.estabEndereco?.endereco?.municipio?.nome;
+      if (municipioEstabelecimentoNome != null && !municipioEstabelecimentoNome.vazio) {
+        municipioEstabelecimento = municipioEstabelecimentoNome + " - " + municipioEstabelecimentoUf;
+      }
+      imprimir 'Município: ' + municipioEstabelecimento;
+    }
+    
+    nivelModalidade = enturmacao.turma?.etapaMatriz?.matriz?.curso?.nivelModalidade;
+    switch (nivelModalidade) {
+      case 'EDUCACAO_BASICA':
+        nivelModalidade = 'Educação Básica';
+        break;
+      case 'COMPLEMENTAR':
+        nivelModalidade = 'Complementar';
+        break;
+      case 'EJA':
+        nivelModalidade = 'EJA';
+        break;
+      case 'ACELERACAO':
+        nivelModalidade = 'Aceleração (Educação Básica)';
+        break;
+    }
+    imprimir 'Nível modalidade: ' + nivelModalidade;
+    nivelEscolar = enturmacao.turma?.etapaMatriz?.matriz?.curso?.nivelEscolar;
+    if (nivelEscolar == 'EDUCACAO_INFANTIL') {
+      nivelEscolar = 'Educação infantil';
+    }
+    else if (nivelEscolar == 'ENSINO_FUNDAMENTAL') {
+      nivelEscolar = 'Ensino fundamental';
+    }
+    else {
+      nivelEscolar = 'Ensino médio';
+    }
+    imprimir 'Nível escolar: ' + nivelEscolar;
+    nivelEscolarNivelModalidade = nivelModalidade + ' - '  + nivelEscolar;
+    imprimir 'Nível escolar - nível modalidade: ' + nivelEscolarNivelModalidade;
+    imprimir 'Etapa de ensino: ' + enturmacao.turma?.etapaMatriz?.identificacao;
+    imprimir 'Curso: ' + enturmacao.turma?.etapaMatriz?.matriz?.curso?.descricao;
+    
+    idMatricula = enturmacao.matricula?.id;
+    imprimir "Matrícula: $idMatricula";
+    idTurmaItemEducacional = enturmacao.turma?.itemEducacional?.id;
+    imprimir "Item educacional turma: $idTurmaItemEducacional";
+    idTurma = enturmacao.turma?.id;
+    imprimir "Turma: $idTurma";
+    idEtapaMatriz = enturmacao.turma?.etapaMatriz?.id;
+    imprimir "Etapa matriz: $idEtapaMatriz";
+    modular = enturmacao.turma.etapaMatriz.matriz.modular;
+    imprimir "Modular: $modular";
+  
+    // Consulta a equivalência da etapa de ensino do histórico escolar matrícula.
+    fonteEtapaMatrizEquivalencia = Dados.educacao.v1.EtapaMatrizEquivalencia;
+    camposEtapaMatrizEquivalencia = 'chave.equivalenciaEtapa';
+    criterioEtapaMatrizEquivalencia = "chave.etapa.id=$idEtapaMatriz";
+    percorrer(fonteEtapaMatrizEquivalencia.lista(campos: camposEtapaMatrizEquivalencia, criterio: criterioEtapaMatrizEquivalencia)) { etapaMatrizEquivalencia ->
+      equivalencia = etapaMatrizEquivalencia.chave?.equivalenciaEtapa;
+      switch (equivalencia) {
+        case 'ETAPA_1':
+          equivalencia = '1° ano';
+          break;
+        case 'ETAPA_2':
+          equivalencia = '2° ano';
+          break;
+        case 'ETAPA_3':
+          equivalencia = '3° ano';
+          break;
+        case 'ETAPA_4':
+          equivalencia = '4° ano';
+          break;
+        case 'ETAPA_5':
+          equivalencia = '5° ano';
+          break;
+        case 'ETAPA_6':
+          equivalencia = '6° ano';
+          break;
+        case 'ETAPA_7':
+          equivalencia = '7° ano';
+          break;
+        case 'ETAPA_8':
+          equivalencia = '8° ano';
+          break;
+        case 'ETAPA_9':
+          equivalencia = '9° ano';
+          break;
+      }
+    }
+    imprimir 'Equivalência: ' + equivalencia;
+    
+    tipoOrganizacao = enturmacao.turma?.etapaMatriz?.matriz?.tipoOrganizacao;
+    if (tipoOrganizacao == 'EIXO_TEMATICO') {
+      tipoOrganizacao = 'Eixo temático';
+    }
+    else {
+      tipoOrganizacao = 'Disciplina';
+    }
+    imprimir 'Tipo organização: ' + tipoOrganizacao;
+    
+    imprimir 'Dias letivos: ' + enturmacao.turma?.etapaMatriz?.matriz?.diasLetivos;
+    
+    fonteEtapaMatrizDisciplina = Dados.educacao.v1.EtapaMatrizDisciplina;
+    camposEtapaMatrizDisciplina = 'cargaHoraria';
+    criterioEtapaMatrizDisciplina = "etapa.id=$idEtapaMatriz";
+    Long l_cargaHorariaTotal = 0;
+    percorrer(fonteEtapaMatrizDisciplina.lista(campos: camposEtapaMatrizDisciplina, criterio: criterioEtapaMatrizDisciplina)) { etapaMatrizDisciplina ->
+      if (etapaMatrizDisciplina.cargaHoraria != null) {
+        l_cargaHorariaTotal += etapaMatrizDisciplina.cargaHoraria;
+      }
+    }
+    if (l_cargaHorariaTotal != null) {
+      cargaHorariaTotal = utilitarios.formataCargaHoraria(l_cargaHorariaTotal);
+    }
+    else {
+      cargaHorariaTotal = Long.toString(l_cargaHorariaTotal);
+    }
+    imprimir 'Carga horária total: ' + cargaHorariaTotal;
+    
+    BigDecimal percentualTotalFrequencia = 0;
+    totalFaltas = 0;
+    cont = 0;
+    // Consultar o resultado da frequência.
+    fonteResultadoFrequencia = Dados.educacao.v1.'resultado-frequencia';
+    camposResultadoFrequencia = 'quantidadeFaltasTotais, totalFaltasEmMinutos, percentualTotal';
+    criterioResultadoFrequencia = "enturmacao.turma.id=$idTurma and enturmacao.matricula.id=$idMatricula and itemEducacional.id is null";
+    percorrer(fonteResultadoFrequencia.lista(campos: camposResultadoFrequencia, criterio: criterioResultadoFrequencia)) { resultadoFrequencia ->
+      percentualTotalFrequencia = resultadoFrequencia.percentualTotal;
+      totalFaltas = resultadoFrequencia.quantidadeFaltasTotais;
+      if (resultadoFrequencia.quantidadeFaltasTotais == null) {
+        totalFaltas = resultadoFrequencia.totalFaltasEmMinutos;
+      }
+    }
+    imprimir '% frequência: ' + percentualTotalFrequencia;
+    imprimir 'Total faltas: ' + totalFaltas;
+    
+    situacaoFinal = enturmacao.matriculaVagaEtapa?.situacao;
+    switch (situacaoFinal) {
+      case 'MATRICULADO':
+        situacaoFinal = 'Matriculado';
+        break;
+      case 'CURSANDO':
+        situacaoFinal = 'Cursando';
+        break;
+      case 'TRANSFERIDO':
+        situacaoFinal = 'Transferido';
+        break;
+      case 'DEIXOU_FREQUENTAR':
+        situacaoFinal = 'Deixou de frequentar';
+        break;
+      case 'FALECIDO':
+        situacaoFinal = 'Falecido';
+        break;
+      case 'CANCELAMENTO':
+        situacaoFinal = 'Cancelamento';
+        break;
+      case 'ACELERADO':
+        situacaoFinal = 'Acelerado';
+        break;
+      case 'AVANCADO':
+        situacaoFinal = 'Avançado';
+        break;
+      case 'EM_EXAME':
+        situacaoFinal = 'Em exame';
+        break;
+      case 'APROVADO':
+        situacaoFinal = 'Aprovado(a)';
+        break;
+      case 'APROVADO_DEPENDENCIA':
+        situacaoFinal = 'Aprovado(a) parcialmente';
+        break;
+      case 'REPROVADO':
+        situacaoFinal = 'Reprovado';
+        break;
+      case 'REPROVADO_FREQUENCIA':
+        situacaoFinal = 'Reprovado(a) por frequência';
+        break;
+      case 'RECLASSIFICADO_AVANCO':
+        situacaoFinal = 'Reclassificado(a) - Avanço';
+        break;
+      case 'RECLASSIFICADO_ACELERACAO':
+        situacaoFinal = 'Reclassificado(a) - Aceleração';
+        break;
+      case 'EM_ANDAMENTO':
+        situacaoFinal = 'Em andamento';
+        break;
+      case 'DISPENSADO':
+        situacaoFinal = 'Dispensado';
+        break;
+      case 'APROVADO_CONSELHO':
+        situacaoFinal = 'Aprovado(a) pelo conselho';
+        break;
+    }
+    imprimir 'Situação final: ' + situacaoFinal;
+    
+    // Monta o critério do item avaliação.
+    criterioItemAvaliacaoTurma = "turma.id=$idTurma and itemEducacional.id in (";
+    l_orientacaoCurricular = [];
+    if (modular == false) {
+      fonteTurmaDisciplina = Dados.educacao.v1.turmaDisciplina;
+      camposTurmaDisciplina = 'itemEducacional.id, etapaMatrizDisciplina.orientacaoCurricular';
+      criterioTurmaDisciplina = "itemEducacional.turmaPai.id=$idTurmaItemEducacional";
+      separador = '';
+      percorrer(fonteTurmaDisciplina.lista(campos: camposTurmaDisciplina, criterio: criterioTurmaDisciplina)) { turmaDisciplina ->
+        criterioItemAvaliacaoTurma += turmaDisciplina.itemEducacional?.id + ",";
+        separador = ', ';
+        l_orientacaoCurricular << turmaDisciplina.etapaMatrizDisciplina?.orientacaoCurricular;
+      }
+    }
+    else {
+      fonteTurmaDisciplinaEjaModular = Dados.educacao.v1.turmaDisciplinaEjaModular;
+      camposTurmaDisciplinaEjaModular = 'itemEducacional.id, etapaMatrizDisciplina.orientacaoCurricular';
+      criterioTurmaDisciplinaEjaModular = "itemEducacional.pai.id=$idTurmaItemEducacional";      
+      separador = '';
+      percorrer(fonteTurmaDisciplinaEjaModular.lista(campos: camposTurmaDisciplinaEjaModular, criterio: criterioTurmaDisciplinaEjaModular)) { turmaDisciplinaEjaModular ->
+        criterioItemAvaliacaoTurma += turmaDisciplinaEjaModular.itemEducacional?.id + ",";
+        separador = ', ';
+        l_orientacaoCurricular << turmaDisciplinaEjaModular.etapaMatrizDisciplina?.orientacaoCurricular;
+      }
+    }
+    criterioItemAvaliacaoTurma = criterioItemAvaliacaoTurma + '0) and tipoPeriodo = \'MEDIA_FINAL\'';
+    
+    // Consulta os itens avaliáveis da turma.
+    fonteItemAvaliacaoTurma = Dados.educacao.v1.'item-avaliacao-turma';
+    camposItemAvaliacaoTurma = 'itemAvaliavel.id, itemEducacional.descricao, itemAvaliavel.tipo, itemAvaliavel.modoAvaliacao';
+    i = 0;
+    percorrer(fonteItemAvaliacaoTurma.lista(campos: camposItemAvaliacaoTurma, criterio: criterioItemAvaliacaoTurma)) { itemAvaliacaoTurma ->
+      idItemAvaliavel = itemAvaliacaoTurma.itemAvaliavel?.id;
+      imprimir "Item avaliável: $idItemAvaliavel";
+      
+      if (l_orientacaoCurricular[i] == 'BASE_NACIONAL_COMUM') {
+        orientacaoCurricular = 'Base nacional comum';
+      }
+      else {
+        orientacaoCurricular = 'Parte diversificada';
+      }
+      imprimir 'Orientação curricular: ' + orientacaoCurricular;
+      i ++;
+      modoAvaliacao = itemAvaliacaoTurma.itemAvaliavel?.modoAvaliacao;
+      imprimir 'Modo avaliação: ' + modoAvaliacao;
+      avaliacaoDescricao = itemAvaliacaoTurma.itemEducacional?.descricao;
+      imprimir 'Descrição avaliação: ' + avaliacaoDescricao;
+      
+      // Consulta as avaliações do aluno.
+      fonteRegistroAvaliacao = Dados.educacao.v1.'registro-avaliacao';
+      camposRegistroAvaliacao = 'notaDescritiva, notaNumerica, notaConceito.descricao';
+      criterioRegistroAvaliacao = "itemAvaliavel.id=$idItemAvaliavel and enturmacao.matricula.id=$idMatricula";
+      imprimir "criterioRegistroAvaliacao: $criterioRegistroAvaliacao";
+      notaNumerica = null;
+      notaDescritiva = null;
+      notaConceito = null;
+      percorrer(fonteRegistroAvaliacao.lista(campos: camposRegistroAvaliacao, criterio: criterioRegistroAvaliacao)) { registroAvaliacao ->
+        switch (modoAvaliacao) {
+          case ['NUMERICO', 'CONCEITO_NUMERICO']:
+            notanumerica = registroAvaliacao.notaNumerica;
+            notaInformada = "" + registroAvaliacao.notaNumerica;
+            break;
+          case 'DESCRITIVO':
+            //notaInformada = itemAvaliacaoTurma.notaDescritiva;
+            notaDescritiva = 'DESC';
+            notaInformada = 'DESC.';
+            break;
+          case 'CONCEITO':
+            notaConceito = registroAvaliacao.notaConceito?.descricao;
+            notaInformada = registroAvaliacao.notaConceito?.descricao;
+            break;
+          case 'NAO_OFERECE':
+            notanumerica = registroAvaliacao.notaNumerica;
+            notaInformada = registroAvaliacao.notaNumerica;
+            break;
+          default:
+            notanumerica = registroAvaliacao.notaNumerica;
+            notaInformada = registroAvaliacao.notaNumerica;
+        }
+        imprimir 'Nota informada: ' + notaInformada;
+      }
+      
+      listaHistoricoEscolar << [
+        anoLetivo: enturmacao.anoLetivo?.ano?:null,
+        estabelecimentoEnsino: estabelecimentoEnsino?:null,
+        nivelModalidade: nivelModalidade?:null,
+        nivelEscolar: nivelEscolar?:null,
+        nivelEscolarNivelModalidade: nivelEscolarNivelModalidade,
+        etapaEnsino: enturmacao.turma?.etapaMatriz?.identificacao?:null,
+        equivalencia: equivalencia?:null,
+        descricaoCurso: enturmacao.turma?.etapaMatriz?.matriz?.curso?.descricao?:null,
+        municipio: [
+          nome: municipioEstabelecimentoNome?:null,
+          uf: municipioEstabelecimentoUf?:null,
+          unificado: municipioEstabelecimento
+        ],
+        diasLetivos: enturmacao.turma?.etapaMatriz?.matriz?.diasLetivos?:null,
+        totalFaltas: totalFaltas?:null,
+        cargaHorariaTotal: cargaHorariaTotal?:null,
+        percentualFrequencia: percentualTotalFrequencia?:null,
+        situacaoFinal: situacaoFinal?:null,
+        orientacaoCurricular: orientacaoCurricular?:null,
+        avaliacaoDescricao: avaliacaoDescricao?:null,
+        tipoAvaliacao: modoAvaliacao?:null,
+        notaNumerica: notaNumerica?:null,
+        notaDescritiva: notaDescritiva?:null,
+        notaConceito: notaConceito?:null,
+        notaInformada: notaInformada
+      ];
+    }
+  }
+  //========== FIM HISTÓRICO ==========//
+
+	// Salva os dados na fonte de dados.
+	percorrer(listaHistoricoEscolar) { item ->
+	  imprimir "Item: " + item
+	  fonte.inserirLinha([
+		noData: noData,
+		nomeEntidade: nomeEntidade,
+		enderecoEntidade: enderecoEntidade,
+		telefoneEntidade: telefoneEntidade,
+		emailEntidade: emailEntidade,
+		cidadeEntidade: cidadeEntidade,
+		ufEntidade: ufEntidade,
+		idAluno: idAluno,
+		nomeAluno: nomeAluno,
+		dataNascimentoAluno: dataNascimentoAluno,
+		municipioNascimentoAluno: [
+		  nome: nomeMunicipioNascimentoAluno,
+		  uf: ufMunicipioNascimentoAluno,
+		  unificado: nomeUfMunicipioNascimentoAluno
+		],
+		nacionalidadeAluno: nacionalidadeAluno,
+		maeAluno: maeAluno,
+		paiAluno: paiAluno,
+		filiacao: filiacao,
+		observacao: observacao,
+		historicoEscolarAnoConclusao: item.anoLetivo,
+		historicoEscolarEstabelecimentoEnsino: item.estabelecimentoEnsino,
+		historicoEscolarNivelModalidade: item.nivelModalidade,
+		historicoEscolarNivelEscolar: item.nivelEscolar,
+		historicoEscolarNivelEscolarNivelModalidade: item.nivelEscolarNivelModalidade,
+		historicoEscolarEtapaEnsino: item.etapaEnsino,
+		historicoEscolarEquivalencia: item.equivalencia,
+		historicoEscolarDescricaoCurso: item.descricaoCurso,
+		historicoEscolarMunicipio: [
+		  nome: item.municipio.nome,
+		  uf: item.municipio.uf,
+		  unificado: item.municipio.unificado
+		],
+		historicoEscolarDiasLetivos: item.diasLetivos,
+		historicoEscolarTotalFaltas: item.totalFaltas,
+		historicoEscolarCargaHorariaTotal: item.cargaHorariaTotal,
+		historicoEscolarPercentualFrequencia: item.percentualFrequencia,
+		historicoEscolarSituacaoFinal: item.situacaoFinal,
+		historicoEscolarItensOrientacaoCurricular: item.orientacaoCurricular,
+		historicoEscolarItensAvaliacaoDescricao: item.avaliacaoDescricao,
+		historicoEscolarItensTipoAvaliacao: item.tipoAvaliacao,
+		historicoEscolarItensNotaNumerica: item.notaNumerica,
+		historicoEscolarItensNotaDescritiva: item.notaDescritiva,
+		historicoEscolarItensNotaConceito: item.notaConceito,
+		historicoEscolarItensNotaInformada: item.notaInformada,
+		diretor: diretor,
+		diretorMatricula: diretorMatricula,
+		administrativo: administrativo,
+		administrativoMatricula: administrativoMatricula
+	  ]);
+	}
+
+	listaHistoricoEscolar = [];
+
+}
+
+return fonte;

@@ -95,13 +95,14 @@ percorrer(fonteEquipeDir.lista(campos: "id,funcionario.servidor.pessoa.nome, fun
 }
 
 //tratativa da disciplina
-se(!(paramPeriodo == "1%An%" || paramPeriodo.contains("Sem"))){
+se(!(paramPeriodo == "1%An%" || paramPeriodo.contains("Sem") || paramDiscEJA != null)){
 
 	disciplinaFonte = Dados.profesores.v1.turmaDisciplina
 
 	percorrer(disciplinaFonte.lista(campos:"itemEducacional.descricao, itemEducacional.id", criterio:" id = " + paramDisc)){
-		dispDescricao=item.itemEducacional.descricao
-		dispID=item.itemEducacional.id
+		imprimir "REG: " + item
+		dispDescricao = item.itemEducacional.descricao?:""
+		dispID = item.itemEducacional.id?:0
 		critReg = " and itemAvaliacaoTurma.periodoAvaliativo.descricao like '${paramPeriodo}' and itemAvaliacaoTurma.itemEducacional.id = ${dispID}"
 	}
 
@@ -110,8 +111,9 @@ se(!(paramPeriodo == "1%An%" || paramPeriodo.contains("Sem"))){
 	disciplinaFonte = Dados.profesores.v1.turmaDisciplinaEjaModular
 
 	percorrer(disciplinaFonte.lista(campos:"itemEducacional.descricao, itemEducacional.id", criterio:" id = " + paramDiscEJA)){
-		dispDescricao=item.itemEducacional.descricao
-		dispID=item.itemEducacional.id
+		imprimir "EJA: " + item
+		dispDescricao = item.itemEducacional.descricao?:""
+		dispID = item.itemEducacional.id?:0
 		critReg = " and itemAvaliacaoTurma.itemEducacional.descricao = '${dispDescricao}'"
 		imprimir "Disp: " + dispDescricao + " | id: " + dispID
 	}
@@ -236,8 +238,8 @@ percorrer(mapaAlunos){alus->
 	if(eja){
 		imprimir "Eja: " + eja
 		imprimir "enturmacao.matricula.aluno.id = ${alus.matricula.aluno.id} and enturmacao.turma.id = ${alus.turma.id} and itemAvaliacaoTurma.itemEducacional.pai.descricao = '${dispDescricao}' and itemAvaliacaoTurma.tipoPeriodo = 'MODULO'"
-		if(!(alus.matricula.avaliacaoDescritiva)){
-			percorrer(fonteRegistroAval.lista(campos:"notaNumerica, modoAvaliacao, notaConceito.sigla, enturmacao.matriculaAtividade.situacao, instrumentoAvaliacao.servidor.pessoa.nome", criterio:"enturmacao.matricula.aluno.id = ${alus.matricula.aluno.id} and enturmacao.turma.id = ${alus.turma.id} and itemAvaliacaoTurma.itemEducacional.pai.descricao = '${dispDescricao}' and itemAvaliacaoTurma.tipoPeriodo = 'MODULO'")){regMod->
+//		if(!(alus.matricula.avaliacaoDescritiva)){
+			percorrer(fonteRegistroAval.lista(campos:"notaNumerica, modoAvaliacao, notaConceito.sigla, enturmacao.matriculaAtividade.situacao, instrumentoAvaliacao.servidor.pessoa.nome, enturmacao.turma.descricao", criterio:"enturmacao.matricula.aluno.id = ${alus.matricula.aluno.id} and enturmacao.turma.id = ${alus.turma.id} and itemAvaliacaoTurma.itemEducacional.pai.descricao = '${dispDescricao}' and itemAvaliacaoTurma.tipoPeriodo = 'MODULO'")){regMod->
 				
 				switch(regMod.modoAvaliacao){
 					case "DESCRITIVO":
@@ -255,7 +257,7 @@ percorrer(mapaAlunos){alus->
 					default:
 						nota = regMod.notaConceito.sigla
 				}
-				imprimir "Aluno: " + alus.matricula.aluno.pessoa.nome + " | Nota: " + nota
+				imprimir "Aluno: " + alus.matricula.aluno.pessoa.nome + " | Nota: " + nota + " | Turma: " + regMod.enturmacao.turma.descricao
 				insAval1 = "Módulo"
 				notaAval1 = nota
 				pos++
@@ -265,7 +267,7 @@ percorrer(mapaAlunos){alus->
 					professor = regMod.instrumentoAvaliacao.servidor.pessoa.nome
 				}
 			}
-		}
+//		}
 	}
 
 	//percorre lista de intrumentos

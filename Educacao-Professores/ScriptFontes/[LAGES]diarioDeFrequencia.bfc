@@ -1,0 +1,148 @@
+paramAno = parametros.ano.valor
+paramEstabelecimento = parametros.estabelecimento.valor
+paramPeriodo = parametros.periodo
+paramTurma = parametros.turma.valor
+
+periodoCrit = ""
+if(!(paramPeriodo != "" || paramPeriodo != null)){
+	imprimir "Param: " + paramPeriodo
+	periodoCrit = " and descricao like '${paramPeriodo}'"
+}
+
+turmaCrit = ""
+if(paramTurma != null){
+	turmaCrit = " and id = ${paramTurma}"
+}
+
+eschema = [
+	estabelecimentoNome: Esquema.caracter,
+	estabelecimentoCidade: Esquema.caracter,
+	estabelecimentoUf: Esquema.caracter,
+	matriz: Esquema.caracter,
+	turno: Esquema.caracter,
+	etapa: Esquema.caracter,
+	turma: Esquema.caracter,
+	anoLetivo: Esquema.inteiro,
+	periodo: Esquema.caracter,
+	nomeAluno: Esquema.caracter,
+	diaPeriodo: Esquema.inteiro,
+	mesPeriodo: Esquema.caracter
+]
+
+fonte = Dados.dinamico.v2.novo(eschema);
+
+/* -- Estabelecimento -- */
+
+escolaNome = null
+escolaCidade = null
+escolaUf = null
+
+percorrer(Dados.educacao.v1.estabelecimento.endereco(campos:"estabEndereco.estabelecimento.pessoa.nome, estabEndereco.endereco.municipio.nome, estabEndereco.endereco.municipio.uf", criterio:"estabEndereco.estabelecimento.id = ${paramEstabelecimento} and estabEndereco.endereco.principal = true")){estEnd->
+
+	escolaNome = estEnd.estabEndereco.estabelecimento.pessoa.nome
+	escolaCidade = estEnd.estabEndereco.endereco.municipio.nome
+	escolaUf = estEnd.estabEndereco.endereco.municipio.uf
+
+}
+
+/* -- Fim Estabelecimento -- */
+
+fonteTurma = Dados.educacao.v1.turma.lista(campos:"descricao, turno, etapaMatriz.etapaInep.nome, etapaMatriz.matriz.descricao, calendarioMatrizCurricular.id, calendarioMatrizCurricular.matrizCurricular.descricao, vagaEtapa.etapaMatriz.identificacao", criterio:"itemEducacional.anoLetivo.ano = ${paramAno} and itemEducacional.estabelecimento.id = ${paramEstabelecimento} ${turmaCrit}", ordenacao:"descricao asc")
+
+fonteEnturmacao = Dados.educacao.v1.enturmacao
+
+percorrer(fonteTurma){tur->
+
+	camps = "descricao, dataInicial, dataFinal"
+	crits = "anoLetivo.ano = ${paramAno} and estabelecimento.id = ${paramEstabelecimento} and calendarioMatrizCurricular.id = ${tur.calendarioMatrizCurricular.id} ${periodoCrit}"
+
+	imprimir "Crit: " + crits
+	fontePeriodo = Dados.educacao.v1.periodoAvaliativo.listar(campos:camps, criterio:crits, ordenacao:"descricao asc")
+
+	percorrer(fontePeriodo){per->
+		
+		dataIni = per.dataInicial
+		dataFim = per.dataFinal
+		
+		if(tur.turno != "INTEGRAL"){
+			percorrer(fonteEnturmacao.lista(campos:"matricula.aluno.pessoa.nome, matricula.turno", criterio:"estabelecimento.id = ${paramEstabelecimento} and anoLetivo.ano = ${paramAno} and turma.id = ${tur.id}", ordenacao:"matricula.aluno.pessoa.nome asc, matricula.turno asc")){ent->
+				
+				percorrer(dataIni..dataFim){
+					if(Datas.diaSemana(item) != 1 && Datas.diaSemana(item) != 7){
+						fonte.inserirLinha(
+							estabelecimentoNome: escolaNome,
+							estabelecimentoCidade: escolaCidade,
+							estabelecimentoUf: escolaUf,
+							matriz: tur.etapaMatriz.matriz.descricao,
+							turno: tur.turno,
+							etapa: tur.vagaEtapa.etapaMatriz.identificacao,
+							turma: tur.descricao,
+							anoLetivo: paramAno,
+							periodo: per.descricao,
+							nomeAluno: ent.matricula.aluno.pessoa.nome,
+							diaPeriodo:item.dia(),
+							mesPeriodo:Caracteres.esquerda(item.nomeMes(),3)
+						)
+					}
+				}
+			}
+		} else {
+			percorrer(fonteEnturmacao.lista(campos:"matricula.aluno.pessoa.nome, matricula.turno, matriculaAtividade.turno, matriculaVagaEtapa.turno", criterio:"estabelecimento.id = ${paramEstabelecimento} and anoLetivo.ano = ${paramAno} and turma.id = ${tur.id} and matricula.turno in ('INTEGRAL','MATUTINO')", ordenacao:"matricula.aluno.pessoa.nome asc, matricula.turno asc")){entM->
+			
+				turno = tur.turno + " - MATUTINO"
+				
+				imprimir "TurnoM: " + entM
+				
+				percorrer(dataIni..dataFim){
+					if(Datas.diaSemana(item) != 1 && Datas.diaSemana(item) != 7){
+						fonte.inserirLinha(
+							estabelecimentoNome: escolaNome,
+							estabelecimentoCidade: escolaCidade,
+							estabelecimentoUf: escolaUf,
+							matriz: tur.etapaMatriz.matriz.descricao,
+							turno: turno,
+							etapa: tur.vagaEtapa.etapaMatriz.identificacao,
+							turma: tur.descricao,
+							anoLetivo: paramAno,
+							periodo: per.descricao,
+							nomeAluno: entM.matricula.aluno.pessoa.nome,
+							diaPeriodo:item.dia(),
+							mesPeriodo:Caracteres.esquerda(item.nomeMes(),3)
+						)
+					}
+				}
+			}
+			
+			percorrer(fonteEnturmacao.lista(campos:"matricula.aluno.pessoa.nome, matricula.turno, matriculaAtividade.turno, matriculaVagaEtapa.turno", criterio:"estabelecimento.id = ${paramEstabelecimento} and anoLetivo.ano = ${paramAno} and turma.id = ${tur.id} and matricula.turno in ('INTEGRAL','VESPERTINO')", ordenacao:"matricula.aluno.pessoa.nome asc, matricula.turno asc")){entV->
+			
+				turno = tur.turno + " - VESPERTINO"
+				
+				imprimir "TurnoV: " + entV
+				
+				percorrer(dataIni..dataFim){
+					if(Datas.diaSemana(item) != 1 && Datas.diaSemana(item) != 7){
+						fonte.inserirLinha(
+							estabelecimentoNome: escolaNome,
+							estabelecimentoCidade: escolaCidade,
+							estabelecimentoUf: escolaUf,
+							matriz: tur.etapaMatriz.matriz.descricao,
+							turno: turno,
+							etapa: tur.vagaEtapa.etapaMatriz.identificacao,
+							turma: tur.descricao,
+							anoLetivo: paramAno,
+							periodo: per.descricao,
+							nomeAluno: entV.matricula.aluno.pessoa.nome,
+							diaPeriodo:item.dia(),
+							mesPeriodo:Caracteres.esquerda(item.nomeMes(),3)
+						)
+					}
+				}
+			}
+		}
+		
+	parar()
+	
+	}
+}
+
+retornar fonte;

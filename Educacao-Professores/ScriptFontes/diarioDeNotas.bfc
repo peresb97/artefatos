@@ -95,7 +95,8 @@ percorrer(fonteEquipeDir.lista(campos: "id,funcionario.servidor.pessoa.nome, fun
 }
 
 //tratativa da disciplina
-se(!(paramPeriodo == "1%An%" || paramPeriodo.contains("Sem") || paramDiscEJA != null)){
+//if(!(paramPeriodo == "1%An%" || paramPeriodo.contains("Sem") || paramDiscEJA != null)){
+if(!(paramDiscEJA != null)){
 
 	disciplinaFonte = Dados.profesores.v1.turmaDisciplina
 
@@ -106,7 +107,7 @@ se(!(paramPeriodo == "1%An%" || paramPeriodo.contains("Sem") || paramDiscEJA != 
 		critReg = " and itemAvaliacaoTurma.periodoAvaliativo.descricao like '${paramPeriodo}' and itemAvaliacaoTurma.itemEducacional.id = ${dispID}"
 	}
 
-} senao {
+} else {
 
 	disciplinaFonte = Dados.profesores.v1.turmaDisciplinaEjaModular
 
@@ -491,7 +492,7 @@ percorrer(mapaAlunos){alus->
 			break
 	}
 	
-	if(pos == 1){
+	if(pos == 1 && (situacao == "TRANSFERIDO" || situacao == "CANCELAMENTO")){
 //		mediaCalc = mediaCalc=="Desc"?null:mediaCalc
 		mediaPer = mediaPer=="Desc"?null:mediaPer
 		mediaParcial = mediaParcial=="Desc"?null:mediaParcial

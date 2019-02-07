@@ -73,11 +73,17 @@ padronizaMatriculaSJS = {disciplina ->
 	se(disc == "INFORMATICA II"){
 		discPadrao = "INFORMATICA II"
 	}
-	se(disc.expressao(~/(E|e)spanhol|ESPANHOL/).encontrouPadrao()){
-		discPadrao = "LÍNGUA ESTRANGEIRA - ESPANHOL"
+	se(disc.contains("ESPANHOL") && !disc.contains("II")){
+		discPadrao = "LÍNGUA ESTRANGEIRA - ESPANHOL I"
 	}
-	se(disc.expressao(~/(I|i)ngles|INGLES/).encontrouPadrao()){
-		discPadrao = "LÍNGUA ESTRANGEIRA - INGLÊS"
+	se(disc.contains("ESPANHOL") && disc.contains("II")){
+		discPadrao = "LÍNGUA ESTRANGEIRA - ESPANHOL II"
+	}
+	se(disc.contains("INGLES") && !disc.contains("II")){
+		discPadrao = "LÍNGUA ESTRANGEIRA - INGLÊS I"
+	}
+	se(disc.contains("INGLES") && disc.contains("II")){
+		discPadrao = "LÍNGUA ESTRANGEIRA - INGLÊS II"
 	}
 	se(disc == "LINGUA PORTUGUESA E LITERATURA I" || disc == "LINGUA PORTUGUESA" || disc == "LINGUA PORTUGUESA I"){
 		discPadrao = "LINGUA PORTUGUESA E LITERATURA I"

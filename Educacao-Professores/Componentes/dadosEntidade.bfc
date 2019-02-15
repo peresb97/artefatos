@@ -3,6 +3,8 @@ def listar = {
   utilitarios = Scripts.utilitarios.importar();
   // Cria o mapa;
   mapaEntidade = [:];
+  cidade = ""
+  uf = ""
   
   // Consulta a entidade.
   fonteEntidade = Dados.educacao.v1.entidade;

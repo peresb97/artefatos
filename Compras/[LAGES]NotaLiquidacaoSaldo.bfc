@@ -1,0 +1,749 @@
+// importando um componente
+utilitarios = Scripts.utilitarios_contabil_cloud.importar();
+
+
+// criando esquema
+esquema = [
+	tipoEmpenho : Esquema.caracter,
+    codDespesa : Esquema.numero,
+	numeroOrgao : Esquema.caracter,
+	descricaoOrgao : Esquema.caracter,
+	numeroUnidade : Esquema.caracter,
+	descricaoUnidade : Esquema.caracter,
+	numeroFuncional : Esquema.caracter,
+	descricaoFuncional : Esquema.caracter,
+	numeroProjAtiv : Esquema.caracter,
+	descricaoProjAtiv : Esquema.caracter,
+	numeroNaturezaDespesa : Esquema.caracter,
+	descricaoNaturezaDespesa : Esquema.caracter,
+	numeroRecurso : Esquema.caracter,
+	descricaoRecurso : Esquema.caracter,
+	numeroEmpenho : Esquema.caracter,
+	valorEmpenho : Esquema.numero,
+	valorAnulacaoEmpenho : Esquema.numero,
+	totalA : Esquema.numero,
+	numeroLiquidacao : Esquema.caracter,
+	dataLiquidacao : Esquema.data,
+	valorLiquidacao : Esquema.numero,
+	valorAnulacaoLiquidacao : Esquema.numero,
+	valorLiquidacoesAnteriores : Esquema.numero,
+	totalB : Esquema.numero,
+	totalAB : Esquema.numero,
+	totalC : Esquema.numero,
+	nomeCredor : Esquema.caracter,
+	enderecoCredor : Esquema.caracter,
+	cpfCnpjCredor : Esquema.caracter,
+	cidadeCredor : Esquema.caracter,
+	ufCredor : Esquema.caracter,
+	banco : Esquema.caracter,
+	agencia : Esquema.caracter,
+	conta : Esquema.caracter,
+	tipoConta : Esquema.caracter,
+	telefone :  Esquema.caracter,
+	inscricaoEstadualCredor : Esquema.caracter,
+	especificacaoLiquidacao : Esquema.caracter,
+	fonteRecursoEmpenho : Esquema.caracter,
+	valorGeral : Esquema.caracter,
+	fundamentoLegal : Esquema.caracter,
+	modalidadeLicitacao : Esquema.caracter,
+	contrato : Esquema.caracter,
+	numeroContrato : Esquema.caracter,
+	numeroAnoContrato : Esquema.caracter,
+	listaAssinaturas: Esquema.lista(
+							Esquema.objeto([
+							  nome: Esquema.caracter,
+							  cpf: Esquema.caracter,
+							  funcao: Esquema.caracter,
+							  complemento: Esquema.caracter,
+                              ordem: Esquema.inteiro
+						  ])),
+	totalRetencao : Esquema.numero ,
+	itensRetencao : Esquema.caracter,
+	itensVencimentos : Esquema.data,
+	liquidoPagar : Esquema.numero,
+    nomeAssinanteOrdem  : Esquema.caracter,
+    cpfAssinanteOrdem  : Esquema.caracter,
+    funcaoAssinanteOrdem  : Esquema.caracter,
+    complementoAssinanteOrdem  : Esquema.caracter
+];
+
+
+// criando fonte dinamica
+fonte = Dados.dinamico.v2.novo(esquema);
+
+// acessando os dados do parâmetro
+idsEmpenhos = parametros.id.valor;
+paramNumerosLiq = parametros.numeroLiq.valor
+paramExercicio = parametros.exercicio.valor
+
+//filtrando por numero/exercicio do empenho
+if(idsEmpenhos == null){
+
+	arrayIdsEmpenhos = paramNumerosLiq.split(',')
+	listaNumeroEmpenhos = "0"
+	rangesNumeroEmpenhos = ""
+
+	for(i = 0; i<arrayIdsEmpenhos.size(); i++){
+		if(arrayIdsEmpenhos[i].contains('-')){
+			range = arrayIdsEmpenhos[i].split('-')
+			rangesNumeroEmpenhos += " or (numeroCadastro.numero >= ${range[0]} and numeroCadastro.numero <= ${range[1]})"
+		} else {
+			listaNumeroEmpenhos += "," + arrayIdsEmpenhos[i]
+		}
+	}
+	
+	criterioLiquidacoes = "exercicio.ano = ${paramExercicio?:Datas.hoje().ano()} and ( numeroCadastro.numero in (${listaNumeroEmpenhos}) ${rangesNumeroEmpenhos})"
+	imprimir "Crit: " + criterioLiquidacoes
+	/*
+	fonteEmpenhos = Dados.contabilidade.v1.empenhos.busca(campos:"id", criterio:critEmpenho)
+	idsEmpenhos = "0"
+	percorrer(fonteEmpenhos){
+		idsEmpenhos += "," + item.id
+	}
+	imprimir "idsEmpenhos: " + idsEmpenhos
+	*/
+} else {
+	criterioLiquidacoes = "empenho.id in ($idsEmpenhos)";
+}
+
+listaIdsLiquidacao = [];
+listaIdsEmpenhos   = [];
+p_assinantes    = nulo;
+
+/*
+CRIAÇÃO DAS VARIAVEIS DA ASSINATURA
+*/
+nomeAssinanteOrdem =  "";
+cpfAssinanteOrdem =  "";
+funcaoAssinanteOrdem =  "";
+complementoAssinanteOrdem =  "";
+
+/*
+CRIANDO A CHAMADA DE LIQUIDACOES
+*/
+
+fonteLiquidacao = Dados.contabilidade.v1.liquidacoesEmpenhos 
+camposLiquidacoes  = "id,entidade.id,entidade.nome,exercicio.ano,valor,data,especificacao,numeroCadastro.numero,";
+camposLiquidacoes += "empenho(id,valor,data,tipo,identificador,especificacao),empenho.numeroCadastro.numero,empenho.natureza(numero,descricao),";
+camposLiquidacoes += "empenho.despesa.programa(numero,descricao),empenho.despesa.acao(numero,descricao),empenho.despesa.organograma(numero,descricao),";
+camposLiquidacoes += "empenho.despesa.organograma.organogramaPai(numero,descricao),empenho.despesa.funcao(numero,descricao),empenho.despesa.subfuncao(numero,descricao),";
+camposLiquidacoes += "empenho.recursoVinculo.recurso(numero,descricao,tipo), empenho.despesa.numero, ";
+camposLiquidacoes += "empenho.credor(id,nome,tipo,inscricaoEstadual),empenho.credor.credorFisica.pessoaFisica(rg,cpf),empenho.credor.credorJuridica.pessoaJuridica.cnpj,";
+camposLiquidacoes += "empenho.precatorio.credor(id,nome,tipo,inscricaoEstadual),empenho.precatorio.credor.credorFisica.pessoaFisica(rg,cpf),empenho.precatorio.credor.credorJuridica.pessoaJuridica.cnpj,";
+camposLiquidacoes += "empenho.divida.credor(id,nome,tipo,inscricaoEstadual),empenho.divida.credor.credorFisica.pessoaFisica(rg,cpf),empenho.divida.credor.credorJuridica.pessoaJuridica.cnpj,"
+camposLiquidacoes += "empenho.diaria.credor(id,nome,tipo,inscricaoEstadual),empenho.diaria.credor.credorFisica.pessoaFisica(rg,cpf),empenho.diaria.credor.credorJuridica.pessoaJuridica.cnpj,";
+camposLiquidacoes += "empenho.processoAdministrativo(id,processoId,numeroProcesso,anoProcesso,formaContratacao,numeroContratacao,numeroChamadaPublicaContratacao,anoContratacao,tipoContratacao,modalidade),";
+camposLiquidacoes += "empenho.processoAdministrativo.contrato(numeroContratacao,anoContratacao),";
+camposLiquidacoes += "empenho.contrato(id,contratacaoId,numeroContratacao,anoContratacao,codigoObra,descricaoObra,idTipoObjeto,tipoObjeto,descricaoTipoObjeto)";
+
+fonteLiquidacao = fonteLiquidacao.busca(campos: camposLiquidacoes,
+										criterio: criterioLiquidacoes);
+// pegando todos os ids de liquidações com base nos numeros informados no parâmetros numero da liquidação
+idEntidade = 0
+percorrer(fonteLiquidacao){ 	
+  listaIdsLiquidacao << item.id;
+  listaIdsEmpenhos   << item.empenho.id;
+  idEntidade = item.entidade.id;
+}
+
+idsLiquidacaoGlobal = ("" + listaIdsLiquidacao).substituir("[","").substituir("]",""); // ids de liquidações que serão utilizados em nosso relatório;
+idsEmpenhosGlobal   = ("" + listaIdsEmpenhos.unique()).substituir("[","").substituir("]",""); // ids de empenhos que serão utilizados em nosso relatório;
+/*
+FIM DA CRIAÇÃO;
+*/
+
+//Verificar se há liquidações
+if(idsLiquidacaoGlobal != ""){
+
+	/*
+		CAMPOS PARA O RELATÓRIO
+	*/
+	// CAMPOS AUXILIARES 
+	idCredor = "";
+
+	// PRIMEIRO BLOCO DE INFORMAÇÕES
+	tipoEmpenho = "";
+	codDespesa = 0;
+	numeroOrgao = "";
+	descricaoOrgao   = "";
+	numeroUnidade    = "";
+	descricaoUnidade = "";
+	numeroFuncional  = "";
+	descricaoFuncional = "";
+	numeroProjAtiv     = "";
+	descricaoProjAtiv  = "";
+	numeroNaturezaDespesa    = "";
+	descricaoNaturezaDespesa = "";
+	numeroRecurso    = "";
+	descricaoRecurso = "";
+
+	// SEGUNDO BLOCO DE INFORMAÇÕES
+	numeroEmpenho = "";
+	valorEmpenho  = 0.0;
+	valorAnulacaoEmpenho = 0.0;
+	totalA = 0.0;
+
+	numeroLiquidacao = "";
+	dataLiquidacao   = Datas.hoje();
+	valorLiquidacao  = 0.0;
+	valorAnulacaoLiquidacao    = 0.0;
+	valorLiquidacoesAnteriores = 0.0;
+	totalB = 0.0;
+
+	totalAB = 0.0;
+
+	// TERCEIRO BLOCO DE INFORMAÇÕES
+	nomeCredor     = "";
+	enderecoCredor = "";
+	cpfCnpjCredor  = "";
+	cidadeCredor   = "";
+	ufCredor       = "";
+	inscricaoEstadualCredor = "";
+	banco     = "";
+	agencia   = "";
+	conta     = "";
+	tipoConta = "";
+
+	telefone  = "";
+
+	// QUARTO BLOCO DE INFORMAÇÕES
+	especificacaoLiquidacao = "";
+	fonteRecursoEmpenho     = "";
+	valorGeral  = "";
+
+	// QUINTO BLOCO DE INFORMAÇÕES
+	fundamentoLegal     = "";
+	modalidadeLicitacao = "";
+	contrato          = "";
+	numeroContrato    = "";
+	numeroAnoContrato = "";
+
+	/*
+	FIM
+	*/
+	totalAnulacao = 0.0;
+	mapaAnulacaoEmpenho    = [:];
+	mapaAnulacaoLiquidacao = [:];
+
+
+	/*
+	BUSCANDO DADOS DAS ANULAÇÕES
+	*/
+	// ANULAÇÃO DE EMPENHO
+	if(idsEmpenhosGlobal != ""){
+		fonteAnulacaoEmpenho    = Dados.contabilidade.v1.anulacoes.empenhos;
+		camposAnulacaoEmpenho   = "anulacao.valor,empenho.id";
+		criterioAnulacaoEmpenho = "empenho.id in ($idsEmpenhosGlobal)"
+
+		fonteAnulacaoEmpenho = fonteAnulacaoEmpenho.busca(campos:camposAnulacaoEmpenho,criterio:criterioAnulacaoEmpenho);
+		// percorrendo a fonte de anulações
+		percorrer(fonteAnulacaoEmpenho){ anulaEmpenhos -> 
+			chave = [id: ""+anulaEmpenhos.empenho.id];
+
+			se(mapaAnulacaoEmpenho[chave]){
+				mapaAnulacaoEmpenho[chave] << [
+					totalAnulacao : mapaAnulacaoEmpenho[chave].totalAnulacao + Numeros.arredonda(anulaEmpenhos.anulacao.valor,2)
+
+				]
+			}senao{
+				mapaAnulacaoEmpenho[chave] = [
+					totalAnulacao : anulaEmpenhos.anulacao.valor
+				]
+			}
+		}
+	}
+
+	// ANULAÇÃO DE LIQUIDACAO
+		fonteAnulacaoLiquidacao    = Dados.contabilidade.v1.anulacoes.liquidacoesEmpenhos ;
+		camposAnulacaoLiquidacao   = "anulacao.valor,liquidacao.id";
+		criterioAnulacaoLiquidacao = "liquidacao.id in ($idsLiquidacaoGlobal)"
+
+		fonteAnulacaoLiquidacao = fonteAnulacaoLiquidacao.busca(campos:camposAnulacaoLiquidacao,criterio:criterioAnulacaoLiquidacao);
+		// percorrendo a fonte de anulações
+		percorrer(fonteAnulacaoLiquidacao){ anulaLiquidacao -> 
+
+			chave = [id: ""+anulaLiquidacao.liquidacao.id];
+			
+			se(mapaAnulacaoLiquidacao[chave]){
+				mapaAnulacaoLiquidacao[chave] << [
+					totalAnulacao : mapaAnulacaoLiquidacao[chave].totalAnulacao + Numeros.arredonda(anulaLiquidacao.anulacao.valor,2)
+				]
+			}senao{
+				mapaAnulacaoLiquidacao[chave] = [
+					totalAnulacao : Numeros.arredonda(anulaLiquidacao.anulacao.valor,2)
+				]
+			}
+		}
+
+	/*
+	FIM DAS ANULAÇÕES
+	*/
+
+	/*
+	BUSCANDO RETENÇÕES
+	*/
+	if(idsLiquidacaoGlobal != ""){
+		fonteRetencao    = Dados.contabilidade.v1.retencoes.liquidacoes;
+		camposRetencao   = "retencaoVinculo.retencaoExercicio.retencao.descricao,retencaoVinculo.valor,liquidacao.id";
+		criterioRetencao = "liquidacao.id in ($idsLiquidacaoGlobal)";
+		fonteRetencao    = fonteRetencao.busca(campos:camposRetencao, criterio:criterioRetencao);
+		mapaRetencaoLiquidacao = [:];
+		relacaoDescontos       = "";
+		valorRetido            = "";
+
+		percorrer(fonteRetencao){ retencoes -> 
+			chave = [id: ""+retencoes.liquidacao.id];
+			
+			valorRetido = "" + Numeros.arredonda(retencoes.retencaoVinculo.valor, 2);
+
+			relacaoDescontos = retencoes.retencaoVinculo.retencaoExercicio.retencao.descricao + " - R\$" + Caracteres.substituir(valorRetido, '.',',');
+
+			se(mapaRetencaoLiquidacao[chave]){
+				mapaRetencaoLiquidacao[chave] << [
+					totalRetencao : mapaRetencaoLiquidacao[chave].totalRetencao + Numeros.arredonda(retencoes.retencaoVinculo.valor,2),
+					itensRetencao : (mapaRetencaoLiquidacao[chave].itensRetencao + " , " + relacaoDescontos)
+				]
+			}senao{
+				mapaRetencaoLiquidacao[chave] = [
+					totalRetencao : Numeros.arredonda(retencoes.retencaoVinculo.valor,2),
+					itensRetencao : relacaoDescontos
+				]
+			}
+			relacaoDescontos = "";
+		}
+	}
+	/*
+	FIM DA BUSCA DAS RETENÇÕES
+	*/
+
+	/* BUSCANDO VENCIMENTOS */
+	if(idsLiquidacaoGlobal != ""){
+		fonteVencimentos     = Dados.contabilidade.v1.vencimentos;
+		camposVencimentos    = "vencimento.data,liquidacao.id";
+		criteriosVencimentos = "liquidacao.id in ($idsLiquidacaoGlobal)";
+		
+		fonteVencimentos   = fonteVencimentos.busca(campos:camposVencimentos, criterio:criteriosVencimentos);
+		mapaVencimentos    = [:];
+		relacaoVencimentos = "";
+		
+		percorrer(fonteVencimentos){ vencimentos -> 
+			chave = [id: ""+vencimentos.liquidacao.id];
+			
+			relacaoVencimentos = vencimentos.vencimento.data
+			
+			se(mapaVencimentos[chave]){
+				mapaVencimentos[chave] = [ itensVencimentos : relacaoVencimentos ]
+			}senao{
+				mapaVencimentos[chave] = [ itensVencimentos : relacaoVencimentos ]
+				parar()
+			}
+			relacaoVencimentos = "";
+		}
+	}
+	/*
+	FIM DA BUSCA DOS VENCIMENTOS 
+	*/
+
+	/* BUSCANDO PAGAMENTOS */
+	if(idsLiquidacaoGlobal != ""){
+		camposPagamentos = "liquidacao.id, pagamento.valorTotalPagamento, pagamento.valorTotalRetencao"
+		criteriosPagamentos = "liquidacao.id in ($idsLiquidacaoGlobal)"
+		
+		fontePagamentos = Dados.contabilidade.v1.pagamentosVinculosLiquidacoes.busca(campos:camposPagamentos, criterio:criteriosPagamentos)
+		mapaPagamentos = [:]
+		
+		percorrer(fontePagamentos){ pagamentos ->
+			chave = [id: ""+pagamentos.liquidacao.id]
+			
+			se(mapaPagamentos[chave]){
+				mapaPagamentos[chave] << [
+					totalPagamento : mapaPagamentos[chave].totalPagamento + Numeros.arredonda((pagamentos.pagamento.valorTotalPagamento + pagamentos.pagamento.valorTotalRetencao),2)
+				]
+			}senao{
+				mapaPagamentos[chave] = [
+					totalPagamento : Numeros.arredonda(pagamentos.pagamento.valorTotalPagamento,2)
+				]
+			}
+		}
+		
+	}
+	/*
+	FIM DA BUSCA DOS PAGAMENTOS
+	*/
+
+	entidadeAux = "";
+
+	/*
+	UTILIZANDO OS COMPONENTES PARA ACHAR A FORMATAÇÃO DOS CAMPOS
+	*/
+	exercicioAux = "";
+	// fazendo isso apenas para pegar o exercicio de uma liquidação, tento esse exercicio vamos conseguir utilizar os componentes de formatação;
+	percorrer(fonteLiquidacao){l -> 
+		exercicioAux = l.exercicio.ano;
+		entidadeAux = l.entidade.id;  	
+		parar();
+	}
+
+	se((""+exercicioAux).tamanho == 0){
+		exercicioAux = Datas.ano(Datas.hoje());
+	}
+
+	// pegando os parametros orçamentários do exercicio
+	configuracoesOrcamentarias = utilitarios.configuracoesCloud(exercicioAux);
+
+	// pegando os ids das configurações do exercicio retornada pelo componente anterior
+	idNaturezaDespesa = configuracoesOrcamentarias.find{item -> item.configuracao == "NATUREZA_DESPESA"};
+	idOrganograma     = configuracoesOrcamentarias.find{item -> item.configuracao == "ORGANOGRAMA"};
+	idRecurso         = configuracoesOrcamentarias.find{item -> item.configuracao == "RECURSO"};
+
+	// pegando as formatações das mascaras de configurações do sistema
+	marcaraNaturezaDespesa = utilitarios.formatacaoMascara(idNaturezaDespesa);
+	marcaraOrganograma 	   = utilitarios.formatacaoMascara(idOrganograma);
+	marcaraRecurso         = utilitarios.formatacaoMascara(idRecurso);
+											
+	/*
+	FIM DOS COMPONENTES
+	*/
+
+	/*LISTA ASSINATURAS*/
+
+	camposAssinantes    = "assinante(nome, cpfFormatado, funcao, complemento),ordem";
+	ordenacaoAssinantes = "assinante.ordem asc";
+
+	p_assinatura = nulo;
+	assinaturaAux = nulo;
+	// primeiro tentamos achar uma assinatura que atenda as condições abaixo
+	if(idEntidade != 0){
+		imprimir "CritAssi: entidade.id = ${idEntidade}"
+		percorrer(Dados.contabilidade.v1.assinatura.busca(campos:"grupoConfiguracaoAssinatura.descricao,grupoConfiguracaoAssinatura.id", criterio:"entidade.id = ${idEntidade}")){
+			// pega a primeira assinatura que ele achar para essa entidade;
+			se(assinaturaAux == nulo ){assinaturaAux = item.grupoConfiguracaoAssinatura.id}
+			// tenta achar alguma configuração com descrição de notas
+			se(item.grupoConfiguracaoAssinatura.descricao.expressao(~/Liquida/).encontrouPadrao() == true || 
+				item.grupoConfiguracaoAssinatura.descricao.expressao(~/LIQUIDA/).encontrouPadrao() == true){
+				p_assinatura = item.grupoConfiguracaoAssinatura.id;
+			}
+		}
+	}
+	// buscar a assinatura de
+	listaAssinaturas = [];
+	se (p_assinatura != nulo){
+	  criteriosAssinantes = "grupoConfiguracaoAssinatura.id = $p_assinatura and entidade.id = ${idEntidade}";
+	}senao{
+	  criteriosAssinantes = "grupoConfiguracaoAssinatura.id = $assinaturaAux and entidade.id = ${entidadeAux}";
+	}
+
+
+	assinantes = Dados.contabilidade
+	.v1
+	.assinatura
+	.busca(criterio: criteriosAssinantes,
+		   campos: camposAssinantes,
+		   ordenacao: ordenacaoAssinantes);
+
+	  percorrer(assinantes){ assinatura ->
+		nome = assinatura.assinante.nome;
+		cpf =  assinatura.assinante.cpfFormatado;
+		funcao = assinatura.assinante.funcao;
+		complemento =  assinatura.assinante.complemento;
+		ordem = assinatura.ordem; 
+		
+		se(assinatura.ordem <= 4){
+		  listaAssinaturas << [
+			nome: assinatura.assinante.nome,
+			cpf: assinatura.assinante.cpfFormatado,
+			funcao: assinatura.assinante.funcao, 
+			complemento: assinatura.assinante.complemento,
+			ordem : assinatura.ordem
+		  ];
+		}senao{
+		  se(assinatura.ordem == 5){
+			  nomeAssinanteOrdem =  assinatura.assinante.nome;
+			  cpfAssinanteOrdem = assinatura.assinante.cpfFormatado;
+			  funcaoAssinanteOrdem = assinatura.assinante.funcao;
+			  complementoAssinanteOrdem = assinatura.assinante.complemento;
+		  }
+		}
+	  }
+
+	/*
+	PERCORRENDO A FONTE DE DADOS PARA FORMAR O RELATÓRIO
+	*/
+
+	percorrer(fonteLiquidacao){	liquidacao -> 
+		
+		// VERIFICANDO SEGUNDO O IDENTIFICADOR DO EMPENHO, QUAL ARVORE EU TENHO QUE ACESSAR PARA PEGAR OS DADOS DO CREDOR
+		idCredor = "";
+		se(liquidacao.empenho.identificador in ["CREDOR","CONVENIO","ADIANTAMENTO","PROCESSO","CONTRATO"]){
+			idCredor   = liquidacao.empenho.credor.id;
+			nomeCredor = liquidacao.empenho.credor.nome;
+			se(liquidacao.empenho.credor.tipo == "FISICA"){ cpfCnpjCredor = liquidacao.empenho.credor.credorFisica.pessoaFisica.cpf; cpfCnpjCredor = utilitarios.formatacoesUtilitarias("CPF",cpfCnpjCredor); }senao{ cpfCnpjCredor = liquidacao.empenho.credor.credorJuridica.pessoaJuridica.cnpj; cpfCnpjCredor = utilitarios.formatacoesUtilitarias("CNPJ",cpfCnpjCredor);}
+		}senao{
+			se(liquidacao.empenho.identificador in ["DIARIA"]){
+				idCredor   = liquidacao.empenho.diaria.credor.id;
+				nomeCredor = liquidacao.empenho.diaria.credor.nome;
+				se(liquidacao.empenho.diaria.credor.tipo == "FISICA"){ cpfCnpjCredor = liquidacao.empenho.diaria.credor.credorFisica.pessoaFisica.cpf; cpfCnpjCredor = utilitarios.formatacoesUtilitarias("CPF",cpfCnpjCredor); }senao{ cpfCnpjCredor = liquidacao.empenho.diaria.credor.credorJuridica.pessoaJuridica.cnpj; cpfCnpjCredor = utilitarios.formatacoesUtilitarias("CNPJ",cpfCnpjCredor);}		
+			}senao{
+				se(liquidacao.empenho.identificador in ["PRECATORIO"]){
+					idCredor   = liquidacao.empenho.precatorio.credor.id;
+					nomeCredor = liquidacao.empenho.precatorio.credor.nome;
+					se(liquidacao.empenho.precatorio.credor.tipo == "FISICA"){ cpfCnpjCredor = liquidacao.empenho.precatorio.credor.credorFisica.pessoaFisica.cpf; cpfCnpjCredor = utilitarios.formatacoesUtilitarias("CPF",cpfCnpjCredor); }senao{ cpfCnpjCredor = liquidacao.empenho.precatorio.credor.credorJuridica.pessoaJuridica.cnpj; cpfCnpjCredor = utilitarios.formatacoesUtilitarias("CNPJ",cpfCnpjCredor);}		
+				}senao{
+					se(liquidacao.empenho.identificador in ["DIVIDA"]){
+						idCredor   = liquidacao.empenho.divida.credor.id;
+						nomeCredor = liquidacao.empenho.divida.credor.nome;
+						se(liquidacao.empenho.divida.credor.tipo == "FISICA"){ cpfCnpjCredor = liquidacao.empenho.divida.credor.credorFisica.pessoaFisica.cpf; cpfCnpjCredor = utilitarios.formatacoesUtilitarias("CPF",cpfCnpjCredor);}senao{ cpfCnpjCredor = liquidacao.empenho.divida.credor.credorJuridica.pessoaJuridica.cnpj; cpfCnpjCredor = utilitarios.formatacoesUtilitarias("CNPJ",cpfCnpjCredor);}					
+					}
+				}
+			}
+		}
+		
+		// PRIMEIRO BLOCO DE INFORMAÇÕES
+		tipoEmpenho = liquidacao.empenho.tipo;
+		codDespesa = liquidacao.empenho.despesa.numero;
+		numeroOrgao = utilitarios.formatarCampo(marcaraOrganograma,liquidacao.empenho.despesa.organograma.organogramaPai.numero);
+		descricaoOrgao = liquidacao.empenho.despesa.organograma.organogramaPai.descricao.maiusculo;
+		numeroUnidade  = utilitarios.formatarCampo(marcaraOrganograma,liquidacao.empenho.despesa.organograma.numero);
+		descricaoUnidade = liquidacao.empenho.despesa.organograma.descricao.maiusculo;
+		numeroFuncional  =  liquidacao.empenho.despesa.funcao.numero + "." + liquidacao.empenho.despesa.subfuncao.numero + "." + liquidacao.empenho.despesa.programa.numero;
+		descricaoFuncional = liquidacao.empenho.despesa.programa.descricao;
+		numeroProjAtiv     = liquidacao.empenho.despesa.acao.numero;
+		descricaoProjAtiv  = liquidacao.empenho.despesa.acao.descricao.maiusculo;
+		numeroNaturezaDespesa    = utilitarios.formatarCampo(marcaraNaturezaDespesa,liquidacao.empenho.natureza.numero);
+		descricaoNaturezaDespesa = liquidacao.empenho.natureza.descricao.maiusculo;
+		numeroRecurso    = utilitarios.formatarCampo(marcaraRecurso,liquidacao.empenho.recursoVinculo.recurso.numero);
+		descricaoRecurso = liquidacao.empenho.recursoVinculo.recurso.descricao.maiusculo;
+		
+		especificacaoLiquidacao	= "";
+		especificacaoLiquidacao = liquidacao.especificacao;
+	  
+		se (especificacaoLiquidacao == ""){
+			especificacaoLiquidacao = liquidacao.empenho.especificacao;
+		}
+		
+		// SEGUNDO BLOCO DE INFORMAÇÕES
+		numeroEmpenho = (liquidacao.empenho.numeroCadastro.numero + "/" + liquidacao.exercicio.ano);
+		valorEmpenho  = Numeros.arredonda(liquidacao.empenho.valor,2);
+		chave = [id: ""+liquidacao.empenho.id]
+		se(mapaAnulacaoEmpenho[chave]){
+			valorAnulacaoEmpenho = mapaAnulacaoEmpenho[chave].totalAnulacao;  // acha os valores das anluações de empenho do mapa 
+		}senao{
+			valorAnulacaoEmpenho = 0.0;
+		}
+
+		numeroLiquidacao = (liquidacao.numeroCadastro.numero + "/" + liquidacao.exercicio.ano);
+		dataLiquidacao   = liquidacao.data;
+		valorLiquidacoesAnteriores = 0.0;
+		valorLiquidacao = Numeros.arredonda(liquidacao.valor,2);
+		chave = [id: ""+liquidacao.id];
+		se(mapaAnulacaoLiquidacao[chave]){
+			valorAnulacaoLiquidacao = mapaAnulacaoLiquidacao[chave].totalAnulacao;// acha os valores das anluações de liquidacao do mapa 
+		}senao{
+			valorAnulacaoLiquidacao = 0.0;
+		}
+		
+		chave = [id: ""+liquidacao.id]
+		se(mapaPagamentos[chave]){
+			valorPagamento = mapaPagamentos[chave].totalPagamento
+		} senao {
+			valorPagamento = 0.0
+		}
+		
+		totalA  = (valorEmpenho - valorAnulacaoEmpenho);
+		totalB  = ((valorLiquidacoesAnteriores + valorLiquidacao) - valorAnulacaoLiquidacao);
+		totalAB = (totalA - totalB);
+		
+		// TERCEIRO BLOCO DE INFORMAÇÕES - ENDERECO DO CREDOR
+		se((idCredor+"").tamanho > 0){
+			fonteEndereco    = Dados.contabilidade.v1.enderecos;
+			camposEndereco   = "municipio(nome),logradouro(nome,cep),numero,municipio.estado(nome,uf)"
+			criterioEndereco = "credor.id = $idCredor"
+
+			fonteEndereco = fonteEndereco.busca(campos:camposEndereco,criterio: criterioEndereco);
+			percorrer(fonteEndereco){ enderecos ->
+				enderecoCredor = (enderecos.logradouro.nome + " - " + enderecos.numero);
+				cidadeCredor   = enderecos.municipio.nome;
+				ufCredor       = enderecos.municipio.estado.uf;
+				parar();
+			} 
+
+
+			fonteContaCredor    = Dados.contabilidade.v1.contasBancariasCredores;
+			camposContaCredor   = "padrao,conta(numero,digito,tipo),conta.banco(numeroBanco,nome),conta.agencia(numeroAgencia,digitoAgencia,nome)"
+			criterioContaCredor = "credor.id = $idCredor and padrao = true"
+
+			fonteContaCredor = fonteContaCredor.busca(campos:camposContaCredor, criterio:criterioContaCredor);
+			percorrer(fonteContaCredor){ contaCredor ->
+				banco     = (contaCredor.conta.banco.numeroBanco + " - " + contaCredor.conta.banco.nome);
+				agencia   = (contaCredor.conta.agencia.numeroAgencia + "-" + contaCredor.conta.agencia.digitoAgencia  + " - " + contaCredor.conta.agencia.nome);
+				conta     = (contaCredor.conta.numero + "-" + contaCredor.conta.digito);
+				tipoConta = contaCredor.conta.tipo;
+
+				se(tipoConta == "CORRENTE") {
+				   tipoConta = "Corrente"
+				} senao{
+					se (tipoConta == "POUPANCA") {
+						tipoConta = "Poupança"
+					}senao{
+						se (tipoConta == "SALARIO") {
+							tipoConta = "Salário"
+							}
+					}
+				}
+				parar();
+			} 
+
+			fonteTelefoneCredor    = Dados.contabilidade.v1.telefones;
+			camposTelefoneCredor   = "tipo,numero,principal,credor.id"
+			criterioTelefoneCredor = "credor.id = $idCredor and (principal = true or principal is null)"
+
+			fonteTelefoneCredor = fonteTelefoneCredor.busca(campos:camposTelefoneCredor, criterio:criterioTelefoneCredor);
+			mapaTelefones       = [:];
+			relacaoTelefones    = "";
+
+			percorrer(fonteTelefoneCredor){ telefoneCredor ->
+			chave = [id: ""+telefoneCredor.credor.id];
+				
+			relacaoTelefones = telefoneCredor.numero;
+
+				se(mapaTelefones[chave]){
+					mapaTelefones[chave] = [ telefone : relacaoTelefones ]
+					}senao{
+						mapaTelefones[chave] = [ telefone : relacaoTelefones ]
+						parar()
+					}
+				relacaoTelefones = "";
+
+			}
+
+			chave = [id: ""+idCredor];
+			se(mapaTelefones[chave]){
+				telefone = mapaTelefones[chave].telefone;
+			} senao{
+				telefone ="";
+			}
+
+			se (telefone != ""){
+				telefone = utilitarios.formatacoesUtilitarias("TELEFONE",telefone) 
+			}
+
+		} // FIM TERCEIRO BLOCO DE INFORMACOES
+
+		// QUARTO BLOCO DE INFORMAÇÕES
+		se(liquidacao.empenho.recursoVinculo.recurso.tipo == "ORDINARIO"){
+			fonteRecursoEmpenho = "Ordinário"
+		}senao{
+			fonteRecursoEmpenho = "Vinculado"
+		}
+		
+		// DADOS DA RETENÇÃO
+		chave = [id: ""+liquidacao.id];
+		se(mapaRetencaoLiquidacao[chave]){
+			totalRetencao = mapaRetencaoLiquidacao[chave].totalRetencao;
+			itensRetencao = mapaRetencaoLiquidacao[chave].itensRetencao;
+		}senao{
+			totalRetencao = 0.0;
+			itensRetencao = "";
+		}
+
+		liquidoPagar = (totalB - totalRetencao)
+
+		// DADOS DO VENCIMENTO
+		itensVencimentos = dataLiquidacao;
+
+		chave = [id: ""+liquidacao.id];
+		se(mapaVencimentos[chave]){
+			itensVencimentos = mapaVencimentos[chave].itensVencimentos;
+		}
+		
+		// DADOS DO CONTRATOS
+		se(liquidacao.empenho.identificador != "CONTRATO"){
+			contrato = liquidacao.empenho.processoAdministrativo.numeroContratacao + "/" + liquidacao.empenho.processoAdministrativo.anoContratacao;
+			se(contrato == "0/0"){contrato = "";}
+			modalidadeLicitacao = liquidacao.empenho.processoAdministrativo.modalidade;
+			numeroContrato      = liquidacao.empenho.processoAdministrativo.numeroProcesso  + "/" + liquidacao.empenho.processoAdministrativo.anoProcesso;
+			se(numeroContrato == "0/0"){numeroContrato = "";}
+
+			numeroAnoContrato = liquidacao.empenho.processoAdministrativo.contrato.numeroContratacao  + "/" + liquidacao.empenho.processoAdministrativo.contrato.anoContratacao;
+			se(numeroAnoContrato == "0/0"){numeroAnoContrato = "";}
+
+			fundamentoLegal = "";
+		}senao{
+			contrato = "";
+			se(contrato == "0/0"){contrato = "";}
+			modalidadeLicitacao = "";
+			numeroContrato      = "";
+			numeroAnoContrato   = liquidacao.empenho.contrato.numeroContratacao + "/" + liquidacao.empenho.contrato.anoContratacao;
+			fundamentoLegal     = "";			
+		}
+		 
+	// inserindo linha dentro da fonte dinamica
+		fonte.inserirLinha([
+				tipoEmpenho : tipoEmpenho,
+				codDespesa : codDespesa,
+				numeroOrgao : numeroOrgao,
+				descricaoOrgao : descricaoOrgao,
+				numeroUnidade : numeroUnidade,
+				descricaoUnidade : descricaoUnidade,
+				numeroFuncional : numeroFuncional,
+				descricaoFuncional : descricaoFuncional,
+				numeroProjAtiv : numeroProjAtiv,
+				descricaoProjAtiv : descricaoProjAtiv,
+				numeroNaturezaDespesa : numeroNaturezaDespesa,
+				descricaoNaturezaDespesa : descricaoNaturezaDespesa,
+				numeroRecurso : numeroRecurso,
+				descricaoRecurso : descricaoRecurso,
+				numeroEmpenho : numeroEmpenho,
+				valorEmpenho : valorEmpenho,
+				valorAnulacaoEmpenho : valorAnulacaoEmpenho,
+				totalA : totalA,
+				numeroLiquidacao : numeroLiquidacao,
+				dataLiquidacao : dataLiquidacao,
+				valorLiquidacao : valorLiquidacao,
+				valorAnulacaoLiquidacao : valorAnulacaoLiquidacao,
+				valorLiquidacoesAnteriores : valorLiquidacoesAnteriores,
+				totalB : totalB,
+				totalAB : totalAB,
+				totalC : valorPagamento,
+				nomeCredor : nomeCredor,
+				enderecoCredor : enderecoCredor,
+				cpfCnpjCredor : cpfCnpjCredor,
+				cidadeCredor : cidadeCredor,
+				ufCredor : ufCredor,
+				banco :banco,
+				agencia : agencia,
+				conta : conta,
+				tipoConta : tipoConta,
+				telefone : telefone,
+				inscricaoEstadualCredor : inscricaoEstadualCredor,
+				especificacaoLiquidacao : especificacaoLiquidacao,
+				fonteRecursoEmpenho : fonteRecursoEmpenho,
+				valorGeral : valorGeral,
+				fundamentoLegal : fundamentoLegal,
+				modalidadeLicitacao : modalidadeLicitacao,
+				contrato : contrato,
+				numeroContrato : numeroContrato,
+				numeroAnoContrato : numeroAnoContrato,
+				listaAssinaturas : listaAssinaturas,
+				totalRetencao : totalRetencao ,
+				itensRetencao : itensRetencao,
+				itensVencimentos : itensVencimentos,
+				liquidoPagar : liquidoPagar,
+				nomeAssinanteOrdem : nomeAssinanteOrdem,
+				cpfAssinanteOrdem : cpfAssinanteOrdem,
+				funcaoAssinanteOrdem : funcaoAssinanteOrdem ,
+				complementoAssinanteOrdem  : complementoAssinanteOrdem
+		]);	// finaliza a inserção das linhas
+
+		// zera as variaveis para que não fique sujeira nas contas bancarias dos credores...
+		inscricaoEstadualCredor = "";
+		banco     = "";
+		agencia   = "";
+		conta     = "";
+		tipoConta = "";
+
+	}
+}
+// retornar fonte de dados
+retornar fonte
+

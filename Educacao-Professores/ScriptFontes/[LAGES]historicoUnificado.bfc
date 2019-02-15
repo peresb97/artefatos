@@ -31,7 +31,6 @@ listaAlunos = [];
 
 // Cria o esquema.
 esquema = [
-	noData: Esquema.caracter,
 	nomeEntidade: Esquema.caracter,
 	enderecoEntidade: Esquema.caracter,
 	telefoneEntidade: Esquema.caracter,
@@ -96,6 +95,19 @@ idTurma = parametros.idTurma.selecionado?.valor;
 imprimir "Parâmetro Id Turma: $idTurma";
 paramAdmin = parametros.admin.valor
 paramEscola = parametros.escola.valor
+paramNivel = parametros.nivel.valor
+
+switch(paramNivel){
+	case 0:
+		nivelSelecionado = "Ensino infantil"
+		break
+	case 1:
+		nivelSelecionado = "Ensino fundamental"
+		break
+	case 2:
+		nivelSelecionado = "Ensino médio"
+		break
+}
 
 diretor = ""
 diretorMatricula = ""
@@ -141,11 +153,9 @@ percorrer(Dados.educacao.v1.estabelecimento.endereco(campos:"estabEndereco.estab
 
 /* -- Fim Estabelecimento -- */
 
-noData = 'N';
-if (idAluno == null && idTurma == null) {
-  noData = 'S';
+if (idAluno != null || idTurma != null) {
+  /*
   fonte.inserirLinha([
-    noData: noData,
     nomeEntidade: null,
     enderecoEntidade: null,
     telefoneEntidade: null,
@@ -187,28 +197,26 @@ if (idAluno == null && idTurma == null) {
     historicoEscolarItensNotaConceito: null,
     historicoEscolarItensNotaInformada: null
   ]);
-}
+  */
 
-if (noData == 'N') {
-  // Monta a lista de alunos.
-  if (idTurma != null) {
-    // Consulta a enturmação.
-    fonteEnturmacao = Dados.educacao.v1.enturmacao;
-    camposEnturmacao = 'matricula.aluno.id';
-    if (idAluno != null) {
-      criterioEnturmacao = "turma.id=$idTurma and matricula.aluno.id=$idAluno and dataFim is null";
-    }
-    else {
-      criterioEnturmacao = "turma.id=$idTurma and dataFim is null";
-    }
-    ordenacaoEnturmacao = 'turma.id, matricula.aluno.id';
-    percorrer(fonteEnturmacao.lista(campos: camposEnturmacao, criterio: criterioEnturmacao, ordenacao: ordenacaoEnturmacao)) { enturmacao ->
-      listaAlunos << enturmacao.matricula.aluno.id;
-    }
-  }
-  else {
-    listaAlunos << idAluno;
-  }
+// Monta a lista de alunos.
+if (idTurma != null) {
+// Consulta a enturmação.
+fonteEnturmacao = Dados.educacao.v1.enturmacao;
+camposEnturmacao = 'matricula.aluno.id';
+if (idAluno != null) {
+  criterioEnturmacao = "turma.id=$idTurma and matricula.aluno.id=$idAluno and dataFim is null";
+}
+else {
+  criterioEnturmacao = "turma.id=$idTurma and dataFim is null";
+}
+ordenacaoEnturmacao = 'turma.id, matricula.aluno.id';
+percorrer(fonteEnturmacao.lista(campos: camposEnturmacao, criterio: criterioEnturmacao, ordenacao: ordenacaoEnturmacao)) { enturmacao ->
+  listaAlunos << enturmacao.matricula.aluno.id;
+}
+}
+else {
+listaAlunos << idAluno;
 }
 
 // Seta as variáveis.
@@ -798,64 +806,67 @@ percorrer(listaAlunos) { itemlistaAlunos ->
 	// Salva os dados na fonte de dados.
 	percorrer(listaHistoricoEscolar) { item ->
 	  imprimir "Item: " + item
-	  fonte.inserirLinha([
-		noData: noData,
-		nomeEntidade: nomeEntidade,
-		enderecoEntidade: enderecoEntidade,
-		telefoneEntidade: telefoneEntidade,
-		emailEntidade: emailEntidade,
-		cidadeEntidade: cidadeEntidade,
-		ufEntidade: ufEntidade,
-		idAluno: idAluno,
-		nomeAluno: nomeAluno,
-		dataNascimentoAluno: dataNascimentoAluno,
-		municipioNascimentoAluno: [
-		  nome: nomeMunicipioNascimentoAluno,
-		  uf: ufMunicipioNascimentoAluno,
-		  unificado: nomeUfMunicipioNascimentoAluno
-		],
-		nacionalidadeAluno: nacionalidadeAluno,
-		maeAluno: maeAluno,
-		paiAluno: paiAluno,
-		filiacao: filiacao,
-		observacao: observacao,
-		escolaNome: escolaNome,
-		escolaEndereco: escolaEndereco,
-		escolaEmail: escolaEmail,
-		escolaTelefone: escolaTelefone,
-		historicoEscolarAnoConclusao: item.anoLetivo,
-		historicoEscolarEstabelecimentoEnsino: item.estabelecimentoEnsino,
-		historicoEscolarNivelModalidade: item.nivelModalidade,
-		historicoEscolarNivelEscolar: item.nivelEscolar,
-		historicoEscolarNivelEscolarNivelModalidade: item.nivelEscolarNivelModalidade,
-		historicoEscolarEtapaEnsino: item.etapaEnsino,
-		historicoEscolarEquivalencia: item.equivalencia,
-		historicoEscolarDescricaoCurso: item.descricaoCurso,
-		historicoEscolarMunicipio: [
-		  nome: item.municipio.nome,
-		  uf: item.municipio.uf,
-		  unificado: item.municipio.unificado
-		],
-		historicoEscolarDiasLetivos: item.diasLetivos,
-		historicoEscolarTotalFaltas: item.totalFaltas,
-		historicoEscolarCargaHorariaTotal: item.cargaHorariaTotal,
-		historicoEscolarPercentualFrequencia: item.percentualFrequencia,
-		historicoEscolarSituacaoFinal: item.situacaoFinal,
-		historicoEscolarItensOrientacaoCurricular: item.orientacaoCurricular,
-		historicoEscolarItensAvaliacaoDescricao: item.avaliacaoDescricao,
-		historicoEscolarItensTipoAvaliacao: item.tipoAvaliacao,
-		historicoEscolarItensNotaNumerica: item.notaNumerica,
-		historicoEscolarItensNotaDescritiva: item.notaDescritiva,
-		historicoEscolarItensNotaConceito: item.notaConceito,
-		historicoEscolarItensNotaInformada: item.notaInformada,
-		diretor: diretor,
-		diretorMatricula: diretorMatricula,
-		administrativo: administrativo,
-		administrativoMatricula: administrativoMatricula
-	  ]);
+	  if(item.nivelEscolar == nivelSelecionado){
+		  fonte.inserirLinha([
+			nomeEntidade: nomeEntidade,
+			enderecoEntidade: enderecoEntidade,
+			telefoneEntidade: telefoneEntidade,
+			emailEntidade: emailEntidade,
+			cidadeEntidade: cidadeEntidade,
+			ufEntidade: ufEntidade,
+			idAluno: idAluno,
+			nomeAluno: nomeAluno,
+			dataNascimentoAluno: dataNascimentoAluno,
+			municipioNascimentoAluno: [
+			  nome: nomeMunicipioNascimentoAluno,
+			  uf: ufMunicipioNascimentoAluno,
+			  unificado: nomeUfMunicipioNascimentoAluno
+			],
+			nacionalidadeAluno: nacionalidadeAluno,
+			maeAluno: maeAluno,
+			paiAluno: paiAluno,
+			filiacao: filiacao,
+			observacao: observacao,
+			escolaNome: escolaNome,
+			escolaEndereco: escolaEndereco,
+			escolaEmail: escolaEmail,
+			escolaTelefone: escolaTelefone,
+			historicoEscolarAnoConclusao: item.anoLetivo,
+			historicoEscolarEstabelecimentoEnsino: item.estabelecimentoEnsino,
+			historicoEscolarNivelModalidade: item.nivelModalidade,
+			historicoEscolarNivelEscolar: item.nivelEscolar,
+			historicoEscolarNivelEscolarNivelModalidade: item.nivelEscolarNivelModalidade,
+			historicoEscolarEtapaEnsino: item.etapaEnsino,
+			historicoEscolarEquivalencia: item.equivalencia,
+			historicoEscolarDescricaoCurso: item.descricaoCurso,
+			historicoEscolarMunicipio: [
+			  nome: item.municipio.nome,
+			  uf: item.municipio.uf,
+			  unificado: item.municipio.unificado
+			],
+			historicoEscolarDiasLetivos: item.diasLetivos,
+			historicoEscolarTotalFaltas: item.totalFaltas,
+			historicoEscolarCargaHorariaTotal: item.cargaHorariaTotal,
+			historicoEscolarPercentualFrequencia: item.percentualFrequencia,
+			historicoEscolarSituacaoFinal: item.situacaoFinal,
+			historicoEscolarItensOrientacaoCurricular: item.orientacaoCurricular,
+			historicoEscolarItensAvaliacaoDescricao: item.avaliacaoDescricao,
+			historicoEscolarItensTipoAvaliacao: item.tipoAvaliacao,
+			historicoEscolarItensNotaNumerica: item.notaNumerica,
+			historicoEscolarItensNotaDescritiva: item.notaDescritiva,
+			historicoEscolarItensNotaConceito: item.notaConceito,
+			historicoEscolarItensNotaInformada: item.notaInformada,
+			diretor: diretor,
+			diretorMatricula: diretorMatricula,
+			administrativo: administrativo,
+			administrativoMatricula: administrativoMatricula
+		  ]);
+	  }
 	}
 
 	listaHistoricoEscolar = [];
+
+}
 
 }
 

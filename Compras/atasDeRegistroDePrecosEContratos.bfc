@@ -1,0 +1,131 @@
+paramAno = parametros.ano.valor
+//paramObjeto = "(" + parametros.objeto + ")"
+paramDataIni = parametros.dataInicial.valor
+paramDataFim = parametros.dataFinal.valor
+paramEnt = parametros.entidade.valor
+paramAgrupamento = parametros.agrupamento.valor
+
+esquema = [
+	sequencial: Esquema.inteiro,
+	numeroTermo: Esquema.inteiro,
+	anoCont: Esquema.inteiro,
+	dataAss: Esquema.data,
+	dataFimVig: Esquema.data,
+	numProc: Esquema.inteiro,
+	anoProc: Esquema.inteiro,
+	outraEnt: Esquema.caracter,
+	valorCont: Esquema.numero,
+	dataCancel: Esquema.data,
+	tipoObjeto: Esquema.caracter,
+	objeto: Esquema.caracter,
+	fornec: Esquema.caracter,
+	fornecID: Esquema.caracter,
+	agrupamento: Esquema.caracter,
+	numeroAditivo: Esquema.inteiro,
+	procID: Esquema.inteiro
+]
+
+crit = "origem = 'PROCESSO_ADMINISTRATIVO'"
+
+if(paramAno != null){
+	crit += " and anoProcesso = ${paramAno}"
+}
+if(paramEnt != null){
+	crit += " and entidade.id = ${paramEnt}"
+}
+/*
+if(paramObjeto != "(null)"){
+	crit += " and material.id in ${paramObjeto}"
+}
+*/
+
+dataIni = paramDataIni.ano() + "-" + paramDataIni.mes() + "-" + 01
+crit += " and dataAssinatura >= ${dataIni}"
+
+if(paramDataFim.mes() == 12){
+	dataFim = (paramDataFim.ano() + 1) + "-" + 01 + "-" + 01
+	crit += " and dataAssinatura <= ${dataFim}"
+} else {
+	dataFim = paramDataFim.ano() + "-" + paramDataFim.mes() + "-" + 01
+	crit += " and dataAssinatura <= ${dataFim}"
+}
+
+imprimir crit
+
+switch(paramAgrupamento){
+	case "FORNECEDOR":
+		ord = "fornecedor.id asc, tipoObjeto.id asc"
+		break
+	default:
+		ord = "tipoObjeto.id asc"
+}
+
+ord += ", sequencial asc"
+
+fonte = Dados.dinamico.v2.novo(esquema)
+
+fonteContratacoes = Dados.contratos.v1.contratacoes.busca(campos:"id, ano, numeroProcesso, anoProcesso, sequencial, numeroTermo, dataAssinatura, dataFimVigencia, entidade.id, entidadePA.id, valorOriginal, valorAditivos, tipoObjeto.descricao, fornecedor.pessoa.nome, fornecedor.id, objetoContratacao, processoAdministrativo.id", criterio:crit, ordenacao:ord)
+fonteCancelamentos = Dados.contratos.v1.contratos.cancelamento
+fonteAditivos = Dados.contratos.v1.contratacoes.aditivos.itens
+
+dataCanc = nulo
+
+percorrer(fonteContratacoes){cont->
+
+	outraEnt = cont.entidade.id == cont.entidadePA.id?"Não":"Sim"
+
+	percorrer(fonteCancelamentos.busca(campos:"dataCancelamento", criterio:"contratacao.id = ${cont.id}")){canc->
+		dataCanc = canc.dataCancelamento
+		imprimir canc.dataCancelamento
+	}
+	
+	fonte.inserirLinha(
+		sequencial: cont.sequencial,
+		numeroTermo: cont.numeroTermo,
+		anoCont: cont.ano,
+		dataAss: cont.dataAssinatura,
+		dataFimVig: cont.dataFimVigencia,
+		numProc: cont.numeroProcesso,
+		anoProc: cont.anoProcesso,
+		outraEnt: outraEnt,
+		valorCont: cont.valorOriginal,
+		dataCancel: dataCanc,
+		tipoObjeto: cont.tipoObjeto.descricao,
+		objeto: cont.objetoContratacao,
+		fornec: cont.fornecedor.pessoa.nome,
+		fornecID: cont.fornecedor.id,
+		agrupamento: paramAgrupamento,
+		numeroAditivo: 0,
+		procID: cont.processoAdministrativo.id
+	)
+	
+	percorrer(fonteAditivos.busca(campos:"aditivo.sequencial, aditivo.objeto, aditivo.dataAditivo, valorTotal", criterio:"aditivo.contratacao.id = ${cont.id}", ordenacao:"aditivo.sequencial asc")){adds->
+	
+		fonte.inserirLinha(
+			sequencial: cont.sequencial,
+			numeroTermo: cont.numeroTermo,
+			anoCont: cont.ano,
+			dataAss: adds.aditivo.dataAditivo,
+			dataFimVig: cont.dataFimVigencia,
+			numProc: cont.numeroProcesso,
+			anoProc: cont.anoProcesso,
+			outraEnt: outraEnt,
+			valorCont: adds.valorTotal,
+			dataCancel: dataCanc,
+			tipoObjeto: cont.tipoObjeto.descricao,
+			objeto: adds.aditivo.objeto,
+			fornec: cont.fornecedor.pessoa.nome,
+			fornecID: cont.fornecedor.id,
+			agrupamento: paramAgrupamento,
+			numeroAditivo: adds.aditivo.sequencial,
+			procID: cont.processoAdministrativo.id
+		)
+		
+		imprimir adds.aditivo.sequencial
+	}
+	
+	dataCanc = nulo
+
+}
+
+retornar fonte

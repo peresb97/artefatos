@@ -61,10 +61,14 @@ esquema = [
 	itensRetencao : Esquema.caracter,
 	itensVencimentos : Esquema.data,
 	liquidoPagar : Esquema.numero,
-    nomeAssinanteOrdem  : Esquema.caracter,
-    cpfAssinanteOrdem  : Esquema.caracter,
-    funcaoAssinanteOrdem  : Esquema.caracter,
-    complementoAssinanteOrdem  : Esquema.caracter
+    nomeAssinanteOrdemPen : Esquema.caracter,
+    cpfAssinanteOrdemPen : Esquema.caracter,
+    funcaoAssinanteOrdemPen : Esquema.caracter,
+    complementoAssinanteOrdemPen : Esquema.caracter,
+	nomeAssinanteOrdemUlt : Esquema.caracter,
+	cpfAssinanteOrdemUlt : Esquema.caracter,
+	funcaoAssinanteOrdemUlt	: Esquema.caracter ,
+	complementoAssinanteOrdemUlt : Esquema.caracter
 ];
 
 
@@ -440,6 +444,8 @@ if(idsLiquidacaoGlobal != ""){
 	.busca(criterio: criteriosAssinantes,
 		   campos: camposAssinantes,
 		   ordenacao: ordenacaoAssinantes);
+		   
+		tamanhoListaAssinantes = assinantes.size()
 
 	  percorrer(assinantes){ assinatura ->
 		nome = assinatura.assinante.nome;
@@ -448,7 +454,7 @@ if(idsLiquidacaoGlobal != ""){
 		complemento =  assinatura.assinante.complemento;
 		ordem = assinatura.ordem; 
 		
-		se(assinatura.ordem <= 4){
+		if(assinatura.ordem <= (tamanhoListaAssinantes - 2)){
 		  listaAssinaturas << [
 			nome: assinatura.assinante.nome,
 			cpf: assinatura.assinante.cpfFormatado,
@@ -456,13 +462,16 @@ if(idsLiquidacaoGlobal != ""){
 			complemento: assinatura.assinante.complemento,
 			ordem : assinatura.ordem
 		  ];
-		}senao{
-		  se(assinatura.ordem == 5){
-			  nomeAssinanteOrdem =  assinatura.assinante.nome;
-			  cpfAssinanteOrdem = assinatura.assinante.cpfFormatado;
-			  funcaoAssinanteOrdem = assinatura.assinante.funcao;
-			  complementoAssinanteOrdem = assinatura.assinante.complemento;
-		  }
+		}else if(assinatura.ordem == (tamanhoListaAssinantes - 1)){
+		  nomeAssinanteOrdemPen =  assinatura.assinante.nome;
+		  cpfAssinanteOrdemPen = assinatura.assinante.cpfFormatado;
+		  funcaoAssinanteOrdemPen = assinatura.assinante.funcao;
+		  complementoAssinanteOrdemPen = assinatura.assinante.complemento;
+		}else if(assinatura.ordem == tamanhoListaAssinantes){
+		  nomeAssinanteOrdemUlt =  assinatura.assinante.nome;
+		  cpfAssinanteOrdemUlt = assinatura.assinante.cpfFormatado;
+		  funcaoAssinanteOrdemUlt = assinatura.assinante.funcao;
+		  complementoAssinanteOrdemUlt = assinatura.assinante.complemento;
 		}
 	  }
 
@@ -522,7 +531,7 @@ if(idsLiquidacaoGlobal != ""){
 		}
 		
 		// SEGUNDO BLOCO DE INFORMAÇÕES
-		numeroEmpenho = (liquidacao.empenho.numeroCadastro.numero + "/" + liquidacao.exercicio.ano);
+		numeroEmpenho = (liquidacao.empenho.numeroCadastro.numero + "/" + liquidacao.empenho.data.ano());
 		valorEmpenho  = Numeros.arredonda(liquidacao.empenho.valor,2);
 		chave = [id: ""+liquidacao.empenho.id]
 		se(mapaAnulacaoEmpenho[chave]){
@@ -729,10 +738,14 @@ if(idsLiquidacaoGlobal != ""){
 				itensRetencao : itensRetencao,
 				itensVencimentos : itensVencimentos,
 				liquidoPagar : liquidoPagar,
-				nomeAssinanteOrdem : nomeAssinanteOrdem,
-				cpfAssinanteOrdem : cpfAssinanteOrdem,
-				funcaoAssinanteOrdem : funcaoAssinanteOrdem ,
-				complementoAssinanteOrdem  : complementoAssinanteOrdem
+				nomeAssinanteOrdemPen : nomeAssinanteOrdemPen,
+				cpfAssinanteOrdemPen : cpfAssinanteOrdemPen,
+				funcaoAssinanteOrdemPen : funcaoAssinanteOrdemPen ,
+				complementoAssinanteOrdemPen : complementoAssinanteOrdemPen,
+				nomeAssinanteOrdemUlt : nomeAssinanteOrdemUlt,
+				cpfAssinanteOrdemUlt : cpfAssinanteOrdemUlt,
+				funcaoAssinanteOrdemUlt	: funcaoAssinanteOrdemUlt ,
+				complementoAssinanteOrdemUlt : complementoAssinanteOrdemUlt
 		]);	// finaliza a inserção das linhas
 
 		// zera as variaveis para que não fique sujeira nas contas bancarias dos credores...

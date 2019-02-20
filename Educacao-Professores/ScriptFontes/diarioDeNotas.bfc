@@ -492,10 +492,11 @@ percorrer(mapaAlunos){alus->
 			break
 	}
 	
-	if(pos == 1 && (situacao == "TRANSFERIDO" || situacao == "CANCELAMENTO")){
+//	if(pos == 1 && (situacao == "TRANSFERIDO" || situacao == "CANCELAMENTO")){
+	if(situacao == "TRANSFERIDO" || situacao == "CANCELAMENTO"){
 //		mediaCalc = mediaCalc=="Desc"?null:mediaCalc
-		mediaPer = mediaPer=="Desc"?null:mediaPer
-		mediaParcial = mediaParcial=="Desc"?null:mediaParcial
+		mediaPer = null
+		mediaParcial = null
 	}
 	
 	//insercao na fonte

@@ -1,11 +1,13 @@
-paramAno = parametros.ano.valor
+//paramAno = parametros.ano.valor
 //paramObjeto = "(" + parametros.objeto + ")"
-paramDataIni = parametros.dataInicial.valor
-paramDataFim = parametros.dataFinal.valor
-paramEnt = parametros.entidade.valor
-paramAgrupamento = parametros.agrupamento.valor
+// paramDataIni = parametros.dataInicial.valor
+// paramDataFim = parametros.dataFinal.valor
+//paramAgrupamento = parametros.agrupamento.valor
+//paramEnt = parametros.entidade.valor
 
 esquema = [
+	tipo: Esquema.caracter,
+	entidade: Esquema.caracter,
 	sequencial: Esquema.inteiro,
 	numeroTermo: Esquema.inteiro,
 	anoCont: Esquema.inteiro,
@@ -20,11 +22,12 @@ esquema = [
 	objeto: Esquema.caracter,
 	fornec: Esquema.caracter,
 	fornecID: Esquema.caracter,
-	agrupamento: Esquema.caracter,
+//	agrupamento: Esquema.caracter,
 	numeroAditivo: Esquema.inteiro,
 	procID: Esquema.inteiro
 ]
 
+/*
 crit = "origem = 'PROCESSO_ADMINISTRATIVO'"
 
 if(paramAno != null){
@@ -33,11 +36,10 @@ if(paramAno != null){
 if(paramEnt != null){
 	crit += " and entidade.id = ${paramEnt}"
 }
-/*
 if(paramObjeto != "(null)"){
 	crit += " and material.id in ${paramObjeto}"
 }
-*/
+
 
 dataIni = paramDataIni.ano() + "-" + paramDataIni.mes() + "-" + 01
 crit += " and dataAssinatura >= ${dataIni}"
@@ -50,36 +52,47 @@ if(paramDataFim.mes() == 12){
 	crit += " and dataAssinatura <= ${dataFim}"
 }
 
-imprimir crit
+*/
+mesAtual = Datas.data(Datas.hoje().ano, Datas.hoje().mes, 1).format("yyyy-MM-dd")
+mesProximo = (Datas.data(Datas.hoje().ano, Datas.hoje().mes, 1) + 2.mes).format("yyyy-MM-dd")
 
+//crit = "dataFimVigencia >= $mesAtual and dataFimVigencia < $mesProximo and situacao = 'EXECUCAO'"
+crit = "dataFimVigencia >= $mesAtual and dataFimVigencia < $mesProximo"
+
+/*
 switch(paramAgrupamento){
 	case "FORNECEDOR":
-		ord = "fornecedor.id asc, tipoObjeto.id asc"
+		ord = "entidade.nome asc, dataFimVigencia asc, fornecedor.pessoa.nome asc, tipoObjeto.descricao asc"
 		break
 	default:
-		ord = "tipoObjeto.id asc"
+		ord = "entidade.nome asc, dataFimVigencia asc, tipoObjeto.descricao asc, fornecedor.pessoa.nome asc"
 }
+*/
+
+//------------------ CONTRATOS ------------------//
+ord = "entidade.nome asc, dataFimVigencia asc, tipoObjeto.descricao asc, fornecedor.pessoa.nome asc"
 
 ord += ", sequencial asc"
 
 fonte = Dados.dinamico.v2.novo(esquema)
 
-fonteContratacoes = Dados.contratos.v1.contratacoes.busca(campos:"id, ano, numeroProcesso, anoProcesso, sequencial, numeroTermo, dataAssinatura, dataFimVigencia, entidade.id, entidadePA.id, valorOriginal, valorAditivos, tipoObjeto.descricao, fornecedor.pessoa.nome, fornecedor.id, objetoContratacao, processoAdministrativo.id", criterio:crit, ordenacao:ord)
+fonteContratacoes = Dados.contratos.v1.contratacoes.busca(campos:"id, ano, numeroProcesso, anoProcesso, sequencial, numeroTermo, dataAssinatura, dataFimVigencia, entidade(id,nome), entidadePA.id, valorOriginal, valorAditivos, tipoObjeto.descricao, fornecedor.pessoa.nome, fornecedor.id, objetoContratacao, processoAdministrativo.id", criterio:crit, ordenacao:ord)
 fonteCancelamentos = Dados.contratos.v1.contratos.cancelamento
 fonteAditivos = Dados.contratos.v1.contratacoes.aditivos.itens
-
-dataCanc = nulo
 
 percorrer(fonteContratacoes){cont->
 
 	outraEnt = cont.entidade.id == cont.entidadePA.id?"Não":"Sim"
 
+	dataCanc = nulo
 	percorrer(fonteCancelamentos.busca(campos:"dataCancelamento", criterio:"contratacao.id = ${cont.id}")){canc->
 		dataCanc = canc.dataCancelamento
-		imprimir canc.dataCancelamento
+//		imprimir canc.dataCancelamento
 	}
 	
 	fonte.inserirLinha(
+		tipo: "CONTRATO",
+		entidade: cont.entidade.nome,
 		sequencial: cont.sequencial,
 		numeroTermo: cont.numeroTermo,
 		anoCont: cont.ano,
@@ -94,7 +107,7 @@ percorrer(fonteContratacoes){cont->
 		objeto: cont.objetoContratacao,
 		fornec: cont.fornecedor.pessoa.nome,
 		fornecID: cont.fornecedor.id,
-		agrupamento: paramAgrupamento,
+//		agrupamento: paramAgrupamento,
 		numeroAditivo: 0,
 		procID: cont.processoAdministrativo.id
 	)
@@ -102,6 +115,8 @@ percorrer(fonteContratacoes){cont->
 	percorrer(fonteAditivos.busca(campos:"aditivo.sequencial, aditivo.objeto, aditivo.dataAditivo, valorTotal", criterio:"aditivo.contratacao.id = ${cont.id}", ordenacao:"aditivo.sequencial asc")){adds->
 	
 		fonte.inserirLinha(
+			tipo: "CONTRATO",
+			entidade: cont.entidade.nome,
 			sequencial: cont.sequencial,
 			numeroTermo: cont.numeroTermo,
 			anoCont: cont.ano,
@@ -116,15 +131,46 @@ percorrer(fonteContratacoes){cont->
 			objeto: adds.aditivo.objeto,
 			fornec: cont.fornecedor.pessoa.nome,
 			fornecID: cont.fornecedor.id,
-			agrupamento: paramAgrupamento,
+//			agrupamento: paramAgrupamento,
 			numeroAditivo: adds.aditivo.sequencial,
 			procID: cont.processoAdministrativo.id
 		)
 		
-		imprimir adds.aditivo.sequencial
+//		imprimir adds.aditivo.sequencial
 	}
 	
-	dataCanc = nulo
+}
+
+//------------------ ATA ------------------//
+
+//crit = "dataVencimento >= $mesAtual and dataVencimento < $mesProximo and situacao = 'ANDAMENTO'"
+crit = "dataVencimento >= $mesAtual and dataVencimento < $mesProximo"
+
+fonteAtas = Dados.compras.v1.atasregistropreco.busca(campos:"numeroAta, dataAssinatura, dataVencimento, objeto, valorTotalItens, entidade(id, nome), parametroExercicio(exercicio), fornecedor(pessoa(nome, id)),processoAdministrativo(id, numeroProcesso, parametroExercicio.exercicio)", criterio:crit, ordenacao:"entidade.nome asc, dataVencimento asc")
+
+percorrer(fonteAtas){ata->
+
+	fonte.inserirLinha(
+		tipo: "ATA",
+		entidade: ata.entidade.nome,
+		sequencial: ata.numeroAta,
+		numeroTermo: null,
+		anoCont: ata.parametroExercicio.exercicio,
+		dataAss: ata.dataAssinatura,
+		dataFimVig: ata.dataVencimento,
+		numProc: ata.processoAdministrativo.numeroProcesso,
+		anoProc: ata.processoAdministrativo.parametroExercicio.exercicio,
+		outraEnt: null,
+		valorCont: ata.valorTotalItens,
+		dataCancel: null,
+		tipoObjeto: null,
+		objeto: ata.objeto,
+		fornec: ata.fornecedor.pessoa.nome,
+		fornecID: ata.fornecedor.id,
+//		agrupamento: paramAgrupamento,
+		numeroAditivo: 0,
+		procID: ata.processoAdministrativo.id
+	)
 
 }
 

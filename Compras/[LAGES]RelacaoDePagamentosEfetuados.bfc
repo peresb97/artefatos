@@ -11,7 +11,7 @@ esquema = [
   numeroDoc: Esquema.caracter,
   numeroPagamento: Esquema.caracter,
   numeroEmpenho: Esquema.caracter,
-    naturezaElemento: Esquema.caracter,
+  naturezaElemento: Esquema.caracter,
   numeroConta: Esquema.caracter,
   numeroProcesso: Esquema.caracter,
   nomeCredor: Esquema.caracter,
@@ -22,7 +22,13 @@ esquema = [
   valorRecurso: Esquema.numero,
   numeroRecurso: Esquema.caracter,
   descricaoRecurso: Esquema.caracter,
-  listaComprovantes:  Esquema.lista(Esquema.objeto([
+  tipoPagamento: Esquema.caracter,
+  listaLiquidacoes: Esquema.lista(Esquema.objeto([
+	dataLiquidacao: Esquema.data,
+	valorLiquidacao: Esquema.numero,
+	especificacaoLiquidacao: Esquema.caracter
+])),
+  listaComprovantes: Esquema.lista(Esquema.objeto([
     tipoComprovante: Esquema.caracter,
     numeroComprovante: Esquema.caracter,
     dataComprovante: Esquema.caracter,
@@ -45,6 +51,7 @@ conta = parametros.conta.valor?:nulo;
 credor = parametros.credor.valor?:nulo;
 comprovantes = parametros.comprovantes.selecionado.valor?:nulo;
 anulacoes = parametros.anulacoes.selecionado.valor?:nulo;
+historico = parametros.historico.valor?:nulo
 
 parametrosCredores = [];
 se(credor){
@@ -93,7 +100,7 @@ idContas = Caracteres.substituir(idContas,"[", "");
 
 /*BUSCA DADOS DOS PAGAMENTOS DOS EMPENHOS*/
 
-/*VOLORES DE PAGAMENTOS ANULADOS*/
+/*VALORES DE PAGAMENTOS ANULADOS*/
 se(tipoDocumento != "D"){
   fonteAnulacaoPagamentos = Dados.contabilidade.v1.anulacoes.pagamentosEmpenhos;
   camposAnulacaoPagamentos = "pagamento.id,anulacao.entidade.id,anulacao.exercicio.ano,valorTotalRetencao,valorAnulacaoBaixa,anulacao.valor,anulacao.data,"
@@ -155,14 +162,14 @@ se(tipoDocumento != "D"){
   
   //DADOS PAGAMENTOS EFETUADOS DE EMPENHOS
   fontePagamentoEmpenhos = Dados.contabilidade.v1.pagamentosEmpenhos;
-  camposPagamentoEmpenhos = "numeroCadastro.numero,id,data,exercicio.ano,entidade(id,nome),valorTotalPagamento,valorTotalRetencao,restoPagar,baixa.numeroDocumento,baixa.contaBancariaEntidade.conta(id,numero,digito),"
+  camposPagamentoEmpenhos = "numeroCadastro.numero,id,data,exercicio.ano,entidade(id,nome),valorTotalPagamento,valorTotalRetencao,restoPagar,baixa.numeroDocumento,baixa.contaBancariaEntidade.conta(id,numero,digito), baixa.transacaoFinanceiraExercicio.transacaoFinanceira.tipo,"
   camposPagamentoEmpenhos += "empenho(id,identificador),empenho.recursoVinculo.recurso(numero,descricao),empenho.numeroCadastro.numero,empenho.natureza.numero,"
   camposPagamentoEmpenhos += "empenho.processoAdministrativo(numeroProcesso,anoProcesso),baixa.valor,empenho.recursoVinculo.recurso.descricao,baixa.contaBancariaEntidade.id,"
   camposPagamentoEmpenhos += "empenho.credor(id,nome),empenho.divida.credor(id,nome),empenho.precatorio.credor(id,nome),empenho.diaria.credor(id,nome)"
   criterioPagamentoEmpenhos = "exercicio.ano = $exercicio and data >= $dataInicial and data <= $dataFinal"
   ordenacaoPagamentosEmpenhos = "id asc"
 
-
+	
   
   se(entidade){
     criterioPagamentoEmpenhos += " and entidade.id in ($entidade)"
@@ -179,8 +186,63 @@ se(tipoDocumento != "D"){
   
   numeroDoc = "";
   numeroProcesso = "";
-  percorrer(fontePagamentoEmpenhos.busca(campos:camposPagamentoEmpenhos, criterio:criterioPagamentoEmpenhos,ordenacao:ordenacaoPagamentosEmpenhos)){pagamentosEmpenho ->
-
+	percorrer(fontePagamentoEmpenhos.busca(campos:camposPagamentoEmpenhos, criterio:criterioPagamentoEmpenhos, ordenacao:ordenacaoPagamentosEmpenhos)){pagamentosEmpenho ->
+	
+	//Especificacao das liquidacoes
+	
+	fontePagamentoLiquidacoes = Dados.contabilidade.v1.pagamentosVinculosLiquidacoes.busca(campos:"liquidacao.data, liquidacao.valor, liquidacao.especificacao", criterio:"pagamento.id = $pagamentosEmpenho.id")
+	
+	listaEspecificaoesLiq = null
+	if(historico == "S"){
+		listaEspecificaoesLiq = []
+		
+		percorrer(fontePagamentoLiquidacoes){PagLiqs->
+			listaEspecificaoesLiq << [dataLiquidacao:PagLiqs.liquidacao.data, valorLiquidacao:PagLiqs.liquidacao.valor, especificacaoLiquidacao:PagLiqs.liquidacao.especificacao]
+		}
+	}
+	
+	//Tipo de pagamento
+	
+	fonteDocumentosPagamentos = Dados.contabilidade.v1.documentosPagamentos.empenhos
+	camposDocsPags = "pacote.numero"
+	criterioDocsPags = "documentoPagamento.exercicio.ano = ${pagamentosEmpenho.exercicio.ano} and documentoPagamento.numeroCadastro.numero = $pagamentosEmpenho.numeroCadastro.numero"
+	
+	tipoPag = ""
+	switch(pagamentosEmpenho.baixa.transacaoFinanceiraExercicio.transacaoFinanceira.tipo){
+		case "ORDEM_BANCARIA":
+			fonteDocumentosPagamentos = fonteDocumentosPagamentos.busca(campos:camposDocsPags, criterio:criterioDocsPags, primeiro:true)
+			if(fonteDocumentosPagamentos){
+				tipoPag = "OB - ${fonteDocumentosPagamentos.pacote.numero}"
+			} else {
+				tipoPag = "OB"
+			}
+			break
+		case "DEBITO_AUTOMATICO":
+			tipoPag = "DA"
+			break
+		case "DINHEIRO":
+			tipoPag = "CX"
+			break
+		case "CHEQUE":
+			tipoPag = "CH"
+			break
+		case "OBRIGACAO":
+			tipoPag = "O"
+			break
+		case "CREDITO_BANCARIO":
+			tipoPag = "CB"
+			break
+		case "TRANSFERENCIA":
+			tipoPag = "TR"
+			break
+		case "BEM_PATRIMONIAL":
+			tipoPag = "BP"
+			break
+		default:
+			tipoPag = "N/A"
+	}
+	
+	
     //ZERA VARIAVEL PRA REUTILIZAR
     valorAnuladoPago = 0.0;
     valorAnuladoRetido = 0.0;
@@ -232,8 +294,6 @@ se(tipoDocumento != "D"){
         }
       }
     }
-    
-
 
   //IDENTIFICA VALOR DA ANULACAO DA DE.
   chaveMapaAnulacaoEmp = [anulacaoPagamentoId: pagamentoId];
@@ -279,13 +339,13 @@ se(tipoDocumento != "D"){
           dataComprovante : comprovantesPag.comprovanteVinculo.comprovante.data.format("dd/MM/yyyy"),
           nomeCredorComprovante : comprovantesPag.comprovanteVinculo.comprovante.credor.nome,
           valorLiquidoComprovante : Numeros.arredonda(comprovantesPag.comprovanteVinculo.valor,2),
-          comprovantes: comprovantes  
+          comprovantes: comprovantes
         ]
       }
     }
   }
  
- se(valorPago != 0){   
+ se(valorPago != 0){
   se(credor != nulo){
     se(Integer.valueOf(idCredor+ "") in parametrosCredores ){
 
@@ -311,7 +371,9 @@ imprimir "entrou";
       valorRecurso: 0,
       numeroRecurso:numeroRecurso,
       descricaoRecurso:descricaoRecurso,
-      listaComprovantes:listaComprovantesPagamentos
+	  tipoPagamento: tipoPag,
+      listaComprovantes:listaComprovantesPagamentos,
+	  listaLiquidacoes: listaEspecificaoesLiq
     ]);
     }
  }senao{
@@ -335,7 +397,9 @@ imprimir "entrou";
       valorRecurso: 0,
       numeroRecurso:numeroRecurso,
       descricaoRecurso:descricaoRecurso,
-      listaComprovantes:listaComprovantesPagamentos
+	  tipoPagamento: tipoPag,
+      listaComprovantes:listaComprovantesPagamentos,
+	  listaLiquidacoes: listaEspecificaoesLiq
     ]);
    }
   } //fim verificação valor
@@ -429,7 +493,7 @@ se(tipoDocumento == "T" || tipoDocumento == "D"){
   
   //DADOS DA DESPESA EXTRA
   fonteDespesaExtra = Dados.contabilidade.v1.despesasExtras;
-  camposDespesaExtra ="id,entidade(id,nome,uf),exercicio.ano, data, credor(nome,id), baixa.data, numeroCadastro.numero, paga, baixa(numeroDocumento,data), dataVencimento, valor, especificacao, tipo,";  
+  camposDespesaExtra ="id,entidade(id,nome,uf),exercicio.ano, data, credor(nome,id), baixa.data, numeroCadastro.numero, paga, baixa(numeroDocumento,data), dataVencimento, valor, especificacao, tipo, baixa.transacaoFinanceiraExercicio.transacaoFinanceira.tipo, numeroCadastro.numero,";  
   camposDespesaExtra += "baixa.contaBancariaEntidade.conta(id,numero,digito)"
   criteriosDespesaExtra = "exercicio.ano = $exercicio and baixa.data >= $dataInicial and baixa.data <= $dataFinal";
   ordenacaoDespesaExtra = "id asc";
@@ -479,7 +543,7 @@ se(tipoDocumento == "T" || tipoDocumento == "D"){
       valorRecurso = recursoDespesaExtra.recursoVinculo.valor;
       numeroRecurso = utilitarios.formatarCampo(marcaraRecurso,recursoDespesaExtra.recursoVinculo.recurso.numero);
       descricaoRecurso = recursoDespesaExtra.recursoVinculo.recurso.descricao;
-       }
+    }
     
     //IDENTIFICA OS COMPROVANTES DA DESPESA EXTRA  
     //VARIAVEIS COMPROVANTES
@@ -525,6 +589,47 @@ se(tipoDocumento == "T" || tipoDocumento == "D"){
     valorBruto = valorBruto - valorAnulado
     valorPago = (valorPago - valorDesconto) - valorAnulado;
     se(valorPago < 0){valorPago = 0.0;}
+	
+	//Tipo de pagamento
+	
+	fonteDocumentosPagamentos = Dados.contabilidade.v1.documentosPagamentos.empenhos
+	camposDocsPags = "pacote.numero"
+	criterioDocsPags = "documentoPagamento.exercicio.ano = $despesaExtra.exercicio.ano and documentoPagamento.numeroCadastro.numero = $despesaExtra.numeroCadastro.numero"
+	
+	tipoPag = ""
+	switch(despesaExtra.baixa.transacaoFinanceiraExercicio.transacaoFinanceira.tipo){
+		case "ORDEM_BANCARIA":
+			fonteDocumentosPagamentos = fonteDocumentosPagamentos.busca(campos:camposDocsPags, criterio:criterioDocsPags, primeiro:true)
+			if(fonteDocumentosPagamentos){
+				tipoPag = "OB - ${fonteDocumentosPagamentos.pacote.numero}"
+			} else {
+				tipoPag = "OB"
+			}
+			break
+		case "DEBITO_AUTOMATICO":
+			tipoPag = "DA"
+			break
+		case "DINHEIRO":
+			tipoPag = "CX"
+			break
+		case "CHEQUE":
+			tipoPag = "CH"
+			break
+		case "OBRIGACAO":
+			tipoPag = "O"
+			break
+		case "CREDITO_BANCARIO":
+			tipoPag = "CB"
+			break
+		case "TRANSFERENCIA":
+			tipoPag = "TR"
+			break
+		case "BEM_PATRIMONIAL":
+			tipoPag = "BP"
+			break
+		default:
+			tipoPag = "N/A"
+	}
     
     se(valorPago != 0){
       fonte.inserirLinha([
@@ -547,7 +652,9 @@ se(tipoDocumento == "T" || tipoDocumento == "D"){
         valorRecurso:valorRecurso,
         numeroRecurso:numeroRecurso,
         descricaoRecurso:descricaoRecurso,
-        listaComprovantes:listaComprovantesDex     
+		tipoPagamento: tipoPag,
+        listaComprovantes:listaComprovantesDex,
+		listaLiquidacoes: listaEspecificaoesLiq
       ]);
     }
     //ZERA VARIAVEL PRA REUTILIZAR

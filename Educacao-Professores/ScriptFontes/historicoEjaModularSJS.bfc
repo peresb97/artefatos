@@ -80,7 +80,6 @@ ultimo = 0
 livro = ""
 folha = ""
 regist = ""
-cargaHorariaMatriz = 1600
 
 se(paramNivel == 1){
 	nivelEsc = "ENSINO_MEDIO"
@@ -104,6 +103,7 @@ fonteEnturmacao = Dados.educacao.v1.enturmacao
 fonteEnturmacaoItemEducacional = Dados.educacao.v1.enturmacaoItemEducacional
 fonteEquipeDir = Dados.educacao.v1.equipeDiretiva
 fonteTurmaDisc = Dados.educacao.v1.turmaDisciplina
+fonteEtapaMatrizDisciplina = Dados.educacao.v1."EtapaMatrizDisciplina"
 
 
 /* -- Equipe diretiva -- */
@@ -243,14 +243,18 @@ percorrer(arrayAlunos){alu->
 	
 	/* -- Carga Horaria da Matriz -- */
 	
-	percorrer(fonteEnturmacao.lista("turma.etapaMatriz.matriz.id", criterio:"matricula.aluno.id = ${alu.id}", ordenacao:"anoLetivo.ano desc", primeiro:true){ mtrz->
+	cargaHorariaMatriz = 1600
+	percorrer(fonteEnturmacao.lista("turma.etapaMatriz.matriz.id", criterio:"matricula.aluno.id = ${alu.id}", ordenacao:"anoLetivo.ano desc")){ mtrz->
 	
+		imprimir "Matriz: " + mtrz.turma.etapaMatriz.matriz.id
 		percorrer(fonteEtapaMatrizDisciplina.lista(campos: "disciplina.descricao, cargaHoraria", criterio: "etapa.matriz.id = $mtrz.turma.etapaMatriz.matriz.id")){ chTurma ->
 			imprimir "Disciplina: " + chTurma.disciplina.descricao + " | CH: " + (chTurma.cargaHoraria / 3600) + " h/a"
 			cargaHorariaMatriz += (chTurma.cargaHoraria / 3600)
 		}
 		imprimir "CH Turma: " + cargaHorariaMatriz
-
+		
+		parar()
+	
 	}
 
 	/*	Notas dos itens do historico */

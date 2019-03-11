@@ -134,6 +134,18 @@ percorrer(fonteEstabelecimento.endereco(campos:"estabEndereco.estabelecimento.pe
 
 }
 
+/* -- Carga Horaria da Matriz -- */
+
+cargaHorariaMatriz = 0
+
+percorrer(fonteEtapaMatrizDisciplina.lista(campos: "disciplina.descricao, cargaHoraria, etapa.matriz(situacaoCadastral,curso.nivelEscolar)", criterio: "etapa.matriz.modular = true and etapa.matriz.descricao not like '%INICI%' and etapa.matriz.curso.nivelEscolar = '${nivelEsc}'")){ chTurma ->
+	
+	if(chTurma.etapa.matriz.situacaoCadastral == "ATIVO"){
+		imprimir "Disciplina: " + chTurma.disciplina.descricao + " | CH: " + (chTurma.cargaHoraria / 3600) + " h/a"
+		cargaHorariaMatriz += (chTurma.cargaHoraria / 3600)
+	}
+}
+imprimir "CH Turma: " + cargaHorariaMatriz
 
 //preparacao fontes
 
@@ -241,20 +253,8 @@ percorrer(arrayAlunos){alu->
 		
 	}
 	
-	/* -- Carga Horaria da Matriz -- */
-	
-	cargaHorariaMatriz = 1600
-	percorrer(fonteEnturmacao.lista("turma.etapaMatriz.matriz.id", criterio:"matricula.aluno.id = ${alu.id}", ordenacao:"anoLetivo.ano desc")){ mtrz->
-	
-		imprimir "Matriz: " + mtrz.turma.etapaMatriz.matriz.id
-		percorrer(fonteEtapaMatrizDisciplina.lista(campos: "disciplina.descricao, cargaHoraria", criterio: "etapa.matriz.id = $mtrz.turma.etapaMatriz.matriz.id")){ chTurma ->
-			imprimir "Disciplina: " + chTurma.disciplina.descricao + " | CH: " + (chTurma.cargaHoraria / 3600) + " h/a"
-			cargaHorariaMatriz += (chTurma.cargaHoraria / 3600)
-		}
-		imprimir "CH Turma: " + cargaHorariaMatriz
-		
-		parar()
-	
+	if(cargaHorariaMatriz == 0){
+		cargaHorariaMatriz = 1600
 	}
 
 	/*	Notas dos itens do historico */

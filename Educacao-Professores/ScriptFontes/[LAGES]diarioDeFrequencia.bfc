@@ -74,7 +74,7 @@ percorrer(fonteTurma){tur->
 		dataFim = per.dataFinal
 		
 		if(tur.turno != "INTEGRAL"){
-			percorrer(fonteEnturmacao.lista(campos:"matricula.aluno.pessoa.nome, matricula.turno", criterio:"matricula.situacao = 'CURSANDO' and estabelecimento.id = ${paramEstabelecimento} and anoLetivo.ano = ${paramAno} and turma.id = ${tur.id}", ordenacao:"matricula.aluno.pessoa.nome asc, matricula.turno asc")){ent->
+			percorrer(fonteEnturmacao.lista(campos:"matricula.aluno.pessoa.nome, matricula.turno", criterio:"dataFim is null and matricula.situacao = 'CURSANDO' and estabelecimento.id = ${paramEstabelecimento} and anoLetivo.ano = ${paramAno} and turma.id = ${tur.id}", ordenacao:"matricula.aluno.pessoa.nome asc, matricula.turno asc")){ent->
 				
 				percorrer(dataIni..dataFim){
 					if(Datas.diaSemana(item) != 1 && Datas.diaSemana(item) != 7){
@@ -123,7 +123,7 @@ percorrer(fonteTurma){tur->
 			
 		} else {
 			turno = ""
-			percorrer(fonteEnturmacao.lista(campos:"matricula.aluno.pessoa.nome, matriculaVagaEtapa.turnoFrequenta", criterio:"matricula.situacao = 'CURSANDO' and estabelecimento.id = ${paramEstabelecimento} and anoLetivo.ano = ${paramAno} and turma.id = ${tur.id}", ordenacao:"matricula.aluno.pessoa.nome asc, matricula.turno asc")){entM->
+			percorrer(fonteEnturmacao.lista(campos:"matricula.aluno.pessoa.nome, matriculaVagaEtapa.turnoFrequenta", criterio:"dataFim is null and matricula.situacao = 'CURSANDO' and estabelecimento.id = ${paramEstabelecimento} and anoLetivo.ano = ${paramAno} and turma.id = ${tur.id}", ordenacao:"matricula.aluno.pessoa.nome asc, matricula.turno asc")){entM->
 			
 				if(!(entM.matriculaVagaEtapa.turnoFrequenta == "VESPERTINO")){
 				turno = tur.turno + " - MATUTINO"
@@ -177,7 +177,7 @@ percorrer(fonteTurma){tur->
 			}
 			
 			
-			percorrer(fonteEnturmacao.lista(campos:"matricula.aluno.pessoa.nome, matriculaVagaEtapa.turnoFrequenta", criterio:"matricula.situacao = 'CURSANDO' and estabelecimento.id = ${paramEstabelecimento} and anoLetivo.ano = ${paramAno} and turma.id = ${tur.id} and matricula.turno in ('INTEGRAL','VESPERTINO')", ordenacao:"matricula.aluno.pessoa.nome asc, matricula.turno asc")){entV->
+			percorrer(fonteEnturmacao.lista(campos:"matricula.aluno.pessoa.nome, matriculaVagaEtapa.turnoFrequenta", criterio:"dataFim is null and matricula.situacao = 'CURSANDO' and estabelecimento.id = ${paramEstabelecimento} and anoLetivo.ano = ${paramAno} and turma.id = ${tur.id} and matricula.turno in ('INTEGRAL','VESPERTINO')", ordenacao:"matricula.aluno.pessoa.nome asc, matricula.turno asc")){entV->
 			
 				if(!(entV.matriculaVagaEtapa.turnoFrequenta == "MATUTINO")){
 					turno = tur.turno + " - VESPERTINO"

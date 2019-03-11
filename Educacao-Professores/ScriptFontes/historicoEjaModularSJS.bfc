@@ -39,7 +39,8 @@ esquema = [
 	cursando: Esquema.caracter,
 	livro: Esquema.caracter,
 	folha: Esquema.caracter,
-	regist: Esquema.caracter
+	regist: Esquema.caracter,
+	cargaHorariaMatriz: Esquema.inteiro
 ]
 
 
@@ -79,6 +80,7 @@ ultimo = 0
 livro = ""
 folha = ""
 regist = ""
+cargaHorariaMatriz = 1600
 
 se(paramNivel == 1){
 	nivelEsc = "ENSINO_MEDIO"
@@ -144,12 +146,13 @@ if(paramAluno != nulo){
 
 	}
 } else {
-	
+	idMatriz = 0
 	crit = "estabelecimento.id = ${paramEscola}"
 	if(paramTurma != nulo){
 		crit = crit + " and turma.id = ${paramTurma}"
+	
 	}
-	percorrer(fonteEnturmacao.lista(campos:"matricula.aluno.pessoa.nome, matricula.aluno.id, matricula.aluno.pessoa.fisica.dataNascimento, matricula.aluno.pessoa.fisica.municipioNascimento.nome, matricula.aluno.pessoa.fisica.municipioNascimento.uf, matricula.aluno.pessoa.fisica.nacionalidade, matricula.aluno.pessoa.fisica.cpf, matricula.aluno.pessoa.fisica.rg, matricula.situacao,id, matricula.aluno.paisOrigem.nome", criterio:crit, ordenacao:"matricula.aluno.id asc")){enturma->
+	percorrer(fonteEnturmacao.lista(campos:"matricula(aluno(pessoa(nome,id,fisica(cpf,rg,dataNascimento,nacionalidade,municipioNascimento(nome,uf))), paisOrigem.nome),situacao)", criterio:crit, ordenacao:"matricula.aluno.pessoa.nome asc, matricula.aluno.id asc")){enturma->
 
 		se(enturma.matricula.aluno.id != ultimo){
 			listaAlunos = listaAlunos + enturma.matricula.aluno.id + ","
@@ -160,6 +163,7 @@ if(paramAluno != nulo){
 		imprimir "Aluno: " + enturma.matricula.aluno
 
 	}
+	
 }
 
 listaAlunos = listaAlunos + "0)"
@@ -218,7 +222,7 @@ percorrer(arrayAlunos){alu->
 	}
 	
 	/* -- Filiacao -- */
-
+	
 	percorrer(filiacao){fili->
 	
 		se(fili.aluno.id == alu.id){
@@ -236,16 +240,27 @@ percorrer(arrayAlunos){alu->
 		}
 		
 	}
+	
+	/* -- Carga Horaria da Matriz -- */
+	
+	percorrer(fonteEnturmacao.lista("turma.etapaMatriz.matriz.id", criterio:"matricula.aluno.id = ${alu.id}", ordenacao:"anoLetivo.ano desc", primeiro:true){ mtrz->
+	
+		percorrer(fonteEtapaMatrizDisciplina.lista(campos: "disciplina.descricao, cargaHoraria", criterio: "etapa.matriz.id = $mtrz.turma.etapaMatriz.matriz.id")){ chTurma ->
+			imprimir "Disciplina: " + chTurma.disciplina.descricao + " | CH: " + (chTurma.cargaHoraria / 3600) + " h/a"
+			cargaHorariaMatriz += (chTurma.cargaHoraria / 3600)
+		}
+		imprimir "CH Turma: " + cargaHorariaMatriz
 
-
+	}
 
 	/*	Notas dos itens do historico */
 
 	percorrer(historico){itemHist->
 
-		discPadrao = itemHist.itemOrganizacaoCurricular.descricao
-		se(itemHist.itemOrganizacaoCurricular.descricao == nulo){
+		if(itemHist.itemOrganizacaoCurricular.descricao == nulo){
 			discPadrao = itemHist.eixoTematico.descricao
+		} else {
+			discPadrao = itemHist.itemOrganizacaoCurricular.descricao
 		}
 
 		//imprimir "ITEM-> DisciplinaOC: " + itemHist.itemOrganizacaoCurricular.descricao + " | DisciplinaET: " + itemHist.eixoTematico.descricao + " | Ano: " + itemHist.historicoEscolar.anoLetivo + " | CH: " + (itemHist.cargaHoraria/3600) + " | Nota: " + itemHist.notaNumerica * 10 + " | %Fre: " + itemHist.percentualFrequencia + " | Situacao: " + itemHist.historicoEscolar.situacao + " | Tipo: " + itemHist.tipoItemOrganizacaoCurricular + " | Naturalidade: " + aluCidNasc + ", " + aluUFNasc + ", " + aluPaisNasc + " | Nivel: " + itemHist.historicoEscolar.nivelEscolar
@@ -267,25 +282,23 @@ percorrer(arrayAlunos){alu->
 			}
 			
 			switch(sit){
-			
-			case "APROVADO":
-				situacao = "AP"
-				break
-			case "APROVADO_PARCIAL":
-				situacao = "PA"
-				break
-			case "REPROVADO":
-				situacao = "RE"
-				break
-			case "REPROVADO_FREQUENCIA":
-				situacao = "RF"
-				break
-			case "DEIXOU_FREQUENTAR":
-				situacao = "DE"
-				break
-			default:
-				situacao = "OT"
-			
+				case "APROVADO":
+					situacao = "AP"
+					break
+				case "APROVADO_PARCIAL":
+					situacao = "PA"
+					break
+				case "REPROVADO":
+					situacao = "RE"
+					break
+				case "REPROVADO_FREQUENCIA":
+					situacao = "RF"
+					break
+				case "DEIXOU_FREQUENTAR":
+					situacao = "DE"
+					break
+				default:
+					situacao = "OT"
 			}
 			
 			percorrer(registro){reg->
@@ -342,25 +355,23 @@ percorrer(arrayAlunos){alu->
 			}
 			
 			switch(matHist.matricula.situacaoMatricula){
-			
-			case "APROVADO":
-				situacao = "AP"
-				break
-			case "APROVADO_PARCIAL":
-				situacao = "PA"
-				break
-			case "REPROVADO":
-				situacao = "RE"
-				break
-			case "REPROVADO_FREQUENCIA":
-				situacao = "RF"
-				break
-			case "DEIXOU_FREQUENTAR":
-				situacao = "DE"
-				break
-			default:
-				situacao = "OT"
-			
+				case "APROVADO":
+					situacao = "AP"
+					break
+				case "APROVADO_PARCIAL":
+					situacao = "PA"
+					break
+				case "REPROVADO":
+					situacao = "RE"
+					break
+				case "REPROVADO_FREQUENCIA":
+					situacao = "RF"
+					break
+				case "DEIXOU_FREQUENTAR":
+					situacao = "DE"
+					break
+				default:
+					situacao = "OT"
 			}
 			
 			percorrer(registro){reg->
@@ -639,7 +650,8 @@ percorrer(arrayAlunos){alu->
 			cursando: cursando,
 			livro: livro,
 			folha: folha,
-			regist: regist
+			regist: regist,
+			cargaHorariaMatriz: cargaHorariaMatriz
 		)
 		
 		

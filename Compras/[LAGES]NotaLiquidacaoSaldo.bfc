@@ -446,15 +446,26 @@ if(idsLiquidacaoGlobal != ""){
 		   ordenacao: ordenacaoAssinantes);
 		   
 		tamanhoListaAssinantes = assinantes.size()
-
+		
+	
+		//preparacao assinaturas
+		nomeAssinanteOrdemPen = null;
+		cpfAssinanteOrdemPen = null;
+		funcaoAssinanteOrdemPen = null;
+		complementoAssinanteOrdemPen = null;
+		nomeAssinanteOrdemUlt = null;
+		cpfAssinanteOrdemUlt = null;
+		funcaoAssinanteOrdemUlt = null;
+		complementoAssinanteOrdemUlt = null;
+	
 	  percorrer(assinantes){ assinatura ->
 		nome = assinatura.assinante.nome;
 		cpf =  assinatura.assinante.cpfFormatado;
 		funcao = assinatura.assinante.funcao;
 		complemento =  assinatura.assinante.complemento;
-		ordem = assinatura.ordem; 
+		ordem = assinatura.ordem;
 		
-		if(assinatura.ordem <= (tamanhoListaAssinantes - 2)){
+		if(assinatura.ordem <= 4){
 		  listaAssinaturas << [
 			nome: assinatura.assinante.nome,
 			cpf: assinatura.assinante.cpfFormatado,
@@ -462,12 +473,12 @@ if(idsLiquidacaoGlobal != ""){
 			complemento: assinatura.assinante.complemento,
 			ordem : assinatura.ordem
 		  ];
-		}else if(assinatura.ordem == (tamanhoListaAssinantes - 1)){
+		}else if(assinatura.ordem == (tamanhoListaAssinantes - 1) && tamanhoListaAssinantes > 5){
 		  nomeAssinanteOrdemPen =  assinatura.assinante.nome;
 		  cpfAssinanteOrdemPen = assinatura.assinante.cpfFormatado;
 		  funcaoAssinanteOrdemPen = assinatura.assinante.funcao;
 		  complementoAssinanteOrdemPen = assinatura.assinante.complemento;
-		}else if(assinatura.ordem == tamanhoListaAssinantes){
+		}else if(assinatura.ordem == tamanhoListaAssinantes && tamanhoListaAssinantes > 4){
 		  nomeAssinanteOrdemUlt =  assinatura.assinante.nome;
 		  cpfAssinanteOrdemUlt = assinatura.assinante.cpfFormatado;
 		  funcaoAssinanteOrdemUlt = assinatura.assinante.funcao;

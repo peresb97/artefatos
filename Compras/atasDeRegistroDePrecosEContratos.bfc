@@ -1,13 +1,13 @@
-//paramAno = parametros.ano.valor
-//paramObjeto = "(" + parametros.objeto + ")"
-// paramDataIni = parametros.dataInicial.valor
-// paramDataFim = parametros.dataFinal.valor
-//paramAgrupamento = parametros.agrupamento.valor
-//paramEnt = parametros.entidade.valor
+paramEnt = parametros.entidade.valor
+paramMes = parametros.mes.valor
+paramDiretor = parametros.diretor.valor
+paramAssinantes = parametros.assinantesContratos.valor
 
 esquema = [
 	tipo: Esquema.caracter,
 	entidade: Esquema.caracter,
+	entidadeCidade: Esquema.caracter,
+	entidadeUF: Esquema.caracter,
 	sequencial: Esquema.inteiro,
 	numeroTermo: Esquema.inteiro,
 	anoCont: Esquema.inteiro,
@@ -22,77 +22,172 @@ esquema = [
 	objeto: Esquema.caracter,
 	fornec: Esquema.caracter,
 	fornecID: Esquema.caracter,
-//	agrupamento: Esquema.caracter,
 	numeroAditivo: Esquema.inteiro,
-	procID: Esquema.inteiro
+	procID: Esquema.inteiro,
+	atasNoMes: Esquema.inteiro,
+	comprasServNoMes: Esquema.inteiro,
+	obrasServNoMes: Esquema.inteiro,
+	locacoesNoMes: Esquema.inteiro,
+	aditivosNoMes: Esquema.inteiro,
+	diretor: Esquema.caracter,
+	assinante1: Esquema.caracter,
+	assinante2: Esquema.caracter,
+	mesEscolhido: Esquema.caracter
 ]
-
-/*
-crit = "origem = 'PROCESSO_ADMINISTRATIVO'"
-
-if(paramAno != null){
-	crit += " and anoProcesso = ${paramAno}"
-}
-if(paramEnt != null){
-	crit += " and entidade.id = ${paramEnt}"
-}
-if(paramObjeto != "(null)"){
-	crit += " and material.id in ${paramObjeto}"
-}
-
-
-dataIni = paramDataIni.ano() + "-" + paramDataIni.mes() + "-" + 01
-crit += " and dataAssinatura >= ${dataIni}"
-
-if(paramDataFim.mes() == 12){
-	dataFim = (paramDataFim.ano() + 1) + "-" + 01 + "-" + 01
-	crit += " and dataAssinatura <= ${dataFim}"
-} else {
-	dataFim = paramDataFim.ano() + "-" + paramDataFim.mes() + "-" + 01
-	crit += " and dataAssinatura <= ${dataFim}"
-}
-
-*/
-mesAtual = Datas.data(Datas.hoje().ano, Datas.hoje().mes, 1).format("yyyy-MM-dd")
-mesProximo = (Datas.data(Datas.hoje().ano, Datas.hoje().mes, 1) + 2.mes).format("yyyy-MM-dd")
-
-//crit = "dataFimVigencia >= $mesAtual and dataFimVigencia < $mesProximo and situacao = 'EXECUCAO'"
-crit = "dataFimVigencia >= $mesAtual and dataFimVigencia < $mesProximo"
-
-/*
-switch(paramAgrupamento){
-	case "FORNECEDOR":
-		ord = "entidade.nome asc, dataFimVigencia asc, fornecedor.pessoa.nome asc, tipoObjeto.descricao asc"
-		break
-	default:
-		ord = "entidade.nome asc, dataFimVigencia asc, tipoObjeto.descricao asc, fornecedor.pessoa.nome asc"
-}
-*/
-
-//------------------ CONTRATOS ------------------//
-ord = "entidade.nome asc, dataFimVigencia asc, tipoObjeto.descricao asc, fornecedor.pessoa.nome asc"
-
-ord += ", sequencial asc"
 
 fonte = Dados.dinamico.v2.novo(esquema)
 
-fonteContratacoes = Dados.contratos.v1.contratacoes.busca(campos:"id, ano, numeroProcesso, anoProcesso, sequencial, numeroTermo, dataAssinatura, dataFimVigencia, entidade(id,nome), entidadePA.id, valorOriginal, valorAditivos, tipoObjeto.descricao, fornecedor.pessoa.nome, fornecedor.id, objetoContratacao, processoAdministrativo.id", criterio:crit, ordenacao:ord)
+// Fontes
+fonteContratacoes = Dados.contratos.v1.contratacoes
 fonteCancelamentos = Dados.contratos.v1.contratos.cancelamento
 fonteAditivos = Dados.contratos.v1.contratacoes.aditivos.itens
+fonteAtas = Dados.compras.v1.atasregistropreco
+fonteResponsaveis = Dados.contratos.v1.pessoas.responsaveis
 
-percorrer(fonteContratacoes){cont->
+// Assinaturas
+
+diretor = null
+assinante1 = null
+assinante2 = null
+
+if(paramDiretor != null || paramAssinantes != null){
+
+	crit = "id = 0"
+	if(paramDiretor != null){ crit += " or id = $paramDiretor"}
+	if(paramAssinantes != null){ crit += " or id in ($paramAssinantes)"}
+	
+	percorrer(fonteResponsaveis.busca(campos:"id, pessoa.nome", criterio:crit, ordenacao:"pessoa.nome asc")){resp->
+		if(resp.id == paramDiretor){
+			diretor = resp.pessoa.nome
+		} else if(assinante1 == null){
+			assinante1 = resp.pessoa.nome
+		} else {
+			assinante2 = resp.pessoa.nome
+		}
+	}
+}
+
+// Prepara datas para filtros
+if(paramMes != null){
+	paramMes = Datas.data(Numeros.numero(paramMes.esquerda(4)),Numeros.numero(paramMes.direita(2)),1)
+	imprimir paramMes
+	mesSelecionado = Datas.formatar(paramMes,"MMMM/yyyy") //imprimir no relatório
+	mesEscolhido = paramMes.format("yyyy-MM-dd")
+	mesEscolhidoFim = (paramMes + 1.mes).format("yyyy-MM-dd")
+	mesSeguinteFim = (paramMes + 2.mes).format("yyyy-MM-dd")
+} else {
+	mesEscolhido = Datas.data(Datas.hoje().ano, Datas.hoje().mes, 1).format("yyyy-MM-dd")
+	mesSelecionado = Datas.hoje().nomeMes() + "/" + Datas.hoje().ano()
+	mesEscolhidoFim = ((Datas.data(Datas.hoje().ano, Datas.hoje().mes, 1) + 1.mes)).format("yyyy-MM-dd")
+	mesSeguinteFim = ((Datas.data(Datas.hoje().ano, Datas.hoje().mes, 1) + 2.mes)).format("yyyy-MM-dd")
+}
+imprimir mesSelecionado
+//------------------ ATAS/CONTRATOS CELEBRADOS NO MES --------------//
+
+atasNoMes = 0
+
+crit = "dataAssinatura >= $mesEscolhido and dataAssinatura < $mesEscolhidoFim"
+
+percorrer(fonteAtas.busca(campos:"id", criterio:crit)){
+	atasNoMes++
+}
+
+comprasServNoMes = 0
+obrasServNoMes = 0
+locacoesNoMes = 0
+
+percorrer(fonteContratacoes.busca(campos:"tipoObjeto.tipoObjeto", criterio:crit)){itemContr->
+	switch(itemContr.tipoObjeto.tipoObjeto){
+		case "COMPRAS_SERVICOS":
+			comprasServNoMes++
+			break
+		case "OBRAS_SERVICOS":
+			obrasServNoMes++
+			break
+		case "LOCACAO":
+			locacoesNoMes++
+			break
+	}
+}
+
+aditivosNoMes = 0
+
+crit = "dataAditivo >= $mesEscolhido and dataAditivo < $mesEscolhidoFim"
+
+percorrer(fonteAditivos.busca(campos:"id",crit)){
+	aditivosNoMes++
+}
+
+//------------------ ATA ------------------//
+
+crit = "dataVencimento >= $mesEscolhido and dataVencimento < $mesSeguinteFim and situacao = 'ANDAMENTO'"
+//crit = "dataVencimento >= $mesEscolhido and dataVencimento < $mesSeguinteFim"
+
+if(paramEnt != null){
+	crit += " and entidade.id in (${paramEnt})"
+}
+
+percorrer(fonteAtas.busca(campos:"numeroAta, dataAssinatura, dataVencimento, objeto, valorTotalItens, entidade(id, nome, nomeMunicipio, nomeEstado), parametroExercicio(exercicio), fornecedor(pessoa(nome, id)),processoAdministrativo(id, numeroProcesso, parametroExercicio.exercicio)", criterio:crit, ordenacao:"entidade.nome asc, dataVencimento asc, numeroAta asc, processoAdministrativo.numeroProcesso asc")){ata->
+
+	fonte.inserirLinha(
+		tipo: "ATA",
+		entidade: ata.entidade.nome,
+		entidadeCidade: ata.entidade.nomeMunicipio,
+		entidadeUF: ata.entidade.nomeEstado,
+		sequencial: null,
+		numeroTermo: ata.numeroAta,
+		anoCont: ata.parametroExercicio.exercicio,
+		dataAss: ata.dataAssinatura,
+		dataFimVig: ata.dataVencimento,
+		numProc: ata.processoAdministrativo.numeroProcesso,
+		anoProc: ata.processoAdministrativo.parametroExercicio.exercicio,
+		outraEnt: null,
+		valorCont: ata.valorTotalItens,
+		dataCancel: null,
+		tipoObjeto: null,
+		objeto: ata.objeto,
+		fornec: ata.fornecedor.pessoa.nome,
+		fornecID: ata.fornecedor.id,
+		numeroAditivo: 0,
+		procID: ata.processoAdministrativo.id,
+		atasNoMes: atasNoMes,
+		comprasServNoMes: comprasServNoMes,
+		obrasServNoMes: obrasServNoMes,
+		locacoesNoMes: locacoesNoMes,
+		aditivosNoMes: aditivosNoMes,
+		diretor: diretor,
+		assinante1: assinante1,
+		assinante2: assinante2,
+		mesEscolhido: mesSelecionado
+	)
+
+}
+
+//------------------ CONTRATOS ------------------//
+
+crit = "dataFimVigencia >= $mesEscolhido and dataFimVigencia < $mesSeguinteFim and situacao = 'EXECUCAO'"
+//crit = "dataFimVigencia >= $mesEscolhido and dataFimVigencia < $mesSeguinteFim"
+
+if(paramEnt != null){
+	crit += " and entidade.id in (${paramEnt})"
+}
+
+ord = "entidade.nome asc, dataFimVigencia asc, sequencial asc, numeroProcesso asc"
+
+percorrer(fonteContratacoes.busca(campos:"id, ano, numeroProcesso, anoProcesso, sequencial, numeroTermo, dataAssinatura, dataFimVigencia, entidade(id,nome,nomeMunicipio,nomeEstado), entidadePA.id, valorOriginal, valorAditivos, tipoObjeto.descricao, tipoObjeto.tipoObjeto, fornecedor.pessoa.nome, fornecedor.id, objetoContratacao, processoAdministrativo.id", criterio:crit, ordenacao:ord)){cont->
 
 	outraEnt = cont.entidade.id == cont.entidadePA.id?"Não":"Sim"
 
 	dataCanc = nulo
 	percorrer(fonteCancelamentos.busca(campos:"dataCancelamento", criterio:"contratacao.id = ${cont.id}")){canc->
 		dataCanc = canc.dataCancelamento
-//		imprimir canc.dataCancelamento
 	}
 	
 	fonte.inserirLinha(
 		tipo: "CONTRATO",
 		entidade: cont.entidade.nome,
+		entidadeCidade: cont.entidade.nomeMunicipio,
+		entidadeUF: cont.entidade.nomeEstado,
 		sequencial: cont.sequencial,
 		numeroTermo: cont.numeroTermo,
 		anoCont: cont.ano,
@@ -107,9 +202,17 @@ percorrer(fonteContratacoes){cont->
 		objeto: cont.objetoContratacao,
 		fornec: cont.fornecedor.pessoa.nome,
 		fornecID: cont.fornecedor.id,
-//		agrupamento: paramAgrupamento,
 		numeroAditivo: 0,
-		procID: cont.processoAdministrativo.id
+		procID: cont.processoAdministrativo.id,
+		atasNoMes: atasNoMes,
+		comprasServNoMes: comprasServNoMes,
+		obrasServNoMes: obrasServNoMes,
+		locacoesNoMes: locacoesNoMes,
+		aditivosNoMes: aditivosNoMes,
+		diretor: diretor,
+		assinante1: assinante1,
+		assinante2: assinante2,
+		mesEscolhido: mesSelecionado
 	)
 	
 	percorrer(fonteAditivos.busca(campos:"aditivo.sequencial, aditivo.objeto, aditivo.dataAditivo, valorTotal", criterio:"aditivo.contratacao.id = ${cont.id}", ordenacao:"aditivo.sequencial asc")){adds->
@@ -117,6 +220,8 @@ percorrer(fonteContratacoes){cont->
 		fonte.inserirLinha(
 			tipo: "CONTRATO",
 			entidade: cont.entidade.nome,
+			entidadeCidade: cont.entidade.nomeMunicipio,
+			entidadeUF: cont.entidade.nomeEstado,
 			sequencial: cont.sequencial,
 			numeroTermo: cont.numeroTermo,
 			anoCont: cont.ano,
@@ -131,47 +236,21 @@ percorrer(fonteContratacoes){cont->
 			objeto: adds.aditivo.objeto,
 			fornec: cont.fornecedor.pessoa.nome,
 			fornecID: cont.fornecedor.id,
-//			agrupamento: paramAgrupamento,
 			numeroAditivo: adds.aditivo.sequencial,
-			procID: cont.processoAdministrativo.id
+			procID: cont.processoAdministrativo.id,
+			atasNoMes: atasNoMes,
+			comprasServNoMes: comprasServNoMes,
+			obrasServNoMes: obrasServNoMes,
+			locacoesNoMes: locacoesNoMes,
+			aditivosNoMes: aditivosNoMes,
+			diretor: diretor,
+			assinante1: assinante1,
+			assinante2: assinante2,
+			mesEscolhido: mesSelecionado
 		)
 		
-//		imprimir adds.aditivo.sequencial
 	}
 	
-}
-
-//------------------ ATA ------------------//
-
-//crit = "dataVencimento >= $mesAtual and dataVencimento < $mesProximo and situacao = 'ANDAMENTO'"
-crit = "dataVencimento >= $mesAtual and dataVencimento < $mesProximo"
-
-fonteAtas = Dados.compras.v1.atasregistropreco.busca(campos:"numeroAta, dataAssinatura, dataVencimento, objeto, valorTotalItens, entidade(id, nome), parametroExercicio(exercicio), fornecedor(pessoa(nome, id)),processoAdministrativo(id, numeroProcesso, parametroExercicio.exercicio)", criterio:crit, ordenacao:"entidade.nome asc, dataVencimento asc")
-
-percorrer(fonteAtas){ata->
-
-	fonte.inserirLinha(
-		tipo: "ATA",
-		entidade: ata.entidade.nome,
-		sequencial: ata.numeroAta,
-		numeroTermo: null,
-		anoCont: ata.parametroExercicio.exercicio,
-		dataAss: ata.dataAssinatura,
-		dataFimVig: ata.dataVencimento,
-		numProc: ata.processoAdministrativo.numeroProcesso,
-		anoProc: ata.processoAdministrativo.parametroExercicio.exercicio,
-		outraEnt: null,
-		valorCont: ata.valorTotalItens,
-		dataCancel: null,
-		tipoObjeto: null,
-		objeto: ata.objeto,
-		fornec: ata.fornecedor.pessoa.nome,
-		fornecID: ata.fornecedor.id,
-//		agrupamento: paramAgrupamento,
-		numeroAditivo: 0,
-		procID: ata.processoAdministrativo.id
-	)
-
 }
 
 retornar fonte

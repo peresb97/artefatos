@@ -75,6 +75,7 @@ marcaraRecurso = utilitarios.formatacaoMascara(idRecurso);
 
 mascaraNarureza = utilitarios.formatacaoMascara(idNaturezaDespesa);
 
+
 // BUSCA DADOS DAS LIQUIDAÇÕES DOS EMPENHOS
 
 fonteLiquidacoesEmpenhos = Dados.contabilidade.v1.liquidacoesEmpenhos
@@ -87,7 +88,55 @@ fonteLiquidacoesEmpenhos = fonteLiquidacoesEmpenhos.busca(campos:fonteLiquidacoe
 
 percorrer(fonteLiquidacoesEmpenhos){ liqEmpenhos->
 
-	// BUSCA DAS ANULACOES DE LIQUIDAÇÕES
+	// BUSCA DA ANULAÇÃO DA LIQUIDAÇÃO
+
+	fonteLiquidacoesAnulacoes = Dados.contabilidade.v1.anulacoes.liquidacoesEmpenhos
+	
+	fonteLiquidacoesAnulacoesCampos = "id"
+	fonteLiquidacoesAnulacoesCriterio = "liquidacao.id = $liqEmpenhos.id"
+	
+	anulado = false
+	percorrer(fonteLiquidacoesAnulacoes.busca(campos:fonteLiquidacoesAnulacoesCampos, criterio: fonteLiquidacoesAnulacoesCriterio)){
+		anulado = true
+	}
+	
+	//Descarta caso liquidacao foi anulada
+	if(anulado){
+		continuar()
+	}
+	
+	//BUSCA DOS PAGAMENTOS DA LIQUIDACAO
+	
+	fonteLiquidacoesPagamentos = Dados.contabilidade.v1.pagamentosEmpenhos
+	
+	fonteLiquidacoesPagamentosCampos = "id, valorTotalPagamento, valorTotalRetencao"
+	fonteLiquidacoesPagamentosCriterio = "id = $liqEmpenhos.id"
+	
+	valorPago = 0
+	percorrer(fonteLiquidacoesPagamentos.busca(campos:fonteLiquidacoesPagamentosCampos, criterio:fonteLiquidacoesPagamentosCriterio)){pagEmpenho->
+		
+		//BUSCA DAS ANULAÇÕES DO PAGAMENTO
+		
+		fonteAnulacaoPagamentoEmpenho = Dados.contabilidade.v1.anulacoes.pagamentosEmpenhos
+		
+		fonteAnulacaoPagamentoEmpenhoCampos = "id"
+		fonteAnulacaoPagamentoEmpenhoCriterio = "pagamento.id = $pagEmpenho.id"
+		
+		pagAnulado = false
+		percorrer(fonteAnulacaoPagamentoEmpenho.busca(campos:fonteAnulacaoPagamentoEmpenhoCampos, criterio: fonteAnulacaoPagamentoEmpenhoCriterio)){
+			pagAnulado = true
+		}
+		
+		if(!pagAnulado){
+			valorPago += pagEmpenho.valorTotalPagamento + pagEmpenho.valorTotalRetencao
+		}
+		
+	}
+	
+	//Descarta caso liquidação foi paga na integra
+	if(valorPago == liqEmpenhos.valor){
+		continuar()
+	}
 
 	fonte.inserirLinha([
 		principalId:principalId,

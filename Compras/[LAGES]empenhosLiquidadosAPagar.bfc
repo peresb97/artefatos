@@ -11,13 +11,9 @@ esquema = [
 	numeroDoc: Esquema.caracter,
 	numeroPagamento: Esquema.caracter,
 	numeroEmpenho: Esquema.caracter,
-	naturezaElemento: Esquema.caracter,
-	numeroConta: Esquema.caracter,
 	numeroProcesso: Esquema.caracter,
 	nomeCredor: Esquema.caracter,
-	valorBruto: Esquema.numero,
-	valorAnulado: Esquema.numero,
-	valorDesconto: Esquema.numero,
+	valorAPagar: Esquema.numero,
 	valorPago: Esquema.numero,
 	valorRecurso: Esquema.numero,
 	numeroRecurso: Esquema.caracter,
@@ -80,7 +76,7 @@ mascaraNarureza = utilitarios.formatacaoMascara(idNaturezaDespesa);
 
 fonteLiquidacoesEmpenhos = Dados.contabilidade.v1.liquidacoesEmpenhos
 
-fonteLiquidacoesEmpenhosCampos = "id, data, valor, especificacao, restoPagar,  entidade(id), credorDevedor(nome), exercicio.ano, empenho(numero, recursoVinculo.recurso(numero,descricao), processoAdministrativo(numeroProcesso,anoProcesso))"
+fonteLiquidacoesEmpenhosCampos = "id, data, valor, especificacao, restoPagar,  entidade(id, nome), credorDevedor(nome), exercicio.ano, empenho(numero, recursoVinculo(valor,recurso(numero,descricao)), processoAdministrativo(numeroProcesso,anoProcesso))"
 fonteLiquidacoesEmpenhosCriterio = "exercicio.ano = $paramExercicio and data >= $paramDataInicial and data <= $paramDataFinal" + criterioEntidade + criterioCredor
 fonteLiquidacoesEmpenhosOrdenacao = "empenho.numero asc, data asc"
 
@@ -131,7 +127,7 @@ percorrer(fonteLiquidacoesEmpenhos){ liqEmpenhos->
 			valorPago += pagEmpenho.valorTotalPagamento + pagEmpenho.valorTotalRetencao
 		}
 		
-	}
+	}'
 	
 	//Descarta caso liquidação foi paga na integra
 	if(valorPago == liqEmpenhos.valor){
@@ -139,25 +135,20 @@ percorrer(fonteLiquidacoesEmpenhos){ liqEmpenhos->
 	}
 
 	fonte.inserirLinha([
-		principalId:principalId,
-		entidadeId:entidadeId,
-		entidadeNome:entidadeNome,
-		dataMov:dataMov,
-		tipoDoc:tipoDoc,
-		numeroDoc:numeroDoc,
-		numeroPagamento:numeroPagamento,
-		numeroEmpenho:numeroEmpenho,
-		naturezaElemento:naturezaElemento,
-		numeroConta:numeroConta,
-		numeroProcesso:numeroProcesso,
-		nomeCredor:nomeCredor,
-		valorBruto:valorBruto,
-		valorAnulado:valorAnuladoPago,
-		valorDesconto:valorDesconto,
-		valorPago:valorPago,
-		valorRecurso: 0,
-		numeroRecurso:numeroRecurso,
-		descricaoRecurso:descricaoRecurso
+		principalId: liqEmpenhos.id,
+		entidadeId: liqEmpenhos.entidade.id,
+		entidadeNome: liqEmpenhos.entidade.nome,
+		dataMov: liqEmpenhos.data,
+		tipoDoc: tipoDoc,
+		numeroDoc: numeroDoc,
+		numeroEmpenho: liqEmpenhos.empenho.numero,
+		numeroProcesso: liqEmpenhos.empenho.processoAdministrativo.numeroProcesso + "/" + liqEmpenhos.empenho.processoAdministrativo.anoProcesso,
+		nomeCredor: liqEmpenhos.credorDevedor.nome,
+		valorAPagar: liqEmpenhos.valor,
+		valorPago: valorPago,
+		valorRecurso: liqEmpenhos.empenho.recursoVinculo.valor,
+		numeroRecurso: liqEmpenhos.empenho.recursoVinculo.recurso.numero,
+		descricaoRecurso: liqEmpenhos.empenho.recursoVinculo.recurso.descricao
 	]);
 
 }

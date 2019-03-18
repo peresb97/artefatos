@@ -36,6 +36,7 @@ esquema = [
 
 fonte = Dados.dinamico.v2.novo(esquema)
 
+//fontes
 fonteAlocaAula = Dados.profesores.v1.alocacaoAula
 fonteRegistroPresenca = Dados.profesores.v1.FaltasAulas
 fonteFuncionario = Dados.profesores.v1.funcionario.lista(campos: "servidor.id, matricula", criterio: "id = ${paramFuncionario}")
@@ -43,6 +44,7 @@ fonteEnturmacao = Dados.profesores.v1.enturmacao
 fonteEnturmacaoItemEd = Dados.profesores.v1.enturmacaoItemEducacional
 fonteEquipeDir = Dados.profesores.v1.equipeDiretiva
 
+//variaveis
 presencas = []
 alunos = []
 totalFaltas = []
@@ -72,6 +74,7 @@ listaItemEd = ""
 
 imprimir "Inicio "+ Datas.hoje().formatar('yyyy-MM-dd HH:mm:ss.SSS')
 
+//Preparação dos filtros
 fonteEnturmaFuncionario = Dados.profesores.v1.EnturmacaoFuncionario.lista(campos: "turma.id, turma.modalidadeTurma, itemEducacional.pai.descricao, itemEducacional.pai.id, itemEducacional.id, itemEducacional.descricao", criterio: "professor.id = ${paramFuncionario} and anoLetivo.ano = ${paramAno} and estabelecimento.id = ${paramEstabelecimento}", ordenacao:"turma.id asc")
 
 criterioFaltas = "estabelecimento.id = ${paramEstabelecimento} and anoLetivo.ano = ${paramAno}"
@@ -87,14 +90,14 @@ if(paramPeriodo != nulo && paramPeriodo != "1%An%") {
 }
 
 se(paramTurma != nulo) {
-	fonteTurmaFuncionario = Dados.profesores.v1.turmasFuncionarios.lista(campos: "turma.id, turma.modalidadeTurma", criterio: "id = ${paramTurma}")
+	fonteTurmaFuncionario = Dados.profesores.v1.EnturmacaoFuncionario.lista(campos: "turma.id, turma.modalidadeTurma", criterio: "turma.id = ${paramTurma}")
 	turID = fonteTurmaFuncionario[0].turma.id
 	if(fonteTurmaFuncionario[0].turma.modalidadeTurma == "EJA"){
 		eja = true
 	}
 	listTurma.add(turID)
 } senao {
-	crit += " and servidor.id = ${servidorID}"
+//	crit += " and servidor.id = ${servidorID}"
 	ultimo = 0
 	separador = ""
 	percorrer(fonteEnturmaFuncionario) { turFunc ->
@@ -111,7 +114,7 @@ se(paramTurma != nulo) {
 		ultimo = turFunc.turma.id
 	}
 	critEnt = " and itemEducacional.id in (${listaItemEd})"
-	critFal += " and alocacaoAula.servidor.id = ${servidorID}"
+//	critFal += " and alocacaoAula.servidor.id = ${servidorID}"
 }
 
 criterioFaltas += critFal
@@ -147,7 +150,7 @@ percorrer(listTurma){listT->
 	turmaFiltro = listT
 
 	aulas = fonteAlocaAula.listar(campos: "id, data, numero, turma.descricao, itemEducacional.descricao, itemEducacional.pai.descricao, periodoAvaliativo.descricao, periodoAvaliativo.id, estabelecimento.pessoa.nome, estabelecimento.pessoa.telefone, estabelecimento.pessoa.site, anoLetivo.ano, servidor.pessoa.nome, periodoAvaliativo.dataInicial, periodoAvaliativo.dataFinal, turma.turno, turma.etapaMatriz.matriz.curso.descricao, turma.id, itemEducacional.id, itemEducacional.pai.id",
-			criterio: crit + " and turma.id = ${turmaFiltro}",
+			criterio: crit + " and turma.id = ${turmaFiltro} and servidor.id = ${servidorID}",
 			ordenacao: "turma.id asc, itemEducacional.id asc, servidor.pessoa.nome, periodoAvaliativo.dataInicial asc, data asc")
 
 	imprimir 'fim alocaoes de aula '+ Datas.hoje().formatar('yyyy-MM-dd HH:mm:ss.SSS')
@@ -178,7 +181,7 @@ percorrer(listTurma){listT->
 
 	imprimir 'fim filtro enturmacao'+ Datas.hoje().formatar('yyyy-MM-dd HH:mm:ss.SSS')
 
-	faltas = fonteRegistroPresenca.lista(campos: "enturmacao.id, alocacaoAula.id, alocacaoAula.data , alocacaoAula.periodoAvaliativo.id, enturmacao.matricula.aluno.id, enturmacao.turma.id, itemEducacional.id", criterio: criterioFaltas + " and enturmacao.turma.id = ${turmaFiltro}", ordenacao: "alocacaoAula.id asc")
+	faltas = fonteRegistroPresenca.lista(campos: "enturmacao.id, alocacaoAula.id, alocacaoAula.data , alocacaoAula.periodoAvaliativo.id, enturmacao.matricula.aluno.id, enturmacao.turma.id, itemEducacional.id", criterio: criterioFaltas + " and enturmacao.turma.id = ${turmaFiltro} and alocacaoAula.servidor.id = ${servidorID}", ordenacao: "alocacaoAula.id asc")
 
 
 	imprimir 'fim faltas '+ Datas.hoje().formatar('yyyy-MM-dd HH:mm:ss.SSS')

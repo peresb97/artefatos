@@ -15,10 +15,7 @@ esquema = [
 
 fonte = Dados.dinamico.v2.novo(esquema)
 
-critMat = "id != 0"
-if(paramMaterial != null){
-	critMat = "id = ${paramMaterial}"
-}
+critMat = "id in (${paramMaterial})"
 
 critEnt = "id != 0"
 if(paramEntidade != null){
@@ -54,7 +51,6 @@ percorrer(fonteMateriais){itens->
 			valorTotal: cont.valorTotal,
 			itemId: itens.id
 		]
-		
 		
 	}
 
@@ -96,7 +92,7 @@ percorrer(fonteMateriais){itens->
 				objeto: listaAditivos[point].objeto,
 				dataRegistro: listaAditivos[point].dataRegistro,
 				quantidade: listaAditivos[point].quantidade,
-				unidadeMedida: listaAditivos[point].unidadeMedida,
+				unidadeMedida: listaAditivos[point].unidadeMedida.replace(".",""),
 				valorItem: listaAditivos[point].valorItem,
 				valorTotal: listaAditivos[point].valorTotal,
 				valorItemAnterior: (ant < 0?0:listaAditivos[ant].valorItem),

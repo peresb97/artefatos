@@ -21,35 +21,38 @@ esquema = [
 	valorPago: Esquema.numero,
 	valorRecurso: Esquema.numero,
 	numeroRecurso: Esquema.caracter,
-	descricaoRecurso: Esquema.caracter,
-	listaLiquidacoes: Esquema.lista(Esquema.objeto([
-	dataLiquidacao: Esquema.data,
-	valorLiquidacao: Esquema.numero,
-	especificacaoLiquidacao: Esquema.caracter
-])),
-	listaComprovantes: Esquema.lista(Esquema.objeto([
-		tipoComprovante: Esquema.caracter,
-		numeroComprovante: Esquema.caracter,
-		dataComprovante: Esquema.caracter,
-		nomeCredorComprovante: Esquema.caracter,
-		valorLiquidoComprovante: Esquema.numero,
-		comprovantes: Esquema.caracter
-	]))
+	descricaoRecurso: Esquema.caracter
 ];
 
 fonte = Dados.dinamico.v2.novo(esquema);
 
-exercicio = parametros.exercicio.valor?:nulo;
-entidade = parametros.entidades.valor?:nulo;
-dataInicial = parametros.dataInicial?.valor?:nulo; 
-dataInicial = dataInicial.format("yyyy-MM-dd");
-dataFinal = parametros.dataFinal?.valor?:nulo; 
-dataFinal = dataFinal.format("yyyy-MM-dd");
-tipoDocumento = parametros.tipoDocumento.selecionado.valor?:nulo;
-credor = parametros.credor.valor?:nulo;
-comprovantes = parametros.comprovantes.selecionado.valor?:nulo;
-anulacoes = parametros.anulacoes.selecionado.valor?:nulo;
-historico = parametros.historico.valor?:nulo
+paramExercicio = parametros.exercicio.valor?:null
+paramEntidade = parametros.entidades.valor?:null
+paramDataInicial = parametros.dataInicial?.valor?:null
+paramDataInicial = dataInicial.format("yyyy-MM-dd")
+paramDataFinal = parametros.dataFinal?.valor?:null
+//tipoDocumento = parametros.tipoDocumento.selecionado.valor?:nulo
+//conta = parametros.conta.valor?:nulo
+paramCredor = parametros.credor.valor?:null
+paramComprovantes = parametros.comprovantes.selecionado.valor?:null
+paramAnulacoes = parametros.anulacoes.selecionado.valor?:null
+paramHistorico = parametros.historico.valor?:null
+
+criterioEntidade = ""
+if(paramEntidade){
+	criterioEntidade = " and entidade.id in ($paramEntidade)"
+}
+
+if(dataFinal){
+	paramDataFinal = dataFinal.format("yyyy-MM-dd")
+} else {
+	paramDataFinal = Datas.hoje().format("yyyy-MM-dd")
+}
+
+criterioCredor = ""
+if(credor){
+	criterioCredor = " and credor.id in ($paramCredor)"
+}
 
 parametrosCredores = [];
 se(credor){
@@ -64,493 +67,50 @@ configuracoesOrcamentarias = utilitarios.configuracoesCloud(exercicio);
 
 // pegando os ids das configurações do exercicio retornada pelo componente anterior
 idRecurso = configuracoesOrcamentarias.find{item -> item.configuracao == "RECURSO"};
-	
+
 idNaturezaDespesa = configuracoesOrcamentarias.find{item -> item.configuracao == "NATUREZA_DESPESA"};
-		
-		// pegando as formatações das mascaras de configurações do sistema
-		marcaraRecurso = utilitarios.formatacaoMascara(idRecurso);
+
+// pegando as formatações das mascaras de configurações do sistema
+marcaraRecurso = utilitarios.formatacaoMascara(idRecurso);
 
 mascaraNarureza = utilitarios.formatacaoMascara(idNaturezaDespesa);
 
+// BUSCA DADOS DAS LIQUIDAÇÕES DOS EMPENHOS
 
-/*BUSCA IDS DAS CONTAS BANCÁRIAS*/
-se(conta){
-	fonteContasBancarias = Dados.contabilidade.v1.contasBancariasEntidadeExercicio;
-	camposContasBancarias = "id,contaBancariaEntidade.id"
-	criterioContasBancarias = "exercicio.ano = $exercicio and id in ($conta)"
-	ordenacaoliquidacoesEmpenhos = "id asc"
-	idContas = [];
+fonteLiquidacoesEmpenhos = Dados.contabilidade.v1.liquidacoesEmpenhos
 
- se(entidade){
-		criterioContasBancarias += " and entidade.id in ($entidade)"
-	}
+fonteLiquidacoesEmpenhosCampos = "id, data, valor, especificacao, restoPagar,  entidade(id), credorDevedor(nome), exercicio.ano, empenho(numero, recursoVinculo.recurso(numero,descricao), processoAdministrativo(numeroProcesso,anoProcesso))"
+fonteLiquidacoesEmpenhosCriterio = "exercicio.ano = $paramExercicio and data >= $paramDataInicial and data <= $paramDataFinal" + criterioEntidade + criterioCredor
+fonteLiquidacoesEmpenhosOrdenacao = "empenho.numero asc, data asc"
 
-percorrer(fonteContasBancarias.busca(campos:camposContasBancarias,criterio:criterioContasBancarias)){ contaBancaria -> 
+fonteLiquidacoesEmpenhos = fonteLiquidacoesEmpenhos.busca(campos:fonteLiquidacoesEmpenhosCampos, criterio:fonteLiquidacoesEmpenhosCriterio, ordenacao:fonteLiquidacoesEmpenhosOrdenacao)
 
-		idContas << contaBancaria.contaBancariaEntidade.id
+percorrer(fonteLiquidacoesEmpenhos){ liqEmpenhos->
 
+	// BUSCA DAS ANULACOES DE LIQUIDAÇÕES
 
- }
-idContas = Caracteres.esquerda(""+idContas,500)
-idContas = Caracteres.substituir(idContas,"]", "");
-idContas = Caracteres.substituir(idContas,"[", "");
-}
+	fonte.inserirLinha([
+		principalId:principalId,
+		entidadeId:entidadeId,
+		entidadeNome:entidadeNome,
+		dataMov:dataMov,
+		tipoDoc:tipoDoc,
+		numeroDoc:numeroDoc,
+		numeroPagamento:numeroPagamento,
+		numeroEmpenho:numeroEmpenho,
+		naturezaElemento:naturezaElemento,
+		numeroConta:numeroConta,
+		numeroProcesso:numeroProcesso,
+		nomeCredor:nomeCredor,
+		valorBruto:valorBruto,
+		valorAnulado:valorAnuladoPago,
+		valorDesconto:valorDesconto,
+		valorPago:valorPago,
+		valorRecurso: 0,
+		numeroRecurso:numeroRecurso,
+		descricaoRecurso:descricaoRecurso
+	]);
 
-/*BUSCA DADOS DOS PAGAMENTOS DOS EMPENHOS*/
-
-/*VALORES DE PAGAMENTOS ANULADOS*/
-se(tipoDocumento != "D"){
-	fonteAnulacaoPagamentos = Dados.contabilidade.v1.anulacoes.liquidacoesEmpenhos;
-	camposAnulacaoPagamentos = "pagamento.id,anulacao.entidade.id,anulacao.exercicio.ano,valorTotalRetencao,valorAnulacaoBaixa,anulacao.valor,anulacao.data,"
-	camposAnulacaoPagamentos += "pagamento.baixa.contaBancariaEntidade.conta(numero,id),"
-	camposAnulacaoPagamentos += "pagamento.empenho.credor.id,pagamento.empenho.precatorio.credor.id,pagamento.empenho.divida.credor.id"
-	criterioAnulacaoPagamentos = "anulacao.exercicio.ano = $exercicio"
-	ordenacaoliquidacoesEmpenhos = "pagamento.id asc"
-
-
-	se(anulacoes == "N"){
-		criterioAnulacaoPagamentos += " and anulacao.data >= $dataInicial and anulacao.data <= $dataFinal"
-	}
-	se(entidade){
-		criterioAnulacaoPagamentos += " and anulacao.entidade.id in ($entidade)"
-	}
-	se(tipoDocumento == "E"){
-		criterioAnulacaoPagamentos += " and restoPagar = false"
-	}
-	se(tipoDocumento == "R"){
-		criterioAnulacaoPagamentos += " and restoPagar = true"
-	}
-
-	mapaAnulacaoEmp = [:];
-	valorAnuladoPago = 0.0;
-	valorAnuladoRetido = 0.0;
-	valorAnuladoBruto = 0.0;
-
-	percorrer(fonteAnulacaoPagamentos.busca(campos:camposAnulacaoPagamentos,criterio:criterioAnulacaoPagamentos,ordenacao: ordenacaoliquidacoesEmpenhos)){ anulacaoEmp -> 
-		anulacaoPagamentoId = anulacaoEmp.pagamento.id
-		valorAnuladoBruto = anulacaoEmp.anulacao.valor;
-		valorAnuladoPago = anulacaoEmp.valorAnulacaoBaixa;
-		valorAnuladoRetido = anulacaoEmp.valorTotalRetencao;
-
-		//Criação do Mapa com valor da Anulação por Id da Despesa Extra
-		chaveMapaAnulacaoEmp = [
-			anulacaoPagamentoId: anulacaoPagamentoId
-		];
-
-		se(mapaAnulacaoEmp[chaveMapaAnulacaoEmp]){
-			mapaAnulacaoEmp[chaveMapaAnulacaoEmp] = [
-				valorAnuladoPago: mapaAnulacaoEmp[chaveMapaAnulacaoEmp].valorAnuladoPago + valorAnuladoPago,
-				valorAnuladoRetido: mapaAnulacaoEmp[chaveMapaAnulacaoEmp].valorAnuladoRetido + valorAnuladoRetido,
-				valorAnuladoBruto: mapaAnulacaoEmp[chaveMapaAnulacaoEmp].valorAnuladoBruto + valorAnuladoBruto
-			];
-		}senao{
-			mapaAnulacaoEmp[chaveMapaAnulacaoEmp] = [
-				valorAnuladoPago: valorAnuladoPago,
-				valorAnuladoRetido:valorAnuladoRetido,
-				valorAnuladoBruto: valorAnuladoBruto
-			]
-		}
-	}//FIM ANULAÇÃO PAGAMENTOS
-
-	//DADOS DAS LIQUIDAÇÕES DE EMPENHOS
-	
-	fonteLiquidacoesEmpenhos = Dados.contabilidade.v1.liquidacoesEmpenhos;
-	
-	camposLiquidacoesEmpenhos = "id, data, valor, restoPagar"
-	camposLiquidacoesEmpenhos += ",empenho(id,identificador),empenho.recursoVinculo.recurso(numero,descricao),empenho.numeroCadastro.numero,empenho.natureza.numero,"
-	camposLiquidacoesEmpenhos += ",empenho.processoAdministrativo(numeroProcesso,anoProcesso),baixa.valor,empenho.recursoVinculo.recurso.descricao,baixa.contaBancariaEntidade.id,"
-	camposLiquidacoesEmpenhos += ",empenho.credor(id,nome),empenho.divida.credor(id,nome),empenho.precatorio.credor(id,nome),empenho.diaria.credor(id,nome)"
-	criterioLiquidacoesEmpenhos = "exercicio.ano = $exercicio and data >= $dataInicial and data <= $dataFinal"
-	ordenacaoLiquidacoesEmpenhos = "id asc"
-	
-	se(entidade){
-		criterioLiquidacoesEmpenhos += " and entidade.id in ($entidade)"
-	}
-	se(tipoDocumento == "E"){
-		criterioLiquidacoesEmpenhos += " and restoPagar = false"
-	}
-	se(tipoDocumento == "R"){
-		criterioLiquidacoesEmpenhos += " and restoPagar = true"
-	}
-	
-	percorrer(fonteLiquidacoesEmpenhos.busca(campos:camposLiquidacoesEmpenhos, criterio:criterioLiquidacoesEmpenhos, ordenacao:ordenacaoLiquidacoesEmpenhos)){liquidacoesEmpenho ->
-	
-	//DADOS PAGAMENTOS EFETUADOS DE EMPENHOS
-	fontePagamentoEmpenhos = Dados.contabilidade.v1.liquidacoesEmpenhos;
-	camposPagamentoEmpenhos = "numeroCadastro.numero,id,data,exercicio.ano,entidade(id,nome),valorTotalPagamento,valorTotalRetencao,restoPagar,baixa.numeroDocumento,baixa.contaBancariaEntidade.conta(id,numero,digito), baixa.transacaoFinanceiraExercicio.transacaoFinanceira.tipo,"
-
-	numeroDoc = "";
-	numeroProcesso = "";
-		
-		//Especificacao das liquidacoes
-		
-		fontePagamentoLiquidacoes = Dados.contabilidade.v1.pagamentosVinculosLiquidacoes.busca(campos:"liquidacao.data, liquidacao.valor, liquidacao.especificacao", criterio:"empenho.id = $liquidacoesEmpenho.empenhoid")
-		
-		listaEspecificaoesLiq = null
-		if(historico == "S"){
-			listaEspecificaoesLiq = []
-			
-			percorrer(fontePagamentoLiquidacoes){PagLiqs->
-				listaEspecificaoesLiq << [dataLiquidacao:PagLiqs.liquidacao.data, valorLiquidacao:PagLiqs.liquidacao.valor, especificacaoLiquidacao:PagLiqs.liquidacao.especificacao]
-			}
-		}
-		
-		//ZERA VARIAVEL PRA REUTILIZAR
-		valorAnuladoPago = 0.0;
-		valorAnuladoRetido = 0.0;
-		valorAnuladoBruto = 0.0; 
-		valorBruto = 0.0;
-		valorDesconto = 0.0;
-		valorPago = 0.0;
-		
-		
-		principalId = liquidacoesEmpenho.id
-		pagamentoId=	liquidacoesEmpenho.id;
-		empenhoId= liquidacoesEmpenho.empenho.id;
-		entidadeId= liquidacoesEmpenho.entidade.id;
-		entidadeNome= liquidacoesEmpenho.entidade.nome;
-		dataMov = liquidacoesEmpenho.data;
-		se(liquidacoesEmpenho.restoPagar == true){
-			tipoDoc = "RESTO";
-		}senao{
-			tipoDoc = "EMP.";
-		}
-		
-		numeroDoc = liquidacoesEmpenho.baixa.numeroDocumento;
-		numeroPagamento = liquidacoesEmpenho.numeroCadastro.numero;
-		numeroEmpenho = liquidacoesEmpenho.empenho.numeroCadastro.numero;
-		naturezaElemento = utilitarios.formatarCampo(mascaraNarureza,liquidacoesEmpenho.empenho.natureza.numero);//liquidacoesEmpenho.empenho.natureza.numero;
-		numeroProcesso = "$liquidacoesEmpenho.empenho.processoAdministrativo.numeroProcesso/$liquidacoesEmpenho.empenho.processoAdministrativo.anoProcesso";
-		numeroRecurso = utilitarios.formatarCampo(marcaraRecurso,liquidacoesEmpenho.empenho.recursoVinculo.recurso.numero);
-		descricaoRecurso = liquidacoesEmpenho.empenho.recursoVinculo.recurso.descricao;
-		valorBruto = liquidacoesEmpenho.valorTotalPagamento;
-		valorDesconto = liquidacoesEmpenho.valorTotalRetencao;
-		valorPago = liquidacoesEmpenho.baixa.valor
-		
-		if(liquidacoesEmpenho.empenho.identificador in ["CREDOR","CONVENIO","ADIANTAMENTO","PROCESSO","CONTRATO"]){
-			idCredor = liquidacoesEmpenho.empenho.credor.id;
-			nomeCredor = liquidacoesEmpenho.empenho.credor.nome;
-		}else if(liquidacoesEmpenho.empenho.identificador in ["DIARIA"]){
-			idCredor = liquidacoesEmpenho.empenho.diaria.credor.id;
-			nomeCredor = liquidacoesEmpenho.empenho.diaria.credor.nome;
-		}else if(liquidacoesEmpenho.empenho.identificador in ["PRECATORIO"]){
-			idCredor = liquidacoesEmpenho.empenho.precatorio.credor.id;
-			nomeCredor = liquidacoesEmpenho.empenho.precatorio.credor.nome;
-		}else if(liquidacoesEmpenho.empenho.identificador in ["DIVIDA"]){
-			idCredor = liquidacoesEmpenho.empenho.divida.credor.id;
-			nomeCredor = liquidacoesEmpenho.empenho.divida.credor.nome;
-		}
-
-		//IDENTIFICA VALOR DA ANULACAO DA DE
-		chaveMapaAnulacaoEmp = [anulacaoPagamentoId: pagamentoId];
-		
-		se(mapaAnulacaoEmp[chaveMapaAnulacaoEmp]){
-			valorAnuladoPago = mapaAnulacaoEmp[chaveMapaAnulacaoEmp].valorAnuladoPago;	
-			valorAnuladoRetido = mapaAnulacaoEmp[chaveMapaAnulacaoEmp].valorAnuladoRetido; 
-			valorAnuladoBruto = mapaAnulacaoEmp[chaveMapaAnulacaoEmp].valorAnuladoBruto;
-		}
-		
-		valorBruto = valorBruto - valorAnuladoBruto;
-		valorDesconto = valorDesconto - valorAnuladoRetido;
-		valorPago = valorPago - valorAnuladoPago;
-		
-		//IDENTIFICA AS LIQUIDAÇÕES VINCULADAS AO PAGAMENTO
-		
-		/*VARIAVEIS COMPROVANTES*/
-		numeroComprovante= "";
-		dataComprovante = "";
-		nomeCredorComprovante = "";
-		valorLiquidoComprovante = 0.0;
-		tipoComprovante = "";
-		listaComprovantesPagamentos = [];
-		
-		se(comprovantes == "S"){
-			fonteLiquidacoesVinculadas = Dados.contabilidade.v1.pagamentosVinculosLiquidacoes;
-			camposLiquidacoesVinculadas = "liquidacao.id";
-			criterioLiquidacoesVinculadas = "pagamento.id = $pagamentoId";
-			
-			percorrer(fonteLiquidacoesVinculadas.busca(campos:camposLiquidacoesVinculadas,criterio:criterioLiquidacoesVinculadas)){liquidacoesVinculadas ->
-				liquidacaoId =	liquidacoesVinculadas.liquidacao.id
-				
-				//IDENTIFICA OS COMPROVANTES DA LIQUIDACAO
-				fonteComprovantesPag = Dados.contabilidade.v1.comprovantesLiquidacoes;
-				camposComprovantesPag = "liquidacao.id,comprovanteVinculo.valor,comprovanteVinculo.comprovante.credor.nome,comprovanteVinculo.comprovante.tipo.descricao,comprovanteVinculo.comprovante.numero,comprovanteVinculo.comprovante.data,comprovanteVinculo.comprovante.valorLiquido";
-				criterioComprovantesPag = "liquidacao.id = $liquidacaoId";
-				ordenacaoComprovantes = "comprovanteVinculo.comprovante.data asc"
-				percorrer(fonteComprovantesPag.busca(campos:camposComprovantesPag,criterio:criterioComprovantesPag,ordenacao:ordenacaoComprovantes)){comprovantesPag ->
-				
-					listaComprovantesPagamentos << [
-						tipoComprovante : comprovantesPag.comprovanteVinculo.comprovante.tipo.descricao,
-						numeroComprovante : comprovantesPag.comprovanteVinculo.comprovante.numero,
-						dataComprovante : comprovantesPag.comprovanteVinculo.comprovante.data.format("dd/MM/yyyy"),
-						nomeCredorComprovante : comprovantesPag.comprovanteVinculo.comprovante.credor.nome,
-						valorLiquidoComprovante : Numeros.arredonda(comprovantesPag.comprovanteVinculo.valor,2),
-						comprovantes: comprovantes
-					]
-				}
-			}
-		}
-	
-		se(valorPago != 0){
-			se(credor != nulo){
-				se(Integer.valueOf(idCredor+ "") in parametrosCredores ){
-					imprimir "entrou";
-//					se(credor in ("$idCredor")){
-					fonte.inserirLinha([
-						principalId:principalId,
-						entidadeId:entidadeId,
-						entidadeNome:entidadeNome,
-						dataMov:dataMov,
-						tipoDoc:tipoDoc,
-						numeroDoc:numeroDoc,
-						numeroPagamento:numeroPagamento,
-						numeroEmpenho:numeroEmpenho,
-						naturezaElemento:naturezaElemento,
-						numeroProcesso:numeroProcesso,
-						nomeCredor:nomeCredor,
-						valorBruto:valorBruto,
-						valorAnulado:valorAnuladoPago,
-						valorDesconto:valorDesconto,
-						valorPago:valorPago,
-						valorRecurso: 0,
-						numeroRecurso:numeroRecurso,
-						descricaoRecurso:descricaoRecurso,
-						listaComprovantes:listaComprovantesPagamentos,
-						listaLiquidacoes: listaEspecificaoesLiq
-					]);
-				}
-			}senao{
-				fonte.inserirLinha([
-					principalId:principalId,
-					entidadeId:entidadeId,
-					entidadeNome:entidadeNome,
-					dataMov:dataMov,
-					tipoDoc:tipoDoc,
-					numeroDoc:numeroDoc,
-					numeroPagamento:numeroPagamento,
-					numeroEmpenho:numeroEmpenho,
-					naturezaElemento:naturezaElemento,
-					numeroProcesso:numeroProcesso,
-					nomeCredor:nomeCredor,
-					valorBruto:valorBruto,
-					valorAnulado:valorAnuladoPago,
-					valorDesconto:valorDesconto,
-					valorPago:valorPago,
-					valorRecurso: 0,
-					numeroRecurso:numeroRecurso,
-					descricaoRecurso:descricaoRecurso,
-					listaComprovantes:listaComprovantesPagamentos,
-					listaLiquidacoes: listaEspecificaoesLiq
-				]);
-			}
-		}//fim verificação valor
-	}
-}
-
-/*BUSCA DADOS DOS PAGAMENTOS DAS DESPESA EXTRA*/
-
-//DADOS DA RETENÇÃO DA DESPESA EXTRA
-se(tipoDocumento == "T" || tipoDocumento == "D"){
-	fonteRetencao = Dados.contabilidade.v1.retencoes.despesasExtras;
-	camposRetencao = "id,retencaoVinculo.valor,despesaExtra.baixa.data,despesaExtra.exercicio.ano,despesaExtra.entidade.id,despesaExtra.id,despesaExtra.credor.id"
-	criterioRetencao = "despesaExtra.exercicio.ano = $exercicio and despesaExtra.baixa.data >= $dataInicial and despesaExtra.baixa.data <= $dataFinal"
-	
-	se(entidade){
-		criterioRetencao += " and despesaExtra.entidade.id in ($entidade) "
-	}
-	se(credor){
-		credorAux = credor.join(",")
-		criterioRetencao += " and despesaExtra.credor.id in ($credorAux)"
-	}
-
-	mapaRetencaoDex = [:];
-	valorRetencao = 0.0;
-	
-	percorrer(fonteRetencao.busca(campos:camposRetencao,criterio:criterioRetencao)){ retencao -> 
-		despesaExtraId = retencao.despesaExtra.id
-		valorRetencao = retencao.retencaoVinculo.valor;
-		
-		//Criação do Mapa com valor da Retenção por Id da Despesa Extra
-		chaveMapaRetencaoDex = [
-			despesaExtraId: despesaExtraId,
-		];
-		
-		se(mapaRetencaoDex[chaveMapaRetencaoDex]){
-			mapaRetencaoDex[chaveMapaRetencaoDex] = [
-				valorRetencao: mapaRetencaoDex[chaveMapaRetencaoDex].valorRetencao + valorRetencao
-			];
-		}senao{
-			mapaRetencaoDex[chaveMapaRetencaoDex] = [
-				valorRetencao: valorRetencao
-			]
-		}
-	} //FIM RETENCÂO
-	
-	//DADOS DA ANULAÇÃO DA DESPESA EXTRA
-	fonteAnulacao = Dados.contabilidade.v1.anulacoes.despesasExtras;
-	camposAnulacao = "id,anulacao(id,data,valor),despesaExtra.id,despesaExtra.entidade.id,despesaExtra.exercicio.ano,despesaExtra.credor.id";
-	criterioAnulacao = "despesaExtra.exercicio.ano = $exercicio";
-	
-	se(anulacoes == "N"){
-		criterioAnulacao += " and anulacao.data >= $dataInicial and anulacao.data <= $dataFinal"
-	}
-	
-	se(entidade){
-		criterioAnulacao += " and despesaExtra.entidade.id in ($entidade)"
-	}
-	
-	se(credor){
-		criterioAnulacao += " and despesaExtra.credor.id in ($credorAux)"
-	}
-	
-	mapaAnulacaoDex = [:];
-	anulacaoValor = 0.0;
-	
-	percorrer(fonteAnulacao.busca(campos:camposAnulacao,criterio:criterioAnulacao)){ anulacao -> 
-		despesaExtraId = anulacao.despesaExtra.id
-		valorAnulado = anulacao.anulacao.valor;
-		
-		//Criação do Mapa com valor da Anulação por Id da Despesa Extra
-		chaveMapaAnulacaoDex = [
-			despesaExtraId: despesaExtraId
-		];
-		
-		se(mapaAnulacaoDex[chaveMapaAnulacaoDex]){
-			mapaAnulacaoDex[chaveMapaAnulacaoDex] = [
-				valorAnulado: mapaAnulacaoDex[chaveMapaAnulacaoDex].valorAnulado + valorAnulado
-			];
-		}senao{
-			mapaAnulacaoDex[chaveMapaAnulacaoDex] = [
-				valorAnulado: valorAnulado
-			]
-		}	
-	} //FIM ANULAÇÃO
-	
-	//DADOS DA DESPESA EXTRA
-	fonteDespesaExtra = Dados.contabilidade.v1.despesasExtras;
-	camposDespesaExtra ="id,entidade(id,nome,uf),exercicio.ano, data, credor(nome,id), baixa.data, numeroCadastro.numero, paga, baixa(numeroDocumento,data), dataVencimento, valor, especificacao, tipo, baixa.transacaoFinanceiraExercicio.transacaoFinanceira.tipo, numeroCadastro.numero,";	
-	camposDespesaExtra += "baixa.contaBancariaEntidade.conta(id,numero,digito)"
-	criteriosDespesaExtra = "exercicio.ano = $exercicio and baixa.data >= $dataInicial and baixa.data <= $dataFinal";
-	ordenacaoDespesaExtra = "id asc";
-	
-	se(entidade){
-		criteriosDespesaExtra += " and entidade.id in ($entidade)";
-	}
-	se(credor){
-		criteriosDespesaExtra += " and credor.id in ($credorAux)";
-	}
-	
-	valorDesconto = 0.0;
-	valorAnulado = 0.0;
-	valorRecurso = 0.0;
-	numeroDoc = "";
-	numeroConta = "";
-	
-	percorrer(fonteDespesaExtra.busca(campos:camposDespesaExtra,criterio:criteriosDespesaExtra,ordenacao: ordenacaoDespesaExtra)){despesaExtra ->
-		principalId = despesaExtra.id;
-		despesaExtraId = despesaExtra.id;
-		entidadeId=despesaExtra.entidade.id;
-		entidadeNome=despesaExtra.entidade.nome;
-		dataMov = despesaExtra.baixa.data;
-		tipoDoc = "D.EX.";
-		numeroDoc = despesaExtra.baixa.numeroDocumento;
-		numeroEmpenho = despesaExtra.numeroCadastro.numero;
-		naturezaElemento = "";
-		numeroConta = "$despesaExtra.baixa.contaBancariaEntidade.conta.numero-$despesaExtra.baixa.contaBancariaEntidade.conta.digito";
-		numeroProcesso = "";
-		nomeCredor = despesaExtra.credor.nome;
-		valorBruto = despesaExtra.valor;
-		valorPago = despesaExtra.valor;
-		
-		
-		//DADOS DO RECURSO DA DESPESA EXTRA
-		fonteRecurso = Dados.contabilidade.v1.recursos.despesasExtras;
-		camposRecurso = "recursoVinculo.recurso(id,descricao,numero),recursoVinculo.valor,despesaExtra.id"
-		/*criterioRecurso = "despesaExtra.exercicio.ano = $exercicio and despesaExtra.entidade.id in ($entidade) and despesaExtra.baixa.data >= $dataInicial and despesaExtra.baixa.data <= $dataFinal"*/
-		criterioRecurso = "despesaExtra.id = $despesaExtraId";
-		recursoValor = 0;
-		recursoNumero = "";
-		percorrer(fonteRecurso.busca(campos:camposRecurso, criterio:criterioRecurso)){ recursoDespesaExtra ->
-			despesaExtraId = recursoDespesaExtra.despesaExtra.id
-			valorRecurso = recursoDespesaExtra.recursoVinculo.valor;
-			numeroRecurso = utilitarios.formatarCampo(marcaraRecurso,recursoDespesaExtra.recursoVinculo.recurso.numero);
-			descricaoRecurso = recursoDespesaExtra.recursoVinculo.recurso.descricao;
-		}
-		
-		//IDENTIFICA OS COMPROVANTES DA DESPESA EXTRA	
-		//VARIAVEIS COMPROVANTES
-		numeroComprovante= "";
-		dataComprovante = "";
-		nomeCredorComprovante = "";
-		valorLiquidoComprovante = 0.0;
-		tipoComprovante = "";
-		listaComprovantesDex = [];
-		
-		se(comprovantes == "S"){
-			fonteComprovantesDex = Dados.contabilidade.v1.comprovantes.despesasExtras;
-			camposComprovantesDex = "comprovanteVinculo.valor,comprovanteVinculo.comprovante.credor.nome,comprovanteVinculo.comprovante.tipo.descricao,comprovanteVinculo.comprovante.numero,comprovanteVinculo.comprovante.data,comprovanteVinculo.comprovante.valorLiquido";
-			criterioComprovantesDex = "despesaExtra.id = $despesaExtraId";
-			ordenacaoComprovantesDex = "comprovanteVinculo.comprovante.data asc";
-			
-			percorrer(fonteComprovantesDex.busca(campos:camposComprovantesDex,criterio:criterioComprovantesDex,ordenacao:ordenacaoComprovantesDex)){comprovantesDex ->
-				listaComprovantesDex << [
-					tipoComprovante : comprovantesDex.comprovanteVinculo.comprovante.tipo.descricao,
-					numeroComprovante : comprovantesDex.comprovanteVinculo.comprovante.numero,
-					dataComprovante : comprovantesDex.comprovanteVinculo.comprovante.data.format("dd/MM/yyyy"),
-					nomeCredorComprovante : comprovantesDex.comprovanteVinculo.comprovante.credor.nome,
-					valorLiquidoComprovante : Numeros.arredonda(comprovantesDex.comprovanteVinculo.valor,2),
-					comprovantes: comprovantes
-				]
-			}
-		}
-		
-		//IDENTIFICA VALOR DA ANULACAO DA DE.
-		chaveMapaAnulacao = [despesaExtraId: despesaExtra.id];
-		
-		se(mapaAnulacaoDex[chaveMapaAnulacao]){
-			valorAnulado = mapaAnulacaoDex[chaveMapaAnulacao].valorAnulado	
-		}
-		
-		//IDENTIFICA VALOR DA RETENCAO DA DE.
-		chaveMapaRetencao = [despesaExtraId: despesaExtra.id];
-		
-		se(mapaRetencaoDex[chaveMapaRetencao]){
-			valorDesconto = mapaRetencaoDex[chaveMapaRetencao].valorRetencao	
-		}
-		
-		valorBruto = valorBruto - valorAnulado
-		valorPago = (valorPago - valorDesconto) - valorAnulado;
-		se(valorPago < 0){valorPago = 0.0;}
-	
-		se(valorPago != 0){
-			fonte.inserirLinha([
-				principalId:principalId,
-				entidadeId:entidadeId,
-				entidadeNome:entidadeNome,
-				dataMov:dataMov,//.format("dd/MM"),
-				tipoDoc:tipoDoc,
-				numeroDoc:numeroDoc,
-				numeroPagamento:numeroDoc,
-				numeroEmpenho:numeroEmpenho,
-				naturezaElemento:naturezaElemento,
-				numeroProcesso:numeroProcesso,
-				nomeCredor:nomeCredor,
-				valorBruto:valorBruto,
-				valorAnulado:valorAnulado,
-				valorDesconto:valorDesconto,
-				valorPago:valorPago,
-				valorRecurso:valorRecurso,
-				numeroRecurso:numeroRecurso,
-				descricaoRecurso:descricaoRecurso,
-				listaComprovantes:listaComprovantesDex,
-				listaLiquidacoes: listaEspecificaoesLiq
-			]);
-		}
-		//ZERA VARIAVEL PRA REUTILIZAR
-		valorDesconto = 0.0;
-		valorAnulado = 0.0;
-		
-	}// FIM PERCORRER DESPESA EXTRA
 }
 
 retornar fonte;

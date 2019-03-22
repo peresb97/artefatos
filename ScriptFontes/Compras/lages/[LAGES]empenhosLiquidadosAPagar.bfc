@@ -17,7 +17,8 @@ esquema = [
 	valorPago: Esquema.numero,
 	valorRecurso: Esquema.numero,
 	numeroRecurso: Esquema.caracter,
-	descricaoRecurso: Esquema.caracter
+	descricaoRecurso: Esquema.caracter,
+	especificacao: Esquema.caracter
 ];
 
 fonte = Dados.dinamico.v2.novo(esquema);
@@ -25,7 +26,7 @@ fonte = Dados.dinamico.v2.novo(esquema);
 paramExercicio = parametros.exercicio.valor?:null
 paramEntidade = parametros.entidades.valor?:null
 paramDataInicial = parametros.dataInicial?.valor?:null
-paramDataInicial = dataInicial.format("yyyy-MM-dd")
+paramDataInicial = paramDataInicial.format("yyyy-MM-dd")
 paramDataFinal = parametros.dataFinal?.valor?:null
 //tipoDocumento = parametros.tipoDocumento.selecionado.valor?:nulo
 //conta = parametros.conta.valor?:nulo
@@ -39,27 +40,27 @@ if(paramEntidade){
 	criterioEntidade = " and entidade.id in ($paramEntidade)"
 }
 
-if(dataFinal){
-	paramDataFinal = dataFinal.format("yyyy-MM-dd")
+if(paramDataFinal){
+	paramDataFinal = paramDataFinal.format("yyyy-MM-dd")
 } else {
 	paramDataFinal = Datas.hoje().format("yyyy-MM-dd")
 }
 
 criterioCredor = ""
-if(credor){
-	criterioCredor = " and credor.id in ($paramCredor)"
+if(paramCredor){
+	criterioCredor = " and empenho.credor.id in ($paramCredor)"
 }
 
-parametrosCredores = [];
-se(credor){
-	credor = credor.dividir(~/,/)
-	percorrer(credor){
-		parametrosCredores << Integer.valueOf(item)
-	}
-}
+// parametrosCredores = [];
+// se(paramCredor){
+	// paramCredor = paramCredor.dividir(~/,/)
+	// percorrer(paramCredor){
+		// parametrosCredores << Integer.valueOf(item)
+	// }
+// }
 
 // pegando os parametros orçamentários do exercicio
-configuracoesOrcamentarias = utilitarios.configuracoesCloud(exercicio);
+configuracoesOrcamentarias = utilitarios.configuracoesCloud(paramExercicio);
 
 // pegando os ids das configurações do exercicio retornada pelo componente anterior
 idRecurso = configuracoesOrcamentarias.find{item -> item.configuracao == "RECURSO"};
@@ -76,9 +77,11 @@ mascaraNarureza = utilitarios.formatacaoMascara(idNaturezaDespesa);
 
 fonteLiquidacoesEmpenhos = Dados.contabilidade.v1.liquidacoesEmpenhos
 
-fonteLiquidacoesEmpenhosCampos = "id, data, valor, especificacao, restoPagar,  entidade(id, nome), credorDevedor(nome), exercicio.ano, empenho(numero, recursoVinculo(valor,recurso(numero,descricao)), processoAdministrativo(numeroProcesso,anoProcesso))"
+fonteLiquidacoesEmpenhosCampos = "id, data, valor, especificacao, restoPagar, entidade(id, nome), exercicio.ano, empenho(numero, recursoVinculo(valor,recurso(numero,descricao)), processoAdministrativo(numeroProcesso,anoProcesso), credor(nome))"
 fonteLiquidacoesEmpenhosCriterio = "exercicio.ano = $paramExercicio and data >= $paramDataInicial and data <= $paramDataFinal" + criterioEntidade + criterioCredor
 fonteLiquidacoesEmpenhosOrdenacao = "empenho.numero asc, data asc"
+
+imprimir fonteLiquidacoesEmpenhosCriterio
 
 fonteLiquidacoesEmpenhos = fonteLiquidacoesEmpenhos.busca(campos:fonteLiquidacoesEmpenhosCampos, criterio:fonteLiquidacoesEmpenhosCriterio, ordenacao:fonteLiquidacoesEmpenhosOrdenacao)
 
@@ -127,11 +130,17 @@ percorrer(fonteLiquidacoesEmpenhos){ liqEmpenhos->
 			valorPago += pagEmpenho.valorTotalPagamento + pagEmpenho.valorTotalRetencao
 		}
 		
-	}'
+	}
 	
 	//Descarta caso liquidação foi paga na integra
 	if(valorPago == liqEmpenhos.valor){
 		continuar()
+	}
+	
+	se(liqEmpenhos.restoPagar){
+		tipoDoc = "RESTO";
+	}senao{
+		tipoDoc = "EMP.";
 	}
 
 	fonte.inserirLinha([
@@ -140,7 +149,6 @@ percorrer(fonteLiquidacoesEmpenhos){ liqEmpenhos->
 		entidadeNome: liqEmpenhos.entidade.nome,
 		dataMov: liqEmpenhos.data,
 		tipoDoc: tipoDoc,
-		numeroDoc: numeroDoc,
 		numeroEmpenho: liqEmpenhos.empenho.numero,
 		numeroProcesso: liqEmpenhos.empenho.processoAdministrativo.numeroProcesso + "/" + liqEmpenhos.empenho.processoAdministrativo.anoProcesso,
 		nomeCredor: liqEmpenhos.credorDevedor.nome,
@@ -148,11 +156,11 @@ percorrer(fonteLiquidacoesEmpenhos){ liqEmpenhos->
 		valorPago: valorPago,
 		valorRecurso: liqEmpenhos.empenho.recursoVinculo.valor,
 		numeroRecurso: liqEmpenhos.empenho.recursoVinculo.recurso.numero,
-		descricaoRecurso: liqEmpenhos.empenho.recursoVinculo.recurso.descricao
+		descricaoRecurso: liqEmpenhos.empenho.recursoVinculo.recurso.descricao,
+		especificacao: liqEmpenhos.especificacao
 	]);
 
 }
 
 retornar fonte;
-
 
